@@ -3,10 +3,13 @@ package com.ptit.data.remote.util
 import com.google.gson.annotations.SerializedName
 
 data class BaseErrorResponse(
-    @SerializedName("statusCode")
-    val statusCode: String?,
-    @SerializedName("message")
-    val message: String?,
     @SerializedName("error")
-    val error: String?
-)
+    val error: Error?,
+    @SerializedName("statusCode")
+    val statusCode: Int?
+) {
+    data class Error(
+        @SerializedName("message")
+        val message: String?
+    )
+}
