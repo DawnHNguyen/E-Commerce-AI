@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorSystem_heading_button">#036666</color>
+    <color name="colorSystem_text_button">#248277</color>
+    <color name="colorSystem_normal_button">#469D89</color>
+    <color name="colorSystem_normal_text">#67B99A</color>
+    <color name="colorSystem_text_field">#88D4AB</color>
+</resources>
