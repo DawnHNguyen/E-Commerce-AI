@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.utils.BadRequestException
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.onError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,16 +100,26 @@ class RegisterViewModel @Inject constructor(
                 isValidEmail = isValidEmail,
                 isValidPassword = isValidPassword,
                 isValidConfirmPassword = isValidConfirmPassword,
+                emailErrorType = if (isValidEmail) RegisterUiModel.EmailErrorType.NONE else RegisterUiModel.EmailErrorType.INVALID_EMAIL,
             )
         }
         if (uiModel.value.isValid.value) {
             viewModelScope.launch(Dispatchers.IO) {
-                _registerState.update {
-                    repository.register(
-                        email = email,
-                        password = password,
-                    )
+                val response = repository.register(
+                    email = email,
+                    password = password,
+                ).onError {
+                    if (it.error?.message?.contains("email") == true) {
+                        _uiModel.update {
+                            it.copy(
+                                isValidEmail = false,
+                                emailErrorType = RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS,
+                            )
+                        }
+                    }
                 }
+
+                _registerState.update { response }
             }
         } else {
             _registerState.update {

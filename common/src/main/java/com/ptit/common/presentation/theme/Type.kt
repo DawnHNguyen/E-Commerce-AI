@@ -30,8 +30,8 @@ object CustomTypography {
         fontWeight = FontWeight.Bold,
     )
 
-    val TextField = TextSemiBold.merge(
-        fontSize = 16.sp
+    val TextField = TextRegular.merge(
+        fontSize = 14.sp
     )
 
     val Button = TextBold.merge(

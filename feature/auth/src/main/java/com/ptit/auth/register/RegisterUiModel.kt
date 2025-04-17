@@ -9,6 +9,7 @@ data class RegisterUiModel(
     val isValidConfirmPassword: Boolean = true,
     val isShowPassword: Boolean = false,
     val isShowConfirmPassword: Boolean = false,
+    val emailErrorType: EmailErrorType = EmailErrorType.NONE,
 ) {
     val isValid = lazy {
         isValidEmail && isValidPassword && isValidConfirmPassword
@@ -19,5 +20,11 @@ data class RegisterUiModel(
                 && email.isNotBlank()
                 && password.isNotBlank()
                 && confirmPassword.isNotBlank()
+    }
+
+    enum class EmailErrorType {
+        NONE,
+        INVALID_EMAIL,
+        EMAIL_ALREADY_EXISTS,
     }
 }
