@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorSystem_heading_button">#036666</color>
+    <color name="colorSystem_text_button">#248277</color>
+    <color name="colorSystem_normal_button">#469D89</color>
+    <color name="colorSystem_normal_text">#67B99A</color>
+    <color name="colorSystem_text_field">#88D4AB</color>
+
+    <color name="colorSystem_tint_red">#FF3B30</color>
+
+    <color name="colorSystem_greyscale_0_white">#FFFFFF</color>
+    <color name="colorSystem_greyscale_100">#F3F4F8</color>
+    <color name="colorSystem_greyscale_200">#D2D4DA</color>
+    <color name="colorSystem_greyscale_300">#B3B5BD</color>
+    <color name="colorSystem_greyscale_400">#9496A1</color>
+    <color name="colorSystem_greyscale_500">#777986</color>
+    <color name="colorSystem_greyscale_600">#5B5D6B</color>
+    <color name="colorSystem_greyscale_700">#404252</color>
+    <color name="colorSystem_greyscale_800">#2B2A3A</color>
+    <color name="colorSystem_greyscale_900">#101223</color>
+    <color name="colorSystem_greyscale_1000_black">#000000</color>
+
+    <color name="colorSystem_background_level_0">#F5F7FB</color>
+    <color name="colorSystem_background_level_1">#FCFCFD</color>
+    <color name="colorSystem_background_level_2">#FFFFFF</color>
+</resources>
