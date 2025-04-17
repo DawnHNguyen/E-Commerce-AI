@@ -1,5 +1,7 @@
 package com.ptit.data.remote.util
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.ptit.data.mapping.toDomainEntity
 import com.ptit.domain.utils.BadRequestException
 import com.ptit.domain.utils.NetworkAuthenticationException
@@ -11,7 +13,6 @@ import com.ptit.domain.utils.NoNetworkException
 import com.ptit.domain.utils.RequestTimeoutException
 import com.ptit.domain.utils.Resource
 import com.ptit.domain.utils.UnknownException
-import com.google.gson.Gson
 import okhttp3.Request
 import okhttp3.ResponseBody
 import okio.IOException
@@ -69,24 +70,27 @@ class CallAdapterFactory private constructor() : CallAdapter.Factory() {
     private class BodyCallAdapter<T : Any>(
         private val responseType: Type,
         private val converter: Converter<ResponseBody, Resource<T>>,
-    ) : CallAdapter<T, Call<Resource<T>>> {
+    ) : CallAdapter<BaseSuccessResponse<T>, Call<Resource<T>>> {
 
-        override fun responseType(): Type = responseType
+        override fun responseType(): Type = TypeToken.getParameterized(
+            BaseSuccessResponse::class.java,
+            responseType
+        ).type
 
-        override fun adapt(call: Call<T>): Call<Resource<T>> {
+        override fun adapt(call: Call<BaseSuccessResponse<T>>): Call<Resource<T>> {
             return ResourceCall(call, converter)
         }
     }
 
     internal class ResourceCall<S : Any>(
-        private val delegate: Call<S>,
+        private val delegate: Call<BaseSuccessResponse<S>>,
         private val converter: Converter<ResponseBody, Resource<S>>,
     ) :
         Call<Resource<S>> {
         override fun enqueue(callback: Callback<Resource<S>>) {
 
-            delegate.enqueue(object : Callback<S> {
-                override fun onFailure(call: Call<S>, t: Throwable) {
+            delegate.enqueue(object : Callback<BaseSuccessResponse<S>> {
+                override fun onFailure(call: Call<BaseSuccessResponse<S>>, t: Throwable) {
                     val apiResponse: Resource<Nothing> = when (t) {
                         is SSLHandshakeException, is IOException -> Resource.error(
                             NoNetworkException(
@@ -110,16 +114,17 @@ class CallAdapterFactory private constructor() : CallAdapter.Factory() {
                     callback.onResponse(this@ResourceCall, Response.success(apiResponse))
                 }
 
-                override fun onResponse(call: Call<S>, response: Response<S>) {
-                    val body = response.body()
+                override fun onResponse(call: Call<BaseSuccessResponse<S>>, response: Response<BaseSuccessResponse<S>>) {
+                    val baseResponse = response.body()
+                    val actualData = baseResponse?.data
                     val code = response.code()
                     val errorBody = response.errorBody()?.string().orEmpty()
 
-                    if (response.isSuccessful && (response.body() != null || code == 204)) {
+                    if (response.isSuccessful && (actualData != null || code == 204)) {
                         callback.onResponse(
                             this@ResourceCall, Response.success(
                                 Resource.success(
-                                    body!!
+                                    actualData!!
                                 )
                             )
                         )
