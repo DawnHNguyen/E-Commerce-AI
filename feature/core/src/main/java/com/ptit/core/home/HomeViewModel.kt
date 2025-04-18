@@ -1,4 +1,4 @@
-package com.ptit.home
+package com.ptit.core.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
