@@ -40,7 +40,7 @@ class ProductPagingSource(
                 nextKey = nextKey,
             )
         } else {
-            LoadResult.Error(Throwable((response as? Resource.Error)?.error?.message))
+            LoadResult.Error(Throwable((response as? Resource.Error)?.error?.message ?: "Unknown error occurred"))
         }
     }
 }
