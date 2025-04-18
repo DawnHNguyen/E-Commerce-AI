@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.material3)
 
+    implementation(libs.glide.compose)
+
     implementation(libs.kotlinx.collection.immutable)
 
     testImplementation(libs.junit)

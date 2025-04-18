@@ -5,8 +5,10 @@
     <color name="colorSystem_normal_button">#469D89</color>
     <color name="colorSystem_normal_text">#67B99A</color>
     <color name="colorSystem_text_field">#88D4AB</color>
+    <color name="colorSystem_stroke">#88D4AB</color>
 
     <color name="colorSystem_tint_red">#FF3B30</color>
+    <color name="colorSystem_tint_yellow">#FFEB3B</color>
 
     <color name="colorSystem_greyscale_0_white">#FFFFFF</color>
     <color name="colorSystem_greyscale_100">#F3F4F8</color>

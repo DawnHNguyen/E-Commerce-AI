@@ -1,7 +1,6 @@
 package com.ptit.navigation.destination
 
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 
 sealed class BottomNavigationScreen {
@@ -16,7 +15,7 @@ sealed class BottomNavigationScreen {
 }
 
 data class BottomNavigationItem(
-    @DrawableRes val iconRes: Int,
-    @StringRes val titleRes: Int,
+    val icon: ImageVector,
+    val title: String,
     val screen: BottomNavigationScreen,
 )

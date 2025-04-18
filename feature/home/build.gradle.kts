@@ -5,11 +5,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dagger.hilt.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
-    namespace = "com.ptit.data"
-
+    namespace = "com.ptit.home"
     val MIN_SDK: String by project
     val COMPILE_SDK: String by project
     compileSdk = COMPILE_SDK.toInt()
@@ -22,44 +22,37 @@ android {
     }
 
     buildTypes {
-        debug {
-            buildConfigField("String", "BASE_URL", "\"https://api-dtd-927645742464.us-central1.run.app/\"")
-        }
-
         release {
-            buildConfigField("String", "BASE_URL", "\"https://api-dtd-927645742464.us-central1.run.app/\"")
-
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
     kotlinOptions {
         jvmTarget = "11"
-    }
-
-    buildFeatures {
-        buildConfig = true
     }
 }
 
 dependencies {
+    implementation(libs.core.ktx)
+    implementation(libs.activity.compose)
+
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.material3)
+
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
+    implementation(libs.hilt.nav.compose)
 
-    implementation(libs.mmkv)
-
-    implementation(libs.gson)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.logging.interceptor)
+    implementation(libs.glide.compose)
 
     implementation(libs.paging)
+    implementation(libs.paging.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

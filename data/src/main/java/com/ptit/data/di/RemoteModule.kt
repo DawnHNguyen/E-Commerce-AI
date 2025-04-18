@@ -4,6 +4,8 @@ import com.google.gson.Gson
 import com.ptit.data.remote.api.AuthApi
 import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.BuildConfig
+import com.ptit.data.remote.api.ProductApi
+import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
 import dagger.Module
 import dagger.Provides
@@ -38,7 +40,7 @@ object RemoteModule {
         refreshTokenAuthenticator: RefreshTokenAuthenticator,
     ) =
         OkHttpClient.Builder()
-//            .addInterceptor(HeaderAuthorizationInterceptor())
+            .addInterceptor(HeaderAuthorizationInterceptor())
             .addInterceptor(httpLoggingInterceptor)
 //            .authenticator(refreshTokenAuthenticator)
             .callTimeout(1, TimeUnit.MINUTES)
@@ -73,5 +75,11 @@ object RemoteModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi {
         return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideProductApi(retrofit: Retrofit): ProductApi {
+        return retrofit.create(ProductApi::class.java)
     }
 }

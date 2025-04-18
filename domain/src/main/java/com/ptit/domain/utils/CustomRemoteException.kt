@@ -1,6 +1,6 @@
 package com.ptit.domain.utils
 
-import com.ptit.domain.entity.BaseErrorResponseDomainEntity
+import com.ptit.domain.entity.common.BaseErrorResponseDomainEntity
 
 //4xx
 class NoNetworkException(

@@ -38,7 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
-import com.ptit.common.presentation.component.BaseTextField
+import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.rememberState
@@ -114,7 +114,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            BaseTextField(
+            FilledTextField(
                 value = uiModel.value.username,
                 onValueChange = viewModel::onUsernameChanged,
                 modifier = Modifier.fillMaxWidth(),
@@ -139,7 +139,8 @@ fun LoginScreen(
                 style = CustomTypography.TextMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            BaseTextField(
+
+            FilledTextField(
                 value = uiModel.value.password,
                 onValueChange = viewModel::onPasswordChanged,
                 modifier = Modifier.fillMaxWidth(),
@@ -152,7 +153,7 @@ fun LoginScreen(
                 ),
                 singleLine = true,
                 isError = !uiModel.value.isValidPassword,
-                trailingIcon = {
+                trailingContent = {
                     IconButton(onClick = viewModel::toggleShowPassword) {
                         Icon(
                             imageVector = if (uiModel.value.isShowPassword) Icons.Default.Visibility
