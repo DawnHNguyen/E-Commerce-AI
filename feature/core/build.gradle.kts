@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":navigation"))
     implementation(project(":domain"))
+    implementation(project(":feature:home"))
 }
 
 tasks.withType<KotlinCompile>().configureEach {

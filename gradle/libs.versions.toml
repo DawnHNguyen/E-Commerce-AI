@@ -3,36 +3,30 @@ agp = "8.9.1"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 
-firebase-bom = "33.12.0"
-firebase-crashlytics-plugin = "3.0.3"
-
-composeBom = "2025.03.01"
+composeBom = "2025.04.00"
 activityCompose = "1.10.1"
 navigation = "2.8.9"
 
 kotlinxSerialization = "1.7.3"
 kotlinxCollectionImmutable = "0.3.8"
 
-coreKtx = "1.15.0"
+coreKtx = "1.16.0"
 lifecycleRuntimeKtx = "2.8.7"
-
-gms-google-services = "4.4.2"
 
 mmkv = "2.1.0"
 
 hilt = "2.52"
 hilt-nav-compose = "1.2.0"
 
+glide-compose = "1.0.0-beta01"
+
+paging = "3.3.6"
+
 retrofit = "2.9.0"
 logging-interceptor = "4.10.0"
 gson = "2.11.0"
 
-sql-delight = "2.0.2"
-
 splash-screen = "1.1.0-rc01"
-
-googleid = "1.1.1"
-credentials = "1.5.0"
 
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -52,8 +46,6 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 
 splash-screen = { module = "androidx.core:core-splashscreen", version.ref = "splash-screen" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleRuntimeKtx" }
 
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
@@ -64,6 +56,11 @@ mmkv = { module = "com.tencent:mmkv", version.ref = "mmkv" }
 hilt = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 hilt-nav-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hilt-nav-compose" }
+
+glide-compose = { module = "com.github.bumptech.glide:compose", version.ref = "glide-compose" }
+
+paging = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
+paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
