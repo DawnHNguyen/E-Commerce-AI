@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalRippleConfiguration
@@ -51,7 +52,9 @@ import com.ptit.common.presentation.rememberDerivedState
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
-import com.ptit.home.HomeScreen
+import com.ptit.core.account.AccountScreen
+import com.ptit.core.cart.CartScreen
+import com.ptit.core.home.HomeScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -122,24 +125,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable<BottomNavigationScreen.ListScreen> {
-                            MaxSizeBox(
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "List Screen",
-                                )
-                            }
+                        composable<BottomNavigationScreen.CartScreen> {
+                            CartScreen()
                         }
 
                         composable<BottomNavigationScreen.ProfileScreen> {
-                            MaxSizeBox(
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Profile Screen",
-                                )
-                            }
+                            AccountScreen()
                         }
                     }
                 }
@@ -160,9 +151,9 @@ class MainActivity : ComponentActivity() {
                     screen = BottomNavigationScreen.HomeScreen
                 ),
                 BottomNavigationItem(
-                    icon = Icons.AutoMirrored.Outlined.List,
-                    title = "Danh mục",
-                    screen = BottomNavigationScreen.ListScreen
+                    icon = Icons.Outlined.ShoppingCart,
+                    title = "Giỏ hàng",
+                    screen = BottomNavigationScreen.CartScreen
                 ),
                 BottomNavigationItem(
                     icon = Icons.Outlined.Person,

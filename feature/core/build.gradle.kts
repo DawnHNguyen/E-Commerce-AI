@@ -52,6 +52,11 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.nav.compose)
 
+    implementation(libs.glide.compose)
+
+    implementation(libs.paging)
+    implementation(libs.paging.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)
@@ -59,7 +64,6 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":navigation"))
     implementation(project(":domain"))
-    implementation(project(":feature:home"))
 }
 
 tasks.withType<KotlinCompile>().configureEach {

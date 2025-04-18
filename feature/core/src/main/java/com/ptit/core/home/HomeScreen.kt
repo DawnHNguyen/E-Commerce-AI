@@ -1,4 +1,4 @@
-package com.ptit.home
+package com.ptit.core.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +43,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
@@ -63,7 +64,7 @@ fun HomeScreen(
     val paginatedRecommendedProduct = viewModel.paginatedRecommendedProduct.collectAsLazyPagingItems()
 
     CustomPullToRefreshBox(
-        modifier = Modifier.background(color = colorResource(com.ptit.common.R.color.colorSystem_background_level_0)),
+        modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0)),
         isRefreshing = paginatedRecommendedProduct.loadState.refresh == LoadState.Loading,
         onRefresh = {
             paginatedRecommendedProduct.refresh()
@@ -72,7 +73,7 @@ fun HomeScreen(
         MaxSizeColumn {
             MaxWidthRow(
                 modifier = Modifier
-                    .background(color = colorResource(com.ptit.common.R.color.colorSystem_heading_button))
+                    .background(color = colorResource(R.color.colorSystem_heading_button))
                     .padding(
                         vertical = 8.dp,
                         horizontal = 20.dp
@@ -96,7 +97,7 @@ fun HomeScreen(
                             Text(
                                 text = "99+",
                                 style = CustomTypography.TextRegular.merge(
-                                    color = colorResource(com.ptit.common.R.color.colorSystem_greyscale_0_white),
+                                    color = colorResource(R.color.colorSystem_greyscale_0_white),
                                     fontSize = 10.sp
                                 )
                             )
@@ -107,7 +108,7 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Outlined.ShoppingCart,
                             contentDescription = null,
-                            tint = colorResource(com.ptit.common.R.color.colorSystem_greyscale_0_white)
+                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
                         )
                     }
                 }
@@ -131,7 +132,7 @@ fun HomeScreen(
                     Text(
                         text = "Gợi ý cho bạn",
                         style = CustomTypography.TextSemiBold.merge(
-                            color = colorResource(com.ptit.common.R.color.colorSystem_heading_button),
+                            color = colorResource(R.color.colorSystem_heading_button),
                             fontSize = 20.sp
                         ),
                     )
@@ -174,7 +175,7 @@ private fun RecommendProductItem(
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = "",
-                tint = colorResource(com.ptit.common.R.color.colorSystem_tint_yellow)
+                tint = colorResource(R.color.colorSystem_tint_yellow)
             )
         }
     )
@@ -182,7 +183,7 @@ private fun RecommendProductItem(
     MaxSizeBox(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(color = colorResource(com.ptit.common.R.color.colorSystem_background_level_2))
+            .background(color = colorResource(R.color.colorSystem_background_level_2))
             .clickable(onClick = onClickProduct)
     ) {
         MaxSizeColumn {
@@ -209,7 +210,7 @@ private fun RecommendProductItem(
                 Text(
                     text = product.name,
                     style = CustomTypography.TextRegular.merge(
-                        color = colorResource(com.ptit.common.R.color.colorSystem_normal_text),
+                        color = colorResource(R.color.colorSystem_normal_text),
                         fontSize = 12.sp
                     ),
                     minLines = 2,
@@ -219,7 +220,7 @@ private fun RecommendProductItem(
                 Text(
                     text = "${product.price}đ",
                     style = CustomTypography.TextSemiBold.merge(
-                        color = colorResource(com.ptit.common.R.color.colorSystem_heading_button),
+                        color = colorResource(R.color.colorSystem_heading_button),
                         fontSize = 14.sp
                     )
                 )
@@ -233,7 +234,7 @@ private fun RecommendProductItem(
                         text = ratingAnnotatedString,
                         inlineContent = ratingInlineContentMap,
                         style = CustomTypography.TextRegular.merge(
-                            color = colorResource(com.ptit.common.R.color.colorSystem_normal_text),
+                            color = colorResource(R.color.colorSystem_normal_text),
                             fontSize = 12.sp
                         )
                     )
@@ -241,7 +242,7 @@ private fun RecommendProductItem(
                     Text(
                         text = "${product.sold} đã bán",
                         style = CustomTypography.TextRegular.merge(
-                            color = colorResource(com.ptit.common.R.color.colorSystem_normal_text),
+                            color = colorResource(R.color.colorSystem_normal_text),
                             fontSize = 12.sp
                         )
                     )
@@ -253,12 +254,12 @@ private fun RecommendProductItem(
             Text(
                 text = "-${product.discountPercent.value}%",
                 style = CustomTypography.TextMedium.merge(
-                    color = colorResource(com.ptit.common.R.color.colorSystem_heading_button),
+                    color = colorResource(R.color.colorSystem_heading_button),
                     fontSize = 12.sp
                 ),
                 modifier = Modifier
                     .background(
-                        color = colorResource(com.ptit.common.R.color.colorSystem_stroke).copy(alpha = 0.25f),
+                        color = colorResource(R.color.colorSystem_stroke).copy(alpha = 0.25f),
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(

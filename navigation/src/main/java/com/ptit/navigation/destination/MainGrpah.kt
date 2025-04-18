@@ -8,7 +8,7 @@ sealed class BottomNavigationScreen {
     data object HomeScreen : BottomNavigationScreen()
 
     @Serializable
-    data object ListScreen : BottomNavigationScreen()
+    data object CartScreen : BottomNavigationScreen()
 
     @Serializable
     data object ProfileScreen : BottomNavigationScreen()
