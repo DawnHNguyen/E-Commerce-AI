@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -343,8 +344,14 @@ fun ProductDetailContent(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon (
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Shop",
+                        tint = colorResource(id = R.color.colorSystem_heading_button),
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                     Text(
-                        text = "Shop ${product.shop}",
+                        text = "    ${product.shop.shop.name}",
                         style = CustomTypography.TextMedium,
                         modifier = Modifier.weight(1f)
                     )
