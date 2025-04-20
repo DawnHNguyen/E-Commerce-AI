@@ -41,10 +41,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
+
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ptit.common.R
 import com.ptit.common.presentation.EventManager
 import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
@@ -55,8 +59,10 @@ import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
+
 import dagger.hilt.android.AndroidEntryPoint
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -121,6 +127,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 navigateToSearch = {
 
+                                },
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate("product_detail/$productId")
                                 }
                             )
                         }
@@ -131,6 +140,20 @@ class MainActivity : ComponentActivity() {
 
                         composable<BottomNavigationScreen.ProfileScreen> {
                             AccountScreen()
+                        }
+
+                        // In MainActivity.kt, update the ProductDetailScreen composable
+                        composable(
+                            route = "product_detail/{productId}",
+                            arguments = listOf(
+                                navArgument("productId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                            ProductDetailScreen(
+                                navController = navController,
+                                productId = productId
+                            )
                         }
                     }
                 }
@@ -190,11 +213,11 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = colorResource(id = com.ptit.common.R.color.colorSystem_greyscale_0_white),
-                            unselectedIconColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            selectedTextColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            unselectedTextColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            indicatorColor = colorResource(com.ptit.common.R.color.colorSystem_normal_button)
+                            selectedIconColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                            unselectedIconColor = colorResource(id = R.color.colorSystem_heading_button),
+                            selectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
+                            unselectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
+                            indicatorColor = colorResource(R.color.colorSystem_normal_button)
                         ),
                         icon = {
                             Icon(

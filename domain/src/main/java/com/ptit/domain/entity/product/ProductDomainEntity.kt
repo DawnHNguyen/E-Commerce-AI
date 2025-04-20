@@ -15,6 +15,7 @@ data class ProductDomainEntity(
     val sold: Int = 0,
     val updatedAt: String = "",
     val view: Int = 0,
+    val description: String = "",
 ) {
     val hasDiscount get() = lazy {
         priceBeforeDiscount > price && priceBeforeDiscount > 0

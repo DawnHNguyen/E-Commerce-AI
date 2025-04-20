@@ -31,4 +31,6 @@ data class ProductDto(
     val updatedAt: String?,
     @SerializedName("view")
     val view: Int?,
+    @SerializedName("description")
+    var description: String? = "", // Add default value to avoid nullability issues
 )

@@ -20,6 +20,7 @@ fun ProductDto.toDomainEntity() = ProductDomainEntity(
     shop = shop ?: "",
     updatedAt = updatedAt ?: "",
     view = view ?: 0,
+    description = description ?: "",
 
     )
 

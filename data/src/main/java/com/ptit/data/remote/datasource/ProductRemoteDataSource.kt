@@ -21,4 +21,6 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
         rating = rating,
         name = name
     )
+
+    suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
 }
