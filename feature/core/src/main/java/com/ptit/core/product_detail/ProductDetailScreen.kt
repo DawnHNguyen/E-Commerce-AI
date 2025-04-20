@@ -1,6 +1,5 @@
 package com.ptit.core.product_detail
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -26,11 +25,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,13 +35,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.MaxSizeColumn
@@ -55,18 +53,19 @@ import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.presentation.viewmodel.ProductDetailState
 import com.ptit.presentation.viewmodel.ProductDetailViewModel
 
 @Composable
 fun ProductDetailScreen(
     productId: String,
-    navController: NavController,
-    viewModel: ProductDetailViewModel = hiltViewModel()
+    onBackClick: () -> Unit,
+    onCartClick: () -> Unit,
+    onAddToCartClick: () -> Unit,
+    onBuyNowClick: () -> Unit
 ) {
-    val productState by viewModel.productDetailState.collectAsState()
+    val viewModel = hiltViewModel<ProductDetailViewModel>()
+    val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
 
     LaunchedEffect(key1 = productId) {
         viewModel.getProductDetail(productId)
@@ -79,18 +78,21 @@ fun ProductDetailScreen(
             is ProductDetailState.Initial -> {
                 // Initial state, might show placeholder
             }
+
             is ProductDetailState.Loading -> {
                 FullScreenProgressBar()
             }
+
             is ProductDetailState.Success -> {
                 ProductDetailContent(
                     product = state.product,
-                    onBackClick = { navController.popBackStack() },
-                    onCartClick = { /* Navigate to cart */ },
-                    onAddToCartClick = { /* Implement add to cart logic */ },
-                    onBuyNowClick = { /* Implement buy now logic */ }
+                    onBackClick = onBackClick,
+                    onCartClick = onCartClick,
+                    onAddToCartClick = onAddToCartClick,
+                    onBuyNowClick = onBuyNowClick
                 )
             }
+
             is ProductDetailState.Error -> {
                 // Show error state
                 MaxSizeColumn(
@@ -126,7 +128,7 @@ fun ProductDetailScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalGlideComposeApi::class)
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun ProductDetailContent(
     product: ProductDomainEntity,
@@ -148,7 +150,8 @@ fun ProductDetailContent(
                 .background(Color(0xFFE8F5E9)) // Light green background
         ) {
             // Image carousel - takes up 3/4 of the screen width
-            val pagerState = rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
+            val pagerState =
+                rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
 
             // Top row containing back button, empty space, and cart button
             MaxWidthRow(
@@ -163,7 +166,7 @@ fun ProductDetailContent(
                     onClick = onBackClick,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = colorResource(id = R.color.colorSystem_heading_button)
                     )
@@ -344,7 +347,7 @@ fun ProductDetailContent(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon (
+                    Icon(
                         imageVector = Icons.Default.Home,
                         contentDescription = "Shop",
                         tint = colorResource(id = R.color.colorSystem_heading_button),

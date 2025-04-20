@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -29,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,16 +39,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavType
-
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.ptit.common.R
 import com.ptit.common.presentation.EventManager
-import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberDerivedState
 import com.ptit.common.presentation.rememberState
@@ -62,7 +57,7 @@ import com.ptit.core.home.HomeScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
-
+import com.ptit.navigation.destination.ProductDetailRoute
 import dagger.hilt.android.AndroidEntryPoint
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -129,7 +124,7 @@ class MainActivity : ComponentActivity() {
 
                                 },
                                 navigateToProductDetail = { productId ->
-                                    navController.navigate("product_detail/$productId")
+                                    navController.navigate(ProductDetailRoute(productId = productId))
                                 }
                             )
                         }
@@ -143,16 +138,21 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // In MainActivity.kt, update the ProductDetailScreen composable
-                        composable(
-                            route = "product_detail/{productId}",
-                            arguments = listOf(
-                                navArgument("productId") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                        composable<ProductDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ProductDetailRoute>()
+                            val productId = args.productId
                             ProductDetailScreen(
-                                navController = navController,
-                                productId = productId
+                                productId = productId,
+                                onBackClick = navController::navigateUp,
+                                onCartClick = {
+
+                                },
+                                onAddToCartClick = {
+
+                                },
+                                onBuyNowClick = {
+
+                                },
                             )
                         }
                     }
