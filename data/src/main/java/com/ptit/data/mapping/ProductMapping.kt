@@ -2,6 +2,7 @@ package com.ptit.data.mapping
 
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.ProductDto
+import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 
@@ -17,7 +18,7 @@ fun ProductDto.toDomainEntity() = ProductDomainEntity(
     images = images ?: emptyList(),
     priceBeforeDiscount = priceBeforeDiscount ?: 0,
     quantity = quantity ?: 0,
-    shop = shop ?: "",
+    shop = shop?.toDomainEntity() ?: UserDomainEntity(),
     updatedAt = updatedAt ?: "",
     view = view ?: 0,
     description = description ?: "",

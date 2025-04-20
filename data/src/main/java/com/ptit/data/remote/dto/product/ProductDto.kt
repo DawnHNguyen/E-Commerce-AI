@@ -1,6 +1,7 @@
 package com.ptit.data.remote.dto.product
 
 import com.google.gson.annotations.SerializedName
+import com.ptit.data.remote.dto.common.UserDto
 
 data class ProductDto(
     @SerializedName("category")
@@ -24,7 +25,7 @@ data class ProductDto(
     @SerializedName("rating")
     val rating: Float?,
     @SerializedName("shop")
-    val shop: String?,
+    val shop: UserDto?,
     @SerializedName("sold")
     val sold: Int?,
     @SerializedName("updatedAt")

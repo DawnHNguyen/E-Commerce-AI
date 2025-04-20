@@ -1,5 +1,7 @@
 package com.ptit.domain.entity.product
 
+import com.ptit.domain.entity.common.UserDomainEntity
+
 data class ProductDomainEntity(
     val category: CategoryDomainEntity = CategoryDomainEntity(),
     val createdAt: String = "",
@@ -11,7 +13,7 @@ data class ProductDomainEntity(
     val priceBeforeDiscount: Int = 0,
     val quantity: Int = 0,
     val rating: Float = 0f,
-    val shop: String = "",
+    val shop: UserDomainEntity = UserDomainEntity(),
     val sold: Int = 0,
     val updatedAt: String = "",
     val view: Int = 0,
@@ -23,7 +25,7 @@ data class ProductDomainEntity(
 
     val discountPercent get() = lazy {
         if (hasDiscount.value) {
-            ((priceBeforeDiscount - price) * 100 / priceBeforeDiscount).toInt()
+            ((priceBeforeDiscount.toFloat() - price) * 100 / priceBeforeDiscount).toInt()
         } else {
             0
         }
