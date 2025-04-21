@@ -52,8 +52,8 @@ import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
-import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.cart.CartScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
@@ -145,7 +145,14 @@ class MainActivity : ComponentActivity() {
                                 productId = productId,
                                 onBackClick = navController::navigateUp,
                                 onCartClick = {
-
+                                    navController.navigate(BottomNavigationScreen.CartScreen) {
+                                        // Pop up to the start destination of the graph to
+                                        // avoid building up a large stack of destinations
+                                        popUpTo(navController.graph.startDestinationId)
+                                        // Avoid multiple copies of the same destination when
+                                        // reselecting the same item
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onAddToCartClick = {
 

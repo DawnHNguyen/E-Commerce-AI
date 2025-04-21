@@ -3,9 +3,11 @@ package com.ptit.data.di
 import com.ptit.data.repository.AuthRepositoryImpl
 import com.ptit.data.repository.HomeRepositoryImpl
 import com.ptit.data.repository.ProductRepositoryImpl
+import com.ptit.data.repository.PurchaseRepositoryImpl
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.HomeRepository
 import com.ptit.domain.repository.ProductRepository
+import com.ptit.domain.repository.PurchaseRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -26,4 +28,8 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindProductRepository(impl: ProductRepositoryImpl): ProductRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindPurchaseRepository(impl: PurchaseRepositoryImpl): PurchaseRepository
 }

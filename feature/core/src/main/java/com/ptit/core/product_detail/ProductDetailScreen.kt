@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -143,97 +144,99 @@ fun ProductDetailContent(
             .background(colorResource(id = R.color.colorSystem_background_level_0))
     ) {
         // Light green container for back button, image carousel, and cart button
+        // Light green container for back button, image carousel, and cart button
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
                 .background(Color(0xFFE8F5E9)) // Light green background
         ) {
-            // Image carousel - takes up 3/4 of the screen width
-            val pagerState =
-                rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
-
-            // Top row containing back button, empty space, and cart button
-            MaxWidthRow(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(horizontal = 8.dp)
-                    .align(Alignment.TopCenter),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Back button
-                IconButton(
-                    onClick = onBackClick,
+                // Top row containing back button, empty space, and cart button
+                Row(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Cart button
-                IconButton(
-                    onClick = onCartClick,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Cart",
-                        tint = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                }
-            }
-
-            // Image carousel - positioned below the top row buttons
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .padding(top = 60.dp)
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) { page ->
-                val imageUrl = if (product.images.isNotEmpty()) {
-                    product.images.getOrElse(page) { product.image }
-                } else {
-                    product.image
-                }
-
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    GlideImage(
-                        model = imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth(0.75f)
-                            .height(200.dp),
-                        contentScale = ContentScale.FillBounds,
-                        transition = MyCrossFade,
+                    // Back button
+                    IconButton(
+                        onClick = onBackClick,
                     ) {
-                        it.centerCrop()
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+
+                    // Cart button
+                    IconButton(
+                        onClick = onCartClick,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Cart",
+                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        )
                     }
                 }
-            }
 
-            // Image indicator (e.g., "1/5")
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "${pagerState.currentPage + 1}/${product.images.size.coerceAtLeast(1)}",
-                    style = CustomTypography.TextRegular.merge(
-                        color = Color.White,
-                        fontSize = 12.sp
+                // Image carousel - positioned below the top row buttons
+                val pagerState =
+                    rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                ) { page ->
+                    val imageUrl = if (product.images.isNotEmpty()) {
+                        product.images.getOrElse(page) { product.image }
+                    } else {
+                        product.image
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        GlideImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth(0.75f)
+                                .height(200.dp),
+                            contentScale = ContentScale.FillBounds,
+                            transition = MyCrossFade,
+                        ) {
+                            it.centerCrop()
+                        }
+                    }
+                }
+
+                // Image indicator (e.g., "1/5")
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${pagerState.currentPage + 1}/${product.images.size.coerceAtLeast(1)}",
+                        style = CustomTypography.TextRegular.merge(
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
                     )
-                )
+                }
             }
         }
 
