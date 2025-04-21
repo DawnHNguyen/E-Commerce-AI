@@ -5,6 +5,7 @@ import com.ptit.data.remote.api.AuthApi
 import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.BuildConfig
 import com.ptit.data.remote.api.ProductApi
+import com.ptit.data.remote.api.PurchaseApi
 import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
 import dagger.Module
@@ -81,5 +82,11 @@ object RemoteModule {
     @Singleton
     fun provideProductApi(retrofit: Retrofit): ProductApi {
         return retrofit.create(ProductApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providePurchaseApi(retrofit: Retrofit): PurchaseApi {
+        return retrofit.create(PurchaseApi::class.java)
     }
 }

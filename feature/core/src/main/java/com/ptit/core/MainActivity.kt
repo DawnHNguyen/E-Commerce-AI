@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -29,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,18 +43,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.ptit.common.R
 import com.ptit.common.presentation.EventManager
-import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberDerivedState
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
-import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.cart.CartScreen
+import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
+import com.ptit.navigation.destination.ProductDetailRoute
 import dagger.hilt.android.AndroidEntryPoint
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -121,6 +122,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 navigateToSearch = {
 
+                                },
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
                                 }
                             )
                         }
@@ -131,6 +135,32 @@ class MainActivity : ComponentActivity() {
 
                         composable<BottomNavigationScreen.ProfileScreen> {
                             AccountScreen()
+                        }
+
+                        // In MainActivity.kt, update the ProductDetailScreen composable
+                        composable<ProductDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ProductDetailRoute>()
+                            val productId = args.productId
+                            ProductDetailScreen(
+                                productId = productId,
+                                onBackClick = navController::navigateUp,
+                                onCartClick = {
+                                    navController.navigate(BottomNavigationScreen.CartScreen) {
+                                        // Pop up to the start destination of the graph to
+                                        // avoid building up a large stack of destinations
+                                        popUpTo(navController.graph.startDestinationId)
+                                        // Avoid multiple copies of the same destination when
+                                        // reselecting the same item
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onAddToCartClick = {
+
+                                },
+                                onBuyNowClick = {
+
+                                },
+                            )
                         }
                     }
                 }
@@ -190,11 +220,11 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = colorResource(id = com.ptit.common.R.color.colorSystem_greyscale_0_white),
-                            unselectedIconColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            selectedTextColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            unselectedTextColor = colorResource(id = com.ptit.common.R.color.colorSystem_heading_button),
-                            indicatorColor = colorResource(com.ptit.common.R.color.colorSystem_normal_button)
+                            selectedIconColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                            unselectedIconColor = colorResource(id = R.color.colorSystem_heading_button),
+                            selectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
+                            unselectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
+                            indicatorColor = colorResource(R.color.colorSystem_normal_button)
                         ),
                         icon = {
                             Icon(

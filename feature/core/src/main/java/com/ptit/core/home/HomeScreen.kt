@@ -59,6 +59,7 @@ import com.ptit.domain.entity.product.ProductDomainEntity
 fun HomeScreen(
     navigateToSearch: () -> Unit,
     navigateToCart: () -> Unit,
+    navigateToProductDetail: (String) -> Unit,
 ) {
     val viewModel = hiltViewModel<HomeViewModel>()
     val paginatedRecommendedProduct = viewModel.paginatedRecommendedProduct.collectAsLazyPagingItems()
@@ -146,7 +147,7 @@ fun HomeScreen(
                         RecommendProductItem(
                             product = product,
                             onClickProduct = {
-
+                                navigateToProductDetail(product.id)
                             }
                         )
                     }

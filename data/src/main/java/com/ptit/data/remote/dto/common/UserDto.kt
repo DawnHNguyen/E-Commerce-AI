@@ -2,7 +2,7 @@ package com.ptit.data.remote.dto.common
 
 import com.google.gson.annotations.SerializedName
 
-data class User(
+data class UserDto(
     @SerializedName("createdAt")
     val createdAt: String?,
     @SerializedName("email")
@@ -15,8 +15,6 @@ data class User(
     val shop: Shop?,
     @SerializedName("updatedAt")
     val updatedAt: String?,
-    @SerializedName("__v")
-    val v: Int?,
     @SerializedName("watchList")
     val watchList: List<String>?,
 ) {
