@@ -24,7 +24,7 @@ class CartViewModel @Inject constructor(
         getPurchases()
     }
 
-    fun getPurchases(status: Int? = null) {
+    fun getPurchases(status: Int? = -1 ) {
         viewModelScope.launch {
             _cartState.value = CartState.Loading
 
