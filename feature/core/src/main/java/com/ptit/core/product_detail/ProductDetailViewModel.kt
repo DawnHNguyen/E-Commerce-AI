@@ -2,8 +2,10 @@ package com.ptit.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ptit.domain.entity.cart.PurchaseDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.repository.ProductRepository
+import com.ptit.domain.repository.PurchaseRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,11 +16,15 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProductDetailViewModel @Inject constructor(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val purchaseRepository: PurchaseRepository
 ) : ViewModel() {
 
     private val _productDetailState = MutableStateFlow<ProductDetailState>(ProductDetailState.Initial)
     val productDetailState: StateFlow<ProductDetailState> = _productDetailState.asStateFlow()
+
+    private val _addToCartState = MutableStateFlow<AddToCartState>(AddToCartState.Initial)
+    val addToCartState: StateFlow<AddToCartState> = _addToCartState.asStateFlow()
 
     fun getProductDetail(productId: String) {
         viewModelScope.launch {
@@ -37,6 +43,24 @@ class ProductDetailViewModel @Inject constructor(
             }
         }
     }
+    fun addToCart(productId: String, buyCount: Int = 1) {
+        viewModelScope.launch {
+            _addToCartState.value = AddToCartState.Loading
+
+            when (val result = purchaseRepository.addToCart(productId, buyCount)) {
+                is Resource.Success -> {
+                    _addToCartState.value = AddToCartState.Success(result.data)
+                }
+                is Resource.Error -> {
+                    _addToCartState.value = AddToCartState.Error(result.error.message ?: "Unknown error")
+                }
+                else -> {
+                    _addToCartState.value = AddToCartState.Error("Unexpected error")
+                }
+            }
+        }
+    }
+
 }
 
 sealed class ProductDetailState {
@@ -44,4 +68,11 @@ sealed class ProductDetailState {
     object Loading : ProductDetailState()
     data class Success(val product: ProductDomainEntity) : ProductDetailState()
     data class Error(val message: String) : ProductDetailState()
+}
+
+sealed class AddToCartState {
+    object Initial : AddToCartState()
+    object Loading : AddToCartState()
+    data class Success(val purchase: PurchaseDomainEntity) : AddToCartState()
+    data class Error(val message: String) : AddToCartState()
 }
