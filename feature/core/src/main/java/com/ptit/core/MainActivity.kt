@@ -130,7 +130,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<BottomNavigationScreen.CartScreen> {
-                            CartScreen()
+                            CartScreen(
+                                onBack = navController::navigateUp,
+                                onCheckout = {
+
+                                },
+                            )
                         }
 
                         composable<BottomNavigationScreen.ProfileScreen> {
