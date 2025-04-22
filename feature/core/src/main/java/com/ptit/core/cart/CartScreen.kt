@@ -55,423 +55,444 @@ fun CartScreen(
     val updatePurchaseState by viewModel.updatePurchaseState.collectAsState()
     val deletePurchaseState by viewModel.deletePurchaseState.collectAsState()
     val scope = rememberCoroutineScope()
-
-    // State cho Snackbar
     val snackbarHostState = remember { SnackbarHostState() }
-
-    // State cho dialog - sử dụng một biến duy nhất để kiểm soát tất cả các loại dialog
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.Hidden) }
 
-    // Xử lý update purchase state
-    when (val state = updatePurchaseState) {
-        is CartViewModel.UpdatePurchaseState.Success -> {
-            LaunchedEffect(state) {
+    // Handle operation states and show appropriate snackbars
+    HandleOperationStates(
+        updatePurchaseState = updatePurchaseState,
+        deletePurchaseState = deletePurchaseState,
+        snackbarHostState = snackbarHostState
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = cartState) {
+            is CartViewModel.CartState.Loading -> FullScreenProgressBar()
+            
+            is CartViewModel.CartState.Error -> {
+                ErrorMessage(message = state.message)
+            }
+            
+            is CartViewModel.CartState.Success -> {
+                CartContent(
+                    purchases = state.purchases,
+                    onRefresh = { viewModel.getPurchases() },
+                    isLoading = cartState is CartViewModel.CartState.Loading || 
+                                deletePurchaseState is CartViewModel.DeletePurchaseState.Loading,
+                    onBack = onBack,
+                    onUpdateQuantity = { productId, newQuantity ->
+                        viewModel.updatePurchaseQuantity(productId, newQuantity)
+                    },
+                    onDeleteSingleItem = { purchase ->
+                        dialogState = DialogState.DeleteSingleItem(purchase)
+                    },
+                    onDeleteMultipleItems = { selectedIds ->
+                        dialogState = DialogState.DeleteMultipleItems(selectedIds)
+                    },
+                    onCheckout = onCheckout
+                )
+            }
+            
+            else -> {}
+        }
+
+        // SnackbarHost positioned at the bottom
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp) // Position above the bottom bar
+        )
+    }
+    
+    // Handle dialog displays based on dialogState
+    HandleDialogs(
+        dialogState = dialogState,
+        onDismiss = { dialogState = DialogState.Hidden },
+        onConfirmDelete = { itemIds ->
+            dialogState = DialogState.Hidden
+            scope.launch {
+                delay(150) // Wait briefly to ensure dialog has closed
+                if (itemIds.size == 1) {
+                    viewModel.deletePurchase(itemIds.first())
+                } else {
+                    viewModel.deletePurchases(itemIds.toList())
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun HandleOperationStates(
+    updatePurchaseState: CartViewModel.UpdatePurchaseState,
+    deletePurchaseState: CartViewModel.DeletePurchaseState,
+    snackbarHostState: SnackbarHostState
+) {
+    LaunchedEffect(updatePurchaseState) {
+        when (updatePurchaseState) {
+            is CartViewModel.UpdatePurchaseState.Success -> {
                 snackbarHostState.showSnackbar(
                     message = "Cập nhật số lượng thành công",
                     duration = SnackbarDuration.Short
                 )
             }
-        }
-        is CartViewModel.UpdatePurchaseState.Error -> {
-            LaunchedEffect(state) {
-//                snackbarHostState.showSnackbar(
-//                    message = state.message,
-//                    duration = SnackbarDuration.Short
-//                )
+            is CartViewModel.UpdatePurchaseState.Error -> {
+                // Uncomment if needed
+                // snackbarHostState.showSnackbar(
+                //     message = updatePurchaseState.message,
+                //     duration = SnackbarDuration.Short
+                // )
             }
+            else -> {}
         }
-        else -> { /* Handle other states if needed */ }
     }
 
-    // Xử lý delete purchase state
-    when (val state = deletePurchaseState) {
-        is CartViewModel.DeletePurchaseState.Error -> {
-            LaunchedEffect(state) {
+    LaunchedEffect(deletePurchaseState) {
+        when (deletePurchaseState) {
+            is CartViewModel.DeletePurchaseState.Success -> {
                 snackbarHostState.showSnackbar(
-                    message = state.message,
+                    message = "Đã xóa ${deletePurchaseState.deletedCount} sản phẩm",
                     duration = SnackbarDuration.Short
                 )
             }
-        }
-        is CartViewModel.DeletePurchaseState.Success -> {
-            LaunchedEffect(state) {
+            is CartViewModel.DeletePurchaseState.Error -> {
                 snackbarHostState.showSnackbar(
-                    message = "Đã xóa ${state.deletedCount} sản phẩm",
+                    message = deletePurchaseState.message,
                     duration = SnackbarDuration.Short
                 )
             }
+            else -> {}
         }
-        else -> { /* Handle other states if needed */ }
     }
+}
 
-    when (val state = cartState) {
-        is CartViewModel.CartState.Loading -> FullScreenProgressBar()
+@Composable
+private fun ErrorMessage(message: String) {
+    MaxSizeBox(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
+    ) {
+        Text(
+            text = message,
+            style = CustomTypography.TextMedium,
+            color = colorResource(R.color.colorSystem_normal_text)
+        )
+    }
+}
 
-        is CartViewModel.CartState.Error -> {
-            MaxSizeBox(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
-            ) {
-                Text(
-                    text = state.message,
-                    style = CustomTypography.TextMedium,
-                    color = colorResource(R.color.colorSystem_normal_text)
-                )
-            }
-        }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CartContent(
+    purchases: List<PurchaseDomainEntity>,
+    onRefresh: () -> Unit,
+    isLoading: Boolean,
+    onBack: () -> Unit,
+    onUpdateQuantity: (String, Int) -> Unit,
+    onDeleteSingleItem: (PurchaseDomainEntity) -> Unit,
+    onDeleteMultipleItems: (Set<String>) -> Unit,
+    onCheckout: () -> Unit
+) {
+    var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
+    var isAllSelected by remember(purchases) { mutableStateOf(false) }
+    
+    // Calculate total price based on selected items
+    val totalPrice = purchases
+        .filter { selectedItemIds.contains(it.id) }
+        .sumOf { it.price * it.buyCount }
+        
+    // Custom checkbox colors
+    val customCheckboxColors = CheckboxDefaults.colors(
+        checkedColor = colorResource(R.color.colorSystem_heading_button),
+        uncheckedColor = colorResource(R.color.colorSystem_greyscale_300),
+        checkmarkColor = colorResource(R.color.colorSystem_greyscale_0_white)
+    )
 
-        is CartViewModel.CartState.Success -> {
-            // Sử dụng state trực tiếp từ ViewModel, không cần mutable state riêng
-            val purchaseItems = state.purchases
+    CustomPullToRefreshBox(
+        modifier = Modifier.fillMaxSize(),
+        isRefreshing = isLoading,
+        onRefresh = onRefresh
+    ) {
+        MaxSizeColumn(
+            modifier = Modifier.background(colorResource(R.color.colorSystem_background_level_0))
+        ) {
+            // Top app bar
+            CartTopAppBar(onBack = onBack)
 
-            // Keep track of selected items
-            var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
-            var isAllSelected by remember(purchaseItems) {
-                mutableStateOf(false)
-            }
-
-            // Calculate total price based on selected items and their current quantities
-            val totalPrice = purchaseItems
-                .filter { selectedItemIds.contains(it.id) }
-                .sumOf { it.price * it.buyCount }
-
-            // Create custom colors for checkbox
-            val customCheckboxColors = CheckboxDefaults.colors(
-                checkedColor = colorResource(R.color.colorSystem_heading_button),
-                uncheckedColor = colorResource(R.color.colorSystem_greyscale_300),
-                checkmarkColor = colorResource(R.color.colorSystem_greyscale_0_white)
-            )
-
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Main content
-                CustomPullToRefreshBox(
-                    modifier = Modifier.fillMaxSize(),
-                    isRefreshing = cartState is CartViewModel.CartState.Loading ||
-                            deletePurchaseState is CartViewModel.DeletePurchaseState.Loading,
-                    onRefresh = { viewModel.getPurchases() }
+            if (purchases.isEmpty()) {
+                EmptyCartMessage()
+            } else {
+                // Cart items list
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    MaxSizeColumn(
-                        modifier = Modifier
-                            .background(colorResource(R.color.colorSystem_background_level_0))
-                    ) {
-                        // Top app bar
-                        MaxWidthRow(
-                            modifier = Modifier
-                                .background(color = colorResource(R.color.colorSystem_heading_button))
-                                .padding(
-                                    vertical = 16.dp,
-                                    horizontal = 20.dp
-                                )
-                                .statusBarsPadding(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                modifier = Modifier.noRippleClickable { onBack() },
-                                tint = colorResource(R.color.colorSystem_greyscale_0_white)
-                            )
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Text(
-                                text = "Giỏ hàng",
-                                style = CustomTypography.TextBold.copy(
-                                    color = colorResource(R.color.colorSystem_greyscale_0_white),
-                                    fontSize = 20.sp
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-
-                        if (purchaseItems.isEmpty()) {
-                            MaxSizeBox(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Giỏ hàng của bạn đang trống",
-                                    style = CustomTypography.TextMedium.merge(
-                                        color = colorResource(R.color.colorSystem_normal_text)
-                                    ),
-                                )
-                            }
-                        } else {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 16.dp,
-                                    vertical = 16.dp
-                                ),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                items(purchaseItems, key = { it.id }) { purchase ->
-                                    CustomSwipeToDeleteCartItem(
-                                        purchase = purchase,
-                                        isSelected = selectedItemIds.contains(purchase.id),
-                                        onSelectionChanged = { isSelected ->
-                                            selectedItemIds = if (isSelected) {
-                                                selectedItemIds + purchase.id
-                                            } else {
-                                                selectedItemIds - purchase.id
-                                            }
-                                        },
-                                        checkboxColors = customCheckboxColors,
-                                        onQuantityUpdate = { productId, newQuantity ->
-                                            // Update API
-                                            viewModel.updatePurchaseQuantity(productId, newQuantity)
-                                        },
-                                        onDeleteRequest = {
-                                            // Chỉ cập nhật dialogState
-                                            dialogState = DialogState.DeleteSingleItem(purchase)
-                                        }
-                                    )
+                    items(purchases, key = { it.id }) { purchase ->
+                        CustomSwipeToDeleteCartItem(
+                            purchase = purchase,
+                            isSelected = selectedItemIds.contains(purchase.id),
+                            onSelectionChanged = { isSelected ->
+                                selectedItemIds = if (isSelected) {
+                                    selectedItemIds + purchase.id
+                                } else {
+                                    selectedItemIds - purchase.id
                                 }
-                            }
-                        }
-
-                        // Bottom payment bar
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(color = colorResource(R.color.colorSystem_greyscale_0_white))
-                                .padding(16.dp)
-                        ) {
-                            MaxWidthRow(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Left side - Select All and Total
-                                Column {
-                                    // Select All checkbox
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Checkbox(
-                                            checked = isAllSelected,
-                                            onCheckedChange = { checked ->
-                                                isAllSelected = checked
-                                                selectedItemIds = if (checked) {
-                                                    purchaseItems.map { it.id }.toSet()
-                                                } else {
-                                                    emptySet()
-                                                }
-                                            },
-                                            colors = customCheckboxColors
-                                        )
-
-                                        Text(
-                                            text = "Chọn tất cả",
-                                            style = CustomTypography.TextMedium,
-                                            color = colorResource(R.color.colorSystem_normal_text)
-                                        )
-                                    }
-
-                                    // Total amount - in a single row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(start = 16.dp)
-                                    ) {
-                                        Text(
-                                            text = "Tổng tiền: ",
-                                            style = CustomTypography.TextRegular,
-                                            color = colorResource(R.color.colorSystem_normal_text)
-                                        )
-
-                                        Text(
-                                            text = "${totalPrice} đ",
-                                            style = CustomTypography.TextSemiBold.merge(
-                                                color = colorResource(R.color.colorSystem_heading_button)
-                                            ),
-                                            fontSize = 16.sp
-                                        )
-                                    }
-                                }
-
-                                // Right side - Buttons row
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Delete button
-                                    Button(
-                                        onClick = {
-                                            dialogState = DialogState.DeleteMultipleItems(selectedItemIds)
-                                        },
-                                        enabled = selectedItemIds.isNotEmpty(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (selectedItemIds.isNotEmpty())
-                                                Color(0xFFE53935) // Enabled - deeper red
-                                            else
-                                                Color(0xFFFFCDD2), // Disabled - light red
-                                            disabledContainerColor = Color(0xFFFFCDD2)
-                                        ),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text(
-                                            text = "Xóa",
-                                            style = CustomTypography.TextSemiBold,
-                                            color = Color.White
-                                        )
-                                    }
-
-                                    // Checkout button
-                                    FilledButton(
-                                        text = "Mua hàng",
-                                        onClick = onCheckout,
-                                        enabled = selectedItemIds.isNotEmpty()
-                                    )
-                                }
-                            }
-                        }
+                            },
+                            checkboxColors = customCheckboxColors,
+                            onQuantityUpdate = onUpdateQuantity,
+                            onDeleteRequest = { onDeleteSingleItem(purchase) }
+                        )
                     }
                 }
+            }
 
-                // SnackbarHost positioned at the bottom
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 80.dp) // Position above the bottom bar
+            // Bottom payment bar
+            CartBottomBar(
+                totalPrice = totalPrice,
+                isAllSelected = isAllSelected,
+                onSelectAllChanged = { checked ->
+                    isAllSelected = checked
+                    selectedItemIds = if (checked) {
+                        purchases.map { it.id }.toSet()
+                    } else {
+                        emptySet()
+                    }
+                },
+                hasSelectedItems = selectedItemIds.isNotEmpty(),
+                onDeleteSelected = { onDeleteMultipleItems(selectedItemIds) },
+                onCheckout = onCheckout,
+                checkboxColors = customCheckboxColors
+            )
+        }
+    }
+}
+
+@Composable
+private fun CartTopAppBar(onBack: () -> Unit) {
+    MaxWidthRow(
+        modifier = Modifier
+            .background(color = colorResource(R.color.colorSystem_heading_button))
+            .padding(vertical = 16.dp, horizontal = 20.dp)
+            .statusBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "Back",
+            modifier = Modifier.noRippleClickable { onBack() },
+            tint = colorResource(R.color.colorSystem_greyscale_0_white)
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = "Giỏ hàng",
+            style = CustomTypography.TextBold.copy(
+                color = colorResource(R.color.colorSystem_greyscale_0_white),
+                fontSize = 20.sp
+            )
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun EmptyCartMessage() {
+    MaxSizeBox(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxSize()
+            .background(color = colorResource(R.color.colorSystem_background_level_0))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Giỏ hàng của bạn đang trống",
+            style = CustomTypography.TextMedium.merge(
+                color = colorResource(R.color.colorSystem_normal_text)
+            )
+        )
+    }
+}
+
+@Composable
+private fun CartBottomBar(
+    totalPrice: Int,
+    isAllSelected: Boolean,
+    onSelectAllChanged: (Boolean) -> Unit,
+    hasSelectedItems: Boolean,
+    onDeleteSelected: () -> Unit,
+    onCheckout: () -> Unit,
+    checkboxColors: CheckboxColors
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = colorResource(R.color.colorSystem_greyscale_0_white))
+            .padding(16.dp)
+    ) {
+        MaxWidthRow(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left side - Select All and Total
+            Column {
+                // Select All checkbox
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isAllSelected,
+                        onCheckedChange = onSelectAllChanged,
+                        colors = checkboxColors
+                    )
+
+                    Text(
+                        text = "Chọn tất cả",
+                        style = CustomTypography.TextMedium,
+                        color = colorResource(R.color.colorSystem_normal_text)
+                    )
+                }
+
+                // Total amount
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 16.dp)
+                ) {
+                    Text(
+                        text = "Tổng tiền: ",
+                        style = CustomTypography.TextRegular,
+                        color = colorResource(R.color.colorSystem_normal_text)
+                    )
+
+                    Text(
+                        text = "$totalPrice đ",
+                        style = CustomTypography.TextSemiBold.merge(
+                            color = colorResource(R.color.colorSystem_heading_button)
+                        ),
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            // Right side - Buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Delete button
+                Button(
+                    onClick = onDeleteSelected,
+                    enabled = hasSelectedItems,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (hasSelectedItems)
+                            Color(0xFFE53935) // Enabled - deeper red
+                        else
+                            Color(0xFFFFCDD2), // Disabled - light red
+                        disabledContainerColor = Color(0xFFFFCDD2)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Xóa",
+                        style = CustomTypography.TextSemiBold,
+                        color = Color.White
+                    )
+                }
+
+                // Checkout button
+                FilledButton(
+                    text = "Mua hàng",
+                    onClick = onCheckout,
+                    enabled = hasSelectedItems
                 )
             }
         }
-
-        else -> {}
     }
+}
 
-    // Xử lý hiển thị dialog dựa trên dialogState
+@Composable
+private fun HandleDialogs(
+    dialogState: DialogState,
+    onDismiss: () -> Unit,
+    onConfirmDelete: (List<String>) -> Unit
+) {
     when (val currentDialog = dialogState) {
         is DialogState.DeleteSingleItem -> {
-            AlertDialog(
-                onDismissRequest = { dialogState = DialogState.Hidden },
-                title = {
-                    Text(
-                        text = "Xóa sản phẩm",
-                        style = CustomTypography.TextBold,
-                        fontSize = 18.sp,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?",
-                        style = CustomTypography.TextRegular,
-                        color = colorResource(R.color.colorSystem_normal_text),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val itemId = currentDialog.item.id
-                            dialogState = DialogState.Hidden
-                            // Chờ một frame để đảm bảo dialog đã đóng hoàn toàn
-                            scope.launch {
-                                delay(150) // Chờ một lúc để đảm bảo dialog đã đóng
-                                viewModel.deletePurchase(itemId)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.colorSystem_heading_button)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Yes",
-                            style = CustomTypography.TextSemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                },
-                dismissButton = {
-                    Button(
-                        onClick = { dialogState = DialogState.Hidden },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "No",
-                            style = CustomTypography.TextSemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                },
-                containerColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
+            DeleteConfirmationDialog(
+                title = "Xóa sản phẩm",
+                message = "Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?",
+                onConfirm = { onConfirmDelete(listOf(currentDialog.item.id)) },
+                onDismiss = onDismiss
             )
         }
         is DialogState.DeleteMultipleItems -> {
-            AlertDialog(
-                onDismissRequest = { dialogState = DialogState.Hidden },
-                title = {
-                    Text(
-                        text = "Xóa sản phẩm",
-                        style = CustomTypography.TextBold,
-                        fontSize = 18.sp,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Bạn có chắc chắn muốn xóa ${currentDialog.itemIds.size} sản phẩm đã chọn khỏi giỏ hàng?",
-                        style = CustomTypography.TextRegular,
-                        color = colorResource(R.color.colorSystem_normal_text),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val itemIds = currentDialog.itemIds.toList()
-                            dialogState = DialogState.Hidden
-                            // Chờ một frame để đảm bảo dialog đã đóng hoàn toàn
-                            scope.launch {
-                                delay(150) // Chờ một lúc để đảm bảo dialog đã đóng
-                                viewModel.deletePurchases(itemIds)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.colorSystem_heading_button)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Yes",
-                            style = CustomTypography.TextSemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                },
-                dismissButton = {
-                    Button(
-                        onClick = { dialogState = DialogState.Hidden },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "No",
-                            style = CustomTypography.TextSemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                },
-                containerColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
+            DeleteConfirmationDialog(
+                title = "Xóa sản phẩm",
+                message = "Bạn có chắc chắn muốn xóa ${currentDialog.itemIds.size} sản phẩm đã chọn khỏi giỏ hàng?",
+                onConfirm = { onConfirmDelete(currentDialog.itemIds.toList()) },
+                onDismiss = onDismiss
             )
         }
-        DialogState.Hidden -> { /* Không hiển thị dialog */ }
+        DialogState.Hidden -> { /* No dialog to show */ }
     }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = title,
+                style = CustomTypography.TextBold,
+                fontSize = 18.sp,
+                color = colorResource(R.color.colorSystem_heading_button)
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                style = CustomTypography.TextRegular,
+                color = colorResource(R.color.colorSystem_normal_text),
+                textAlign = TextAlign.Center
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorResource(R.color.colorSystem_heading_button)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Yes",
+                    style = CustomTypography.TextSemiBold,
+                    color = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "No",
+                    style = CustomTypography.TextSemiBold,
+                    color = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable
@@ -484,32 +505,25 @@ fun CustomSwipeToDeleteCartItem(
     onDeleteRequest: () -> Unit
 ) {
     val density = LocalDensity.current
-
-    // Sử dụng remember với key để reset khi purchase thay đổi
     var offsetX by remember(purchase.id) { mutableStateOf(0f) }
 
-    // Cleanup khi component bị hủy
+    // Clean up state when component is disposed
     DisposableEffect(purchase.id) {
-        onDispose {
-            // Reset state when disposed
-            offsetX = 0f
-        }
+        onDispose { offsetX = 0f }
     }
 
-    // Threshold để kích hoạt hành động xóa (in dp)
+    // Threshold to trigger delete action (in dp)
     val deleteThreshold = 100.dp
-
-    // Chuyển đổi threshold sang pixels
     val deleteThresholdPx = with(density) { deleteThreshold.toPx() }
 
-    // Spring animation để trở về mượt mà
+    // Animate the offset for smooth movement
     val offsetXAnimated by animateFloatAsState(
         targetValue = offsetX,
         animationSpec = spring(),
         label = "Swipe Animation"
     )
 
-    // State để theo dõi nếu hành động xóa hiển thị
+    // Track if delete action is visible
     val isDeleteVisible = offsetXAnimated < -deleteThresholdPx / 2
 
     Box(
@@ -517,7 +531,7 @@ fun CustomSwipeToDeleteCartItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        // Nền xóa (hiển thị khi vuốt)
+        // Delete background (visible when swiped)
         if (isDeleteVisible) {
             Box(
                 modifier = Modifier
@@ -540,29 +554,28 @@ fun CustomSwipeToDeleteCartItem(
             }
         }
 
-        // Nội dung item giỏ hàng chính
+        // Main cart item content
         Box(
             modifier = Modifier
                 .offset { IntOffset(offsetXAnimated.roundToInt(), 0) }
                 .draggable(
                     orientation = Orientation.Horizontal,
                     state = rememberDraggableState { delta ->
-                        // Chỉ cho phép kéo sang trái (delta âm) hoặc phục hồi (delta dương khi đã âm)
+                        // Only allow left drag or recovery
                         if (delta < 0 || offsetX < 0) {
                             offsetX += delta
-
-                            // Giới hạn khoảng cách kéo
+                            // Limit drag distance
                             if (offsetX < -deleteThresholdPx * 1.5f) {
                                 offsetX = -deleteThresholdPx * 1.5f
                             }
                         }
                     },
                     onDragStopped = {
-                        // Nếu kéo qua ngưỡng, giữ ở vị trí ngưỡng
+                        // If dragged past threshold, keep at threshold position
                         if (offsetX < -deleteThresholdPx) {
                             offsetX = -deleteThresholdPx
                         } else {
-                            // Reset vị trí
+                            // Reset position
                             offsetX = 0f
                         }
                     }
@@ -589,8 +602,6 @@ private fun CartItemRow(
     onQuantityUpdate: (String, Int) -> Unit
 ) {
     val product = purchase.product
-
-    // Sử dụng purchase.buyCount trực tiếp để đồng bộ với state cha
     val quantity = purchase.buyCount
 
     Box(
@@ -649,13 +660,9 @@ private fun CartItemRow(
 
             QuantityControl(
                 quantity = quantity,
-                onIncrease = {
-                    // Cập nhật thông qua callback về cha
-                    onQuantityUpdate(product.id, quantity + 1)
-                },
-                onDecrease = {
+                onIncrease = { onQuantityUpdate(product.id, quantity + 1) },
+                onDecrease = { 
                     if (quantity > 1) {
-                        // Cập nhật thông qua callback về cha
                         onQuantityUpdate(product.id, quantity - 1)
                     }
                 }
@@ -698,8 +705,7 @@ private fun QuantityControl(
             text = quantity.toString(),
             style = CustomTypography.TextSemiBold,
             color = colorResource(R.color.colorSystem_heading_button),
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         IconButton(

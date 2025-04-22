@@ -190,52 +190,53 @@ fun ProductDetailContent(
                 val pagerState =
                     rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                ) { page ->
-                    val imageUrl = if (product.images.isNotEmpty()) {
-                        product.images.getOrElse(page) { product.image }
-                    } else {
-                        product.image
-                    }
+                Column {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) { page ->
+                        val imageUrl = if (product.images.isNotEmpty()) {
+                            product.images.getOrElse(page) { product.image }
+                        } else {
+                            product.image
+                        }
 
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        GlideImage(
-                            model = imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxWidth(0.75f)
-                                .height(200.dp),
-                            contentScale = ContentScale.FillBounds,
-                            transition = MyCrossFade,
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            it.centerCrop()
+                            GlideImage(
+                                model = imageUrl,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.75f)
+                                    .height(200.dp),
+                                contentScale = ContentScale.FillBounds,
+                                transition = MyCrossFade,
+                            ) {
+                                it.centerCrop()
+                            }
+                        }
+                        // Image indicator (e.g., "1/5")
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${pagerState.currentPage + 1}/${product.images.size.coerceAtLeast(1)}",
+                                style = CustomTypography.TextRegular.merge(
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                            )
                         }
                     }
-                }
-
-                // Image indicator (e.g., "1/5")
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${pagerState.currentPage + 1}/${product.images.size.coerceAtLeast(1)}",
-                        style = CustomTypography.TextRegular.merge(
-                            color = Color.White,
-                            fontSize = 12.sp
-                        )
-                    )
                 }
             }
         }
