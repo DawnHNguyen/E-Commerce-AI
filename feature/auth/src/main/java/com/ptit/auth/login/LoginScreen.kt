@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
@@ -126,6 +128,18 @@ fun LoginScreen(
                 singleLine = true,
                 isError = !uiModel.value.isValidUsername,
                 errorMessage = "Account not exist",
+                trailingContent = {
+                    if (uiModel.value.username.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.onUsernameChanged("")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear username"
+                            )
+                        }
+                    }
+                }
             )
         }
 

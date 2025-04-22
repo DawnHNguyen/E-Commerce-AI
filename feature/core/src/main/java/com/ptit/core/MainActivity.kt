@@ -52,12 +52,13 @@ import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
-import com.ptit.core.home.HomeScreen
 import com.ptit.core.cart.CartScreen
+import com.ptit.core.home.HomeScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ProductDetailRoute
+import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -67,6 +68,8 @@ class MainActivity : ComponentActivity() {
         window.decorView
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        RecurlySessionData.setPublicKey("fra-YEvkB0OKEp3y0bDYldcPoT")
 
         safeCollectFlow(EventManager.events) {
             //TODO: Handle the events bus

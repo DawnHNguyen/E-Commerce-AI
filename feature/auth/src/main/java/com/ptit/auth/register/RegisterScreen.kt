@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
@@ -128,6 +129,18 @@ fun RegisterScreen(
                     RegisterUiModel.EmailErrorType.INVALID_EMAIL -> "Invalid email"
                     RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS -> "Email already exists"
                     else -> ""
+                },
+                trailingContent = {
+                    if (uiModel.value.email.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.onEmailChanged("")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear email"
+                            )
+                        }
+                    }
                 }
             )
         }

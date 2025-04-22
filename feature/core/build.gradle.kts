@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.material3)
+    implementation("com.google.android.material:material:1.11.0")
     implementation(libs.navigation.compose)
 
     implementation(libs.mmkv)
@@ -56,6 +57,8 @@ dependencies {
 
     implementation(libs.paging)
     implementation(libs.paging.compose)
+
+    implementation(libs.recurly)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
