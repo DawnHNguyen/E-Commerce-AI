@@ -49,7 +49,8 @@ sealed class DialogState {
 fun CartScreen(
     viewModel: CartViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onCheckout: () -> Unit
+    onCheckout: () -> Unit,
+    onProductClick: (String) -> Unit = {} // Add parameter for product click navigation
 ) {
     val cartState by viewModel.cartState.collectAsState()
     val updatePurchaseState by viewModel.updatePurchaseState.collectAsState()
@@ -89,7 +90,8 @@ fun CartScreen(
                     onDeleteMultipleItems = { selectedIds ->
                         dialogState = DialogState.DeleteMultipleItems(selectedIds)
                     },
-                    onCheckout = onCheckout
+                    onCheckout = onCheckout,
+                    onProductClick = onProductClick // Pass the navigation callback
                 )
             }
             
@@ -191,7 +193,8 @@ private fun CartContent(
     onUpdateQuantity: (String, Int) -> Unit,
     onDeleteSingleItem: (PurchaseDomainEntity) -> Unit,
     onDeleteMultipleItems: (Set<String>) -> Unit,
-    onCheckout: () -> Unit
+    onCheckout: () -> Unit,
+    onProductClick: (String) -> Unit = {} // Add parameter for product click navigation
 ) {
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var isAllSelected by remember(purchases) { mutableStateOf(false) }
@@ -241,7 +244,8 @@ private fun CartContent(
                             },
                             checkboxColors = customCheckboxColors,
                             onQuantityUpdate = onUpdateQuantity,
-                            onDeleteRequest = { onDeleteSingleItem(purchase) }
+                            onDeleteRequest = { onDeleteSingleItem(purchase) },
+                            onProductClick = onProductClick // Pass the navigation callback
                         )
                     }
                 }
@@ -502,7 +506,8 @@ fun CustomSwipeToDeleteCartItem(
     onSelectionChanged: (Boolean) -> Unit,
     checkboxColors: CheckboxColors,
     onQuantityUpdate: (String, Int) -> Unit,
-    onDeleteRequest: () -> Unit
+    onDeleteRequest: () -> Unit,
+    onProductClick: (String) -> Unit = {} // Add parameter for product click navigation
 ) {
     val density = LocalDensity.current
     var offsetX by remember(purchase.id) { mutableStateOf(0f) }
@@ -586,7 +591,8 @@ fun CustomSwipeToDeleteCartItem(
                 isSelected = isSelected,
                 onSelectionChanged = onSelectionChanged,
                 checkboxColors = checkboxColors,
-                onQuantityUpdate = onQuantityUpdate
+                onQuantityUpdate = onQuantityUpdate,
+                onProductClick = onProductClick // Pass the navigation callback
             )
         }
     }
@@ -599,7 +605,8 @@ private fun CartItemRow(
     isSelected: Boolean,
     onSelectionChanged: (Boolean) -> Unit,
     checkboxColors: CheckboxColors,
-    onQuantityUpdate: (String, Int) -> Unit
+    onQuantityUpdate: (String, Int) -> Unit,
+    onProductClick: (String) -> Unit = {} // Add parameter for product click navigation
 ) {
     val product = purchase.product
     val quantity = purchase.buyCount
@@ -625,7 +632,8 @@ private fun CartItemRow(
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(RoundedCornerShape(12.dp))
+                    .noRippleClickable { onProductClick(product.id) }, // Make image clickable to navigate to product detail
                 contentScale = ContentScale.Crop
             )
 

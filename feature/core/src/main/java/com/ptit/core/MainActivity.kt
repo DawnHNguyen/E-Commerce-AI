@@ -135,6 +135,9 @@ class MainActivity : ComponentActivity() {
                                 onCheckout = {
 
                                 },
+                                onProductClick = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                }
                             )
                         }
 

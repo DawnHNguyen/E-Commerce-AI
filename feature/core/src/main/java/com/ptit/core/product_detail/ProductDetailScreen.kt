@@ -26,10 +26,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,8 +59,10 @@ import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
+import com.ptit.presentation.viewmodel.AddToCartState
 import com.ptit.presentation.viewmodel.ProductDetailState
 import com.ptit.presentation.viewmodel.ProductDetailViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProductDetailScreen(
@@ -67,63 +74,107 @@ fun ProductDetailScreen(
 ) {
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
+    val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(key1 = productId) {
         viewModel.getProductDetail(productId)
     }
 
-    MaxSizeBox(
-        modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
+    // Handle add to cart state changes
+    LaunchedEffect(key1 = addToCartState) {
+        when (addToCartState) {
+            is AddToCartState.Success -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Product successfully added to cart")
+                }
+            }
+            is AddToCartState.Error -> {
+//                scope.launch {
+//                    snackbarHostState.showSnackbar("Error: ${(addToCartState as AddToCartState.Error).message}")
+//                }
+            }
+            else -> {} // Handle other states if needed
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        when (val state = productState) {
-            is ProductDetailState.Initial -> {
-                // Initial state, might show placeholder
-            }
+        MaxSizeBox(
+            modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
+        ) {
+            when (val state = productState) {
+                is ProductDetailState.Initial -> {
+                    // Initial state, might show placeholder
+                }
 
-            is ProductDetailState.Loading -> {
-                FullScreenProgressBar()
-            }
+                is ProductDetailState.Loading -> {
+                    FullScreenProgressBar()
+                }
 
-            is ProductDetailState.Success -> {
-                ProductDetailContent(
-                    product = state.product,
-                    onBackClick = onBackClick,
-                    onCartClick = onCartClick,
-                    onAddToCartClick = onAddToCartClick,
-                    onBuyNowClick = onBuyNowClick
-                )
-            }
-
-            is ProductDetailState.Error -> {
-                // Show error state
-                MaxSizeColumn(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Error: ${state.message}",
-                        style = CustomTypography.TextRegular.merge(
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        )
+                is ProductDetailState.Success -> {
+                    ProductDetailContent(
+                        product = state.product,
+                        onBackClick = onBackClick,
+                        onCartClick = onCartClick,
+                        onAddToCartClick = {
+                            viewModel.addToCart(state.product.id)
+                        },
+                        onBuyNowClick = onBuyNowClick,
+                        isAddingToCart = addToCartState is AddToCartState.Loading
                     )
                 }
-            }
 
-            else -> {
-                // Handle other states if necessary
-                MaxSizeColumn(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Unexpected state",
-                        style = CustomTypography.TextRegular.merge(
-                            color = colorResource(id = R.color.colorSystem_heading_button)
+                is ProductDetailState.Error -> {
+                    // Show error state
+                    MaxSizeColumn(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Error: ${state.message}",
+                            style = CustomTypography.TextRegular.merge(
+                                color = colorResource(id = R.color.colorSystem_heading_button)
+                            )
                         )
-                    )
+                    }
                 }
+
+                else -> {
+                    // Handle other states if necessary
+                    MaxSizeColumn(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Unexpected state",
+                            style = CustomTypography.TextRegular.merge(
+                                color = colorResource(id = R.color.colorSystem_heading_button)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Snackbar host for showing feedback
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp) // Position above the buttons
+        ) { data ->
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                containerColor = colorResource(id = R.color.colorSystem_background_level_2),
+                contentColor = colorResource(id = R.color.colorSystem_heading_button),
+            ) {
+                Text(text = data.visuals.message)
             }
         }
     }
@@ -136,14 +187,14 @@ fun ProductDetailContent(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onBuyNowClick: () -> Unit
+    onBuyNowClick: () -> Unit,
+    isAddingToCart: Boolean = false
 ) {
     MaxSizeColumn(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
             .background(colorResource(id = R.color.colorSystem_background_level_0))
     ) {
-        // Light green container for back button, image carousel, and cart button
         // Light green container for back button, image carousel, and cart button
         Box(
             modifier = Modifier
@@ -190,39 +241,37 @@ fun ProductDetailContent(
                 val pagerState =
                     rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
 
-                Column {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    ) { page ->
-                        val imageUrl = if (product.images.isNotEmpty()) {
-                            product.images.getOrElse(page) { product.image }
-                        } else {
-                            product.image
-                        }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                ) { page ->
+                    val imageUrl = if (product.images.isNotEmpty()) {
+                        product.images.getOrElse(page) { product.image }
+                    } else {
+                        product.image
+                    }
 
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        GlideImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth(0.75f)
+                                .height(200.dp),
+                            contentScale = ContentScale.FillBounds,
+                            transition = MyCrossFade,
                         ) {
-                            GlideImage(
-                                model = imageUrl,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.75f)
-                                    .height(200.dp),
-                                contentScale = ContentScale.FillBounds,
-                                transition = MyCrossFade,
-                            ) {
-                                it.centerCrop()
-                            }
+                            it.centerCrop()
                         }
                         // Image indicator (e.g., "1/5")
                         Box(
                             modifier = Modifier
-                                .align(Alignment.End)
+                                .align(Alignment.TopEnd)
                                 .padding(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(Color.Black.copy(alpha = 0.6f))
@@ -411,14 +460,16 @@ fun ProductDetailContent(
         ) {
             FilledButton(
                 modifier = Modifier.weight(1f),
-                text = "Thêm vào giỏ hàng",
-                onClick = onAddToCartClick
+                text = if (isAddingToCart) "Đang thêm..." else "Thêm vào giỏ hàng",
+                onClick = onAddToCartClick,
+                enabled = !isAddingToCart
             )
 
             FilledButton(
                 modifier = Modifier.weight(1f),
                 text = "Mua ngay",
-                onClick = onBuyNowClick
+                onClick = onBuyNowClick,
+                enabled = !isAddingToCart
             )
         }
     }

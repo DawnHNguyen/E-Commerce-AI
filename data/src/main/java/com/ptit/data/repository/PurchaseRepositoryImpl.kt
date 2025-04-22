@@ -2,6 +2,7 @@ package com.ptit.data.repository
 
 import com.ptit.data.mapping.toDomainEntity
 import com.ptit.data.remote.api.PurchaseApi
+import com.ptit.data.remote.dto.cart.AddToCartRequestDto
 import com.ptit.data.remote.dto.cart.UpdatePurchaseRequestDto
 import com.ptit.domain.entity.cart.PurchaseDomainEntity
 import com.ptit.domain.entity.DeletePurchaseResult
@@ -28,5 +29,9 @@ class PurchaseRepositoryImpl @Inject constructor(
         return purchaseApi.deletePurchases(purchaseIds).map { response ->
             DeletePurchaseResult(deletedCount = response.deletedCount)
         }
+    }
+    override suspend fun addToCart(productId: String, buyCount: Int): Resource<PurchaseDomainEntity> {
+        return purchaseApi.addToCart(AddToCartRequestDto(productId, buyCount))
+            .map { it.toDomainEntity() }
     }
 }

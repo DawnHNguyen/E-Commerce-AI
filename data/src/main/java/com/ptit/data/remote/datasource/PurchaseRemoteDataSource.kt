@@ -1,6 +1,7 @@
 package com.ptit.data.remote.datasource
 
 import com.ptit.data.remote.api.PurchaseApi
+import com.ptit.data.remote.dto.cart.AddToCartRequestDto
 import com.ptit.data.remote.dto.cart.UpdatePurchaseRequestDto
 import javax.inject.Inject
 
@@ -12,4 +13,8 @@ class PurchaseRemoteDataSource @Inject constructor(private val remoteService: Pu
 
     suspend fun deletePurchases(purchaseIds: List<String>) =
         remoteService.deletePurchases(purchaseIds)
+
+    suspend fun addToCart(productId: String, buyCount: Int) =
+        remoteService.addToCart(AddToCartRequestDto(productId, buyCount))
+
 }

@@ -1,5 +1,6 @@
 package com.ptit.data.remote.api
 
+import com.ptit.data.remote.dto.cart.AddToCartRequestDto
 import com.ptit.data.remote.dto.cart.PurchaseDto
 import com.ptit.data.remote.dto.cart.UpdatePurchaseRequestDto
 import com.ptit.data.remote.dto.cart.DeletePurchaseResponseDto
@@ -8,6 +9,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Query
 
@@ -22,6 +24,10 @@ interface PurchaseApi {
         @Body updatePurchaseRequest: UpdatePurchaseRequestDto
     ): Resource<PurchaseDto>
 
+    @POST("purchases/add-to-cart")
+    suspend fun addToCart(
+        @Body addToCartRequest: AddToCartRequestDto
+    ): Resource<PurchaseDto>
 //    @DELETE("purchases")
 //    suspend fun deletePurchases(
 //        @Body purchaseIds: List<String>
@@ -33,4 +39,5 @@ interface PurchaseApi {
     suspend fun deletePurchases(
         @Body purchaseIds: List<String>
     ): Resource<DeletePurchaseResponseDto>
+
 }
