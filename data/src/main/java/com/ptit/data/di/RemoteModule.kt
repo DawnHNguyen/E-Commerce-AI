@@ -6,6 +6,7 @@ import com.ptit.data.remote.api.AuthApi
 import com.ptit.data.remote.api.NoAuthInterceptApi
 import com.ptit.data.remote.api.ProductApi
 import com.ptit.data.remote.api.PurchaseApi
+import com.ptit.data.remote.api.UserService
 import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
@@ -128,4 +129,10 @@ object RemoteModule {
     fun providePurchaseApi(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): PurchaseApi = retrofit.create(PurchaseApi::class.java)
+    
+    @Provides
+    @Singleton
+    fun provideUserService(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): UserService = retrofit.create(UserService::class.java)
 }
