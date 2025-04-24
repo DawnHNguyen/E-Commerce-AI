@@ -51,7 +51,6 @@ import com.ptit.common.presentation.rememberDerivedState
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
-import com.ptit.core.account.AccountScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.product_detail.ProductDetailScreen
@@ -145,7 +144,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<BottomNavigationScreen.ProfileScreen> {
-                            AccountScreen()
+
                         }
 
                         // In MainActivity.kt, update the ProductDetailScreen composable

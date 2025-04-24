@@ -44,7 +44,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.material3)
-    implementation("com.google.android.material:material:1.11.0")
+    implementation(libs.material.icon.extended)
     implementation(libs.navigation.compose)
 
     implementation(libs.mmkv)

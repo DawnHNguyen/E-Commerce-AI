@@ -1,6 +1,5 @@
-package com.ptit.core.account
+package com.ptit.core.account.paymentConfig
 
-import android.provider.Settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

@@ -8,9 +8,11 @@ fun UserDto.toDomainEntity() = UserDomainEntity(
     email = email ?: "",
     createdAt = createdAt ?: "",
     updatedAt = updatedAt ?: "",
-    roles = roles ?: emptyList(),
     watchList = watchList ?: emptyList(),
     shop = shop?.toDomainEntity() ?: UserDomainEntity.Shop(),
+    name = name ?: "",
+    phone = phone ?: "",
+    avatar = avatar ?: ""
 )
 
 fun UserDto.Shop.toDomainEntity() = UserDomainEntity.Shop(

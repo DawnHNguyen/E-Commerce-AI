@@ -1,4 +1,4 @@
-package com.ptit.core.account
+package com.ptit.core.account.paymentConfig
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping

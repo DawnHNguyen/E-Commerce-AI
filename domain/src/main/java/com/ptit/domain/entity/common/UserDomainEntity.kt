@@ -4,10 +4,12 @@ data class UserDomainEntity(
     val createdAt: String = "",
     val email: String = "",
     val id: String = "",
-    val roles: List<String> = emptyList(),
     val shop: Shop = Shop(),
     val updatedAt: String = "",
     val watchList: List<String> = emptyList(),
+    val name: String = "",
+    val phone: String = "",
+    val avatar: String = "",
 ) {
     data class Shop(
         val address: String = "",

@@ -1,4 +1,4 @@
-package com.ptit.core.account
+package com.ptit.core.account.paymentConfig
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -28,10 +28,11 @@ import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.rememberDerivedState
 import com.ptit.common.presentation.theme.CustomTypography
+import com.recurly.androidsdk.R
 import com.recurly.androidsdk.data.model.CreditCardsParameters
 
 @Composable
-fun AccountScreen() {
+fun PaymentConfigScreen() {
     val viewModel: CreditCardViewModel = viewModel()
 
     val cardNumber = viewModel.cardNumberState.collectAsStateWithLifecycle()
@@ -156,12 +157,12 @@ fun AccountScreen() {
 // Helper function to get the card icon resource based on card type
 private fun getCardIconResource(cardType: String): Int {
     return when (cardType.uppercase()) {
-        "VISA" -> com.recurly.androidsdk.R.drawable.ic_visa_card
-        "MASTERCARD" -> com.recurly.androidsdk.R.drawable.ic_mastercard_card
-        "AMERICANEXPRESS" -> com.recurly.androidsdk.R.drawable.ic_amex_card
-        "DISCOVER" -> com.recurly.androidsdk.R.drawable.ic_discover_card
-        "JCB" -> com.recurly.androidsdk.R.drawable.ic_jcb_card
-        "DINERSCLUB" -> com.recurly.androidsdk.R.drawable.ic_diners_club_card
-        else -> com.recurly.androidsdk.R.drawable.ic_generic_disabled_card
+        "VISA" -> R.drawable.ic_visa_card
+        "MASTERCARD" -> R.drawable.ic_mastercard_card
+        "AMERICANEXPRESS" -> R.drawable.ic_amex_card
+        "DISCOVER" -> R.drawable.ic_discover_card
+        "JCB" -> R.drawable.ic_jcb_card
+        "DINERSCLUB" -> R.drawable.ic_diners_club_card
+        else -> R.drawable.ic_generic_disabled_card
     }
 }
