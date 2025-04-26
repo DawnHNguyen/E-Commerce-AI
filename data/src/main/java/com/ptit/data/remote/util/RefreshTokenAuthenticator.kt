@@ -25,6 +25,10 @@ class RefreshTokenAuthenticator @Inject constructor(
 
             if (newToken is Resource.Success) {
                 val newAccessToken = newToken.data.accessToken
+                if (newAccessToken.isNullOrEmpty()) {
+                    mmkv.removeValuesForKeys(arrayOf(SecureStorageKey.ACCESS_TOKEN, SecureStorageKey.REFRESH_TOKEN))
+                    return@runBlocking null
+                }
                 val newRefreshToken = newToken.data.refreshToken
                 mmkv.encode(SecureStorageKey.ACCESS_TOKEN, newAccessToken)
                 mmkv.encode(SecureStorageKey.REFRESH_TOKEN, newRefreshToken)
