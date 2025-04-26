@@ -53,12 +53,14 @@ import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
+import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
-import com.ptit.navigation.destination.PaymentMethodRoute
+import com.ptit.navigation.destination.ConfigPaymentMethodRoute
+import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
@@ -161,7 +163,7 @@ class MainActivity : ComponentActivity() {
 
                                 },
                                 onNavigateToPaymentMethods = {
-                                    navController.navigate(PaymentMethodRoute)
+                                    navController.navigate(ListPaymentMethodRoute)
                                 },
                                 onNavigateToShop = {
 
@@ -172,8 +174,20 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable<PaymentMethodRoute> {
-                            PaymentConfigScreen()
+                        composable<ListPaymentMethodRoute> {
+                            PaymentMethodScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onNavigateToAddPaymentMethod = {
+                                    navController.navigate(ConfigPaymentMethodRoute)
+                                },
+                            )
+                        }
+
+                        composable<ConfigPaymentMethodRoute> {
+                            PaymentConfigScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onPaymentMethodSaved = navController::navigateUp,
+                            )
                         }
 
                         // In MainActivity.kt, update the ProductDetailScreen composable

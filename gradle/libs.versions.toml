@@ -30,6 +30,8 @@ splash-screen = "1.1.0-rc01"
 
 recurly = "fde05cadb5"
 
+sql-delight = "2.0.2"
+
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -71,6 +73,9 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 recurly = { module = "com.github.DawnHNguyen:recurly-client-android", version.ref = "recurly" }
 
+sql-delight = { module = "app.cash.sqldelight:android-driver", version.ref = "sql-delight" }
+sql-delight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sql-delight" }
+
 ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -86,4 +91,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 dagger-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 androidTest = { id = "com.android.test", version.ref = "agp" }
+sql-delight = { id = "app.cash.sqldelight", version.ref = "sql-delight" }
 parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }

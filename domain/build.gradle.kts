@@ -41,6 +41,8 @@ dependencies {
 
     implementation(libs.paging)
 
+    implementation(libs.recurly)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)

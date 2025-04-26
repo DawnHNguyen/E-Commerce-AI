@@ -1,0 +1,28 @@
+import com.recurly.androidsdk.data.model.CreditCardsParameters;
+
+CREATE TABLE IF NOT EXISTS tblPaymentMethod (
+    firstSixNum TEXT NOT NULL,
+    lastFourNum TEXT NOT NULL,
+    cardType TEXT AS CreditCardsParameters NOT NULL,
+    isDefault INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (firstSixNum, lastFourNum)
+);
+
+insertPaymentMethod:
+INSERT OR REPLACE INTO tblPaymentMethod (firstSixNum, lastFourNum, cardType, isDefault)
+VALUES (:firstSixNum, :lastFourNum, :cardType, :isDefault);
+
+getAllPaymentMethods:
+SELECT * FROM tblPaymentMethod;
+
+deletePaymentMethod:
+DELETE FROM tblPaymentMethod
+WHERE firstSixNum = :firstSixNum AND lastFourNum = :lastFourNum;
+
+setDefaultPaymentMethod:
+UPDATE tblPaymentMethod SET isDefault = 0;
+
+updatePaymentMethodAsDefault:
+UPDATE tblPaymentMethod 
+SET isDefault = 1
+WHERE firstSixNum = :firstSixNum AND lastFourNum = :lastFourNum;
