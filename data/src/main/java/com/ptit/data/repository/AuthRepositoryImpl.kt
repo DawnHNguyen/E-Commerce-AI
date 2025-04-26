@@ -22,6 +22,7 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
             .login(request)
             .onSuccess {
                 mmkv.putString(SecureStorageKey.ACCESS_TOKEN, it.accessToken)
+                mmkv.putString(SecureStorageKey.REFRESH_TOKEN, it.refreshToken)
             }
             .map { }
     }
@@ -37,6 +38,7 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
             .register(request)
             .onSuccess {
                 mmkv.putString(SecureStorageKey.ACCESS_TOKEN, it.accessToken)
+                mmkv.putString(SecureStorageKey.REFRESH_TOKEN, it.refreshToken)
             }
             .map { }
     }
@@ -46,6 +48,7 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
             .logout()
             .onSuccess {
                 MMKV.defaultMMKV().remove(SecureStorageKey.ACCESS_TOKEN)
+                MMKV.defaultMMKV().remove(SecureStorageKey.REFRESH_TOKEN)
             }
             .map { }
 }

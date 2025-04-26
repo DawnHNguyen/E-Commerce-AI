@@ -92,30 +92,31 @@ fun HomeScreen(
                     enabled = false,
                 )
 
-                BadgedBox(
-                    badge = {
-                        Badge {
-                            Text(
-                                text = "99+",
-                                style = CustomTypography.TextRegular.merge(
-                                    color = colorResource(R.color.colorSystem_greyscale_0_white),
-                                    fontSize = 10.sp
-                                )
-                            )
-                        }
-                    }
-                ) {
-                    IconButton(onClick = navigateToCart) {
-                        Icon(
-                            imageVector = Icons.Outlined.ShoppingCart,
-                            contentDescription = null,
-                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-                        )
-                    }
-                }
+//                BadgedBox(
+//                    badge = {
+//                        Badge {
+//                            Text(
+//                                text = "99+",
+//                                style = CustomTypography.TextRegular.merge(
+//                                    color = colorResource(R.color.colorSystem_greyscale_0_white),
+//                                    fontSize = 10.sp
+//                                )
+//                            )
+//                        }
+//                    }
+//                ) {
+//                    IconButton(onClick = navigateToCart) {
+//                        Icon(
+//                            imageVector = Icons.Outlined.ShoppingCart,
+//                            contentDescription = null,
+//                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
+//                        )
+//                    }
+//                }
             }
 
             LazyVerticalGrid(
+                modifier = Modifier.weight(1f),
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(
                     vertical = 8.dp,
@@ -259,6 +260,7 @@ private fun RecommendProductItem(
                     fontSize = 12.sp
                 ),
                 modifier = Modifier
+                    .padding(4.dp)
                     .background(
                         color = colorResource(R.color.colorSystem_stroke).copy(alpha = 0.25f),
                         shape = RoundedCornerShape(8.dp)

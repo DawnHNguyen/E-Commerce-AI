@@ -9,14 +9,18 @@ data class UserDto(
     val email: String?,
     @SerializedName("_id")
     val id: String?,
-    @SerializedName("roles")
-    val roles: List<String>?,
     @SerializedName("shop")
     val shop: Shop?,
     @SerializedName("updatedAt")
     val updatedAt: String?,
     @SerializedName("watchList")
     val watchList: List<String>?,
+    @SerializedName("name")
+    val name: String?,
+    @SerializedName("phone")
+    val phone: String?,
+    @SerializedName("avatar")
+    val avatar: String?,
 ) {
     data class Shop(
         @SerializedName("address")

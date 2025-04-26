@@ -1,11 +1,13 @@
 package com.ptit.data.di
 
 import com.google.gson.Gson
-import com.ptit.data.remote.api.AuthApi
-import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.BuildConfig
+import com.ptit.data.remote.api.AuthApi
+import com.ptit.data.remote.api.NoAuthInterceptApi
 import com.ptit.data.remote.api.ProductApi
 import com.ptit.data.remote.api.PurchaseApi
+import com.ptit.data.remote.api.UserService
+import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
 import dagger.Module
@@ -32,10 +34,13 @@ object RemoteModule {
 
     @Singleton
     @Provides
-    fun provideRefreshTokenAuthenticator(): RefreshTokenAuthenticator = RefreshTokenAuthenticator()
+    fun provideRefreshTokenAuthenticator(
+        remoteService: NoAuthInterceptApi
+    ): RefreshTokenAuthenticator = RefreshTokenAuthenticator(remoteService = remoteService)
 
     @Singleton
     @Provides
+    @AuthInterceptorRemoteService
     fun provideClient(
         httpLoggingInterceptor: HttpLoggingInterceptor,
         refreshTokenAuthenticator: RefreshTokenAuthenticator,
@@ -43,7 +48,21 @@ object RemoteModule {
         OkHttpClient.Builder()
             .addInterceptor(HeaderAuthorizationInterceptor())
             .addInterceptor(httpLoggingInterceptor)
-//            .authenticator(refreshTokenAuthenticator)
+            .authenticator(refreshTokenAuthenticator)
+            .callTimeout(1, TimeUnit.MINUTES)
+            .connectTimeout(1, TimeUnit.MINUTES)
+            .readTimeout(1, TimeUnit.MINUTES)
+            .writeTimeout(1, TimeUnit.MINUTES)
+            .build()
+
+    @Singleton
+    @Provides
+    @NoAuthInterceptorRemoteService
+    fun provideNoAuthInterceptClient(
+        httpLoggingInterceptor: HttpLoggingInterceptor,
+    ) =
+        OkHttpClient.Builder()
+            .addInterceptor(httpLoggingInterceptor)
             .callTimeout(1, TimeUnit.MINUTES)
             .connectTimeout(1, TimeUnit.MINUTES)
             .readTimeout(1, TimeUnit.MINUTES)
@@ -59,8 +78,9 @@ object RemoteModule {
 
     @Singleton
     @Provides
+    @AuthInterceptorRemoteService
     fun provideRetrofit(
-        client: OkHttpClient,
+        @AuthInterceptorRemoteService client: OkHttpClient,
         gson: Gson,
     ): Retrofit {
         return Retrofit.Builder()
@@ -71,22 +91,48 @@ object RemoteModule {
             .build()
     }
 
+    @Singleton
+    @Provides
+    @NoAuthInterceptorRemoteService
+    fun provideNoAuthInterceptRetrofit(
+        @NoAuthInterceptorRemoteService client: OkHttpClient,
+        gson: Gson,
+    ): Retrofit {
+        return Retrofit.Builder()
+            .client(client)
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .addCallAdapterFactory(CallAdapterFactory())
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    fun provideNoAuthInterceptApi(
+        @NoAuthInterceptorRemoteService retrofit: Retrofit,
+    ): NoAuthInterceptApi = retrofit.create(NoAuthInterceptApi::class.java)
 
     @Provides
     @Singleton
-    fun provideAuthApi(retrofit: Retrofit): AuthApi {
-        return retrofit.create(AuthApi::class.java)
-    }
+    fun provideAuthApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): AuthApi = retrofit.create(AuthApi::class.java)
 
     @Provides
     @Singleton
-    fun provideProductApi(retrofit: Retrofit): ProductApi {
-        return retrofit.create(ProductApi::class.java)
-    }
+    fun provideProductApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): ProductApi = retrofit.create(ProductApi::class.java)
 
     @Provides
     @Singleton
-    fun providePurchaseApi(retrofit: Retrofit): PurchaseApi {
-        return retrofit.create(PurchaseApi::class.java)
-    }
+    fun providePurchaseApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): PurchaseApi = retrofit.create(PurchaseApi::class.java)
+    
+    @Provides
+    @Singleton
+    fun provideUserService(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): UserService = retrofit.create(UserService::class.java)
 }

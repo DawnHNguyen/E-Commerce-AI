@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- res/values/styles.xml -->
+    <style name="ShapeAppearance.App.TextInput" parent="">
+        <!-- 16dp rounded corners -->
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <!-- res/values/styles.xml -->
+    <style name="Widget.App.TextInputLayout.OutlinedBox.Recurly" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <!-- rounded corners -->
+        <item name="shapeAppearance">@style/ShapeAppearance.App.TextInput</item>
+        <!-- background fill (same as your Compose backgroundColor) -->
+        <item name="boxBackgroundColor">@color/colorSystem_text_field</item>
+        <!-- stroke color state list -->
+        <item name="boxStrokeColor">@color/recurly_box_stroke_color</item>
+        <!-- hint text color (both focused & unfocused) -->
+        <item name="android:textColorHint">@color/colorSystem_greyscale_600</item>
+        <item name="hintTextColor">@color/colorSystem_greyscale_600</item>
+        <!-- error text appearance: you can point this at your own TextAppearance that uses colorSystem_tint_red -->
+<!--        <item name="errorTextAppearance">@style/TextAppearance.App.TextField.Error</item>-->
+    </style>
+
+    <!-- res/values/styles.xml -->
+    <style name="Widget.App.TextInputEditText.OutlinedBox.Recurly" parent="Widget.MaterialComponents.TextInputEditText.OutlinedBox">
+        <!-- typed text color -->
+        <item name="android:textColor">@color/colorSystem_greyscale_1000_black</item>
+        <!-- placeholder/hint inherits from TextInputLayout hintTextColor -->
+    </style>
+
+    <style name="RecurlyTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- … your other theme attrs … -->
+
+        <!-- use our custom TextInputLayout style everywhere -->
+        <item name="textInputStyle">
+            @style/Widget.App.TextInputLayout.OutlinedBox.Recurly
+        </item>
+        <!-- use our custom EditText style everywhere -->
+        <item name="editTextStyle">
+            @style/Widget.App.TextInputEditText.OutlinedBox.Recurly
+        </item>
+    </style>
+</resources>

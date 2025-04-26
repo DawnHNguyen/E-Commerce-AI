@@ -60,10 +60,10 @@ fun FilledTextField(
         singleLine = singleLine,
         maxLines = maxLines,
         minLines = minLines,
-        backgroundColor = Color.Transparent,
+        backgroundColor = colorResource(R.color.colorSystem_text_field),
         hintTextColor = colorResource(R.color.colorSystem_greyscale_600),
         disableBackgroundColor = Color.White,
-        focusStrokeColor = colorResource(id = R.color.colorSystem_text_field),
+        focusStrokeColor = Color.Transparent,
         unfocusStrokeColor = Color.Transparent,
         disableTextColor = colorResource(R.color.colorSystem_greyscale_1000_black),
     )
