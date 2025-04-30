@@ -74,7 +74,7 @@ fun CartItemRow(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${product.price} đ",
+                    text = "${product.priceBeforeDiscount} đ",
                     style = CustomTypography.TextRegular.copy(
                         color = colorResource(R.color.colorSystem_greyscale_300)
                     ),

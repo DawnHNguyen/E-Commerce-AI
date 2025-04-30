@@ -64,6 +64,8 @@ import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
+import com.ptit.core.order.CreateOrderScreen
+import com.ptit.navigation.destination.CreateOrderRoute
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
@@ -139,11 +141,27 @@ class MainActivity : ComponentActivity() {
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
                                 onBack = navController::navigateUp,
-                                onCheckout = {
-
+                                onCheckout = { selectedItemIds ->
+                                    // Pass just the IDs instead of the full objects
+                                    navController.navigate(CreateOrderRoute(selectedItemIds = ArrayList(selectedItemIds.map { it.id })))
                                 },
                                 onProductClick = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
+                                }
+                            )
+                        }
+
+                        composable<CreateOrderRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<CreateOrderRoute>()
+                            CreateOrderScreen(
+                                selectedItemIds = args.selectedItemIds,
+                                onBack = navController::navigateUp,
+                                onPlaceOrder = {
+                                    // Handle order placement
+                                    navController.navigate(BottomNavigationScreen.HomeScreen) {
+                                        popUpTo(navController.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }

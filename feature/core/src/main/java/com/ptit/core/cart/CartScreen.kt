@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.core.cart.components.*
+import com.ptit.domain.entity.cart.PurchaseDomainEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 fun CartScreen(
     viewModel: CartViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onCheckout: () -> Unit,
+    onCheckout: (List<PurchaseDomainEntity>) -> Unit,
     onProductClick: (String) -> Unit = {}
 ) {
     val cartState by viewModel.cartState.collectAsState()

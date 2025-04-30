@@ -17,4 +17,6 @@ class PurchaseRemoteDataSource @Inject constructor(private val remoteService: Pu
     suspend fun addToCart(productId: String, buyCount: Int) =
         remoteService.addToCart(AddToCartRequestDto(productId, buyCount))
 
+    // Add a method to get a purchase by ID
+    suspend fun getPurchaseById(purchaseId: String) = remoteService.getPurchaseById(purchaseId)
 }
