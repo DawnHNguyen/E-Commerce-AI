@@ -57,11 +57,14 @@ import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.product_detail.ProductDetailScreen
+import com.ptit.core.shop.ShopDetailScreen
+import com.ptit.navigation.destination.AddShopRoute
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.ProductDetailRoute
+import com.ptit.navigation.destination.ShopDetailRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -166,7 +169,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(ListPaymentMethodRoute)
                                 },
                                 onNavigateToShop = {
-
+                                    navController.navigate(ShopDetailRoute)
                                 },
                                 onNavigateToCreateShop = {
 
@@ -187,6 +190,15 @@ class MainActivity : ComponentActivity() {
                             PaymentConfigScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onPaymentMethodSaved = navController::navigateUp,
+                            )
+                        }
+
+                        composable<ShopDetailRoute> {
+                            ShopDetailScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onNavigateToEditShop = {
+                                    navController.navigate(AddShopRoute)
+                                }
                             )
                         }
 

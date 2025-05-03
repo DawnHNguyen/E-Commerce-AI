@@ -4,6 +4,7 @@ import com.ptit.data.remote.dto.shop.CreateAndUpdateShopRequest
 import com.ptit.data.remote.dto.shop.CreateAndUpdateShopResponse
 import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.PUT
 
 interface ShopApi {
@@ -11,4 +12,7 @@ interface ShopApi {
     suspend fun createShop(
        @Body createAndUpdateShopRequest: CreateAndUpdateShopRequest,
     ): Resource<CreateAndUpdateShopResponse>
+
+    @GET("/admin/shop/me")
+    suspend fun getMyShop(): Resource<CreateAndUpdateShopResponse>
 }

@@ -7,3 +7,9 @@ data object ListPaymentMethodRoute
 
 @Serializable
 data object ConfigPaymentMethodRoute
+
+@Serializable
+data object AddShopRoute
+
+@Serializable
+data object ShopDetailRoute

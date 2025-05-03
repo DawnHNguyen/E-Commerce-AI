@@ -7,4 +7,5 @@ import javax.inject.Inject
 class ShopRemoteDataSource @Inject constructor(private val remoteService: ShopApi) {
     suspend fun createShop(createAndUpdateShopRequest: CreateAndUpdateShopRequest) =
         remoteService.createShop(createAndUpdateShopRequest = createAndUpdateShopRequest)
+    suspend fun getMyShop() = remoteService.getMyShop()
 }
