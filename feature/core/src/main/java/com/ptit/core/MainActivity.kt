@@ -145,9 +145,22 @@ class MainActivity : ComponentActivity() {
                                 onBack = navController::navigateUp,
                                 onCheckout = { selectedItemIds ->
                                     // Now we're directly receiving the IDs
+                                    navController.navigate(CreateOrderRoute(selectedItemIds = ArrayList(selectedItemIds)))
                                 },
                                 onProductClick = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
+                                }
+                            )
+                        }
+
+                        composable<CreateOrderRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<CreateOrderRoute>()
+                            CreateOrderScreen(
+                                selectedItemIds = args.selectedItemIds,
+                                onBack = navController::navigateUp,
+                                onOrderCreated = { order ->
+                                    // Navigate to OrderDetailScreen with the created order ID
+                                    navController.navigate(OrderDetailRoute(orderId = order.id))
                                 }
                             )
                         }
