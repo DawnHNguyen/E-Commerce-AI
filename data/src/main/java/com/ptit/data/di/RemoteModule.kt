@@ -4,9 +4,12 @@ import com.google.gson.Gson
 import com.ptit.data.BuildConfig
 import com.ptit.data.remote.api.AuthApi
 import com.ptit.data.remote.api.NoAuthInterceptApi
+import com.ptit.data.remote.api.OrderApi
 import com.ptit.data.remote.api.ProductApi
 import com.ptit.data.remote.api.PurchaseApi
 import com.ptit.data.remote.api.UserService
+import com.ptit.data.remote.datasource.OrderRemoteDataSource
+import com.ptit.data.remote.datasource.ProductRemoteDataSource
 import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
@@ -135,4 +138,11 @@ object RemoteModule {
     fun provideUserService(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): UserService = retrofit.create(UserService::class.java)
+
+
+    @Provides
+    @Singleton
+    fun provideOrderApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): OrderApi = retrofit.create(OrderApi::class.java)
 }

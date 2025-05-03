@@ -11,5 +11,5 @@ interface PurchaseRepository {
     suspend fun deletePurchases(purchaseIds: List<String>): Resource<DeletePurchaseResult>
 
     // Add new method to get purchases by their IDs
-    suspend fun getPurchasesByIds(purchaseIds: List<String>): List<PurchaseDomainEntity>
+    suspend fun getPurchaseById(id: String): Resource<PurchaseDomainEntity>
 }

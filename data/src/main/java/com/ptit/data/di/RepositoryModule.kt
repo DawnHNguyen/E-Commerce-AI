@@ -6,12 +6,14 @@ import com.ptit.data.repository.PaymentMethodRepositoryImpl
 import com.ptit.data.repository.ProductRepositoryImpl
 import com.ptit.data.repository.PurchaseRepositoryImpl
 import com.ptit.data.repository.UserRepositoryImpl
+import com.ptit.data.repository.OrderRepositoryImpl
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.HomeRepository
 import com.ptit.domain.repository.PaymentMethodRepository
 import com.ptit.domain.repository.ProductRepository
 import com.ptit.domain.repository.PurchaseRepository
 import com.ptit.domain.repository.UserRepository
+import com.ptit.domain.repository.OrderRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -44,4 +46,8 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindPaymentMethodRepository(impl: PaymentMethodRepositoryImpl): PaymentMethodRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindOrderRepository(impl: OrderRepositoryImpl): OrderRepository
 }

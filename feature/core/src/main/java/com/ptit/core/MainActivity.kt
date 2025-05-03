@@ -66,6 +66,8 @@ import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.OrderDetailRoute
+import com.ptit.core.order.OrderDetailScreen
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
@@ -142,8 +144,7 @@ class MainActivity : ComponentActivity() {
                             CartScreen(
                                 onBack = navController::navigateUp,
                                 onCheckout = { selectedItemIds ->
-                                    // Pass just the IDs instead of the full objects
-                                    navController.navigate(CreateOrderRoute(selectedItemIds = ArrayList(selectedItemIds.map { it.id })))
+                                    // Now we're directly receiving the IDs
                                 },
                                 onProductClick = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
@@ -151,17 +152,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable<CreateOrderRoute> { backStackEntry ->
-                            val args = backStackEntry.toRoute<CreateOrderRoute>()
-                            CreateOrderScreen(
-                                selectedItemIds = args.selectedItemIds,
+                        composable<OrderDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<OrderDetailRoute>()
+                            OrderDetailScreen(
+                                orderId = args.orderId,
                                 onBack = navController::navigateUp,
-                                onPlaceOrder = {
-                                    // Handle order placement
-                                    navController.navigate(BottomNavigationScreen.HomeScreen) {
-                                        popUpTo(navController.graph.startDestinationId)
-                                        launchSingleTop = true
-                                    }
+                                onPaymentClick = { orderId ->
+                                    // Handle payment for the order
+                                    // This will be implemented later
                                 }
                             )
                         }

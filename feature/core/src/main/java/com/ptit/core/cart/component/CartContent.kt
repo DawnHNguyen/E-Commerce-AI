@@ -25,7 +25,7 @@ fun CartContent(
     onUpdateQuantity: (String, Int) -> Unit,
     onDeleteSingleItem: (PurchaseDomainEntity) -> Unit,
     onDeleteMultipleItems: (Set<String>) -> Unit,
-    onCheckout: (List<PurchaseDomainEntity>) -> Unit, // Modified to pass selected items
+    onCheckout: (Set<String>) -> Unit, // Modified to pass IDs only
     onProductClick: (String) -> Unit = {}
 ) {
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
@@ -35,9 +35,6 @@ fun CartContent(
     val totalPrice = purchases
         .filter { selectedItemIds.contains(it.id) }
         .sumOf { it.price * it.buyCount }
-
-    // Filter selected purchases
-    val selectedPurchases = purchases.filter { selectedItemIds.contains(it.id) }
 
     // Custom checkbox colors
     val customCheckboxColors = CheckboxDefaults.colors(
@@ -100,7 +97,7 @@ fun CartContent(
                 },
                 hasSelectedItems = selectedItemIds.isNotEmpty(),
                 onDeleteSelected = { onDeleteMultipleItems(selectedItemIds) },
-                onCheckout = { onCheckout(selectedPurchases) }, // Pass selected purchases
+                onCheckout = { onCheckout(selectedItemIds) }, // Pass just the IDs
                 checkboxColors = customCheckboxColors
             )
         }

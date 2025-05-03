@@ -39,22 +39,9 @@ class PurchaseRepositoryImpl @Inject constructor(
             .map { it.toDomainEntity() }
     }
 
-    override suspend fun getPurchasesByIds(purchaseIds: List<String>): List<PurchaseDomainEntity> {
-        // Use coroutineScope to parallelize the API calls for better performance
-        return coroutineScope {
-            val deferredResults = purchaseIds.map { purchaseId ->
-                async {
-                    val result = purchaseApi.getPurchaseById(purchaseId)
-                    if (result is Resource.Success) {
-                        result.data.toDomainEntity()
-                    } else {
-                        null
-                    }
-                }
-            }
-
-            // Await all results and filter out nulls
-            deferredResults.mapNotNull { it.await() }
+    override suspend fun getPurchaseById(id: String): Resource<PurchaseDomainEntity> {
+        return purchaseApi.getPurchaseById(id).map { purchaseDto ->
+            purchaseDto.toDomainEntity()
         }
     }
 }

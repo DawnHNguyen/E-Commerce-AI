@@ -110,16 +110,6 @@ class CartViewModel @Inject constructor(
         }
     }
 
-    // Add a function to get selected purchases by their IDs
-    fun getSelectedPurchases(selectedIds: Set<String>): List<PurchaseDomainEntity> {
-        val currentState = _cartState.value
-        return if (currentState is CartState.Success) {
-            currentState.purchases.filter { purchase -> selectedIds.contains(purchase.id) }
-        } else {
-            emptyList()
-        }
-    }
-
     sealed class CartState {
         object Loading : CartState()
         data class Success(val purchases: List<PurchaseDomainEntity>) : CartState()
