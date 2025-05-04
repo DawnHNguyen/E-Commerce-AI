@@ -1,16 +1,20 @@
 package com.ptit.data.di
 
 import com.ptit.data.repository.AuthRepositoryImpl
+import com.ptit.data.repository.FileUploadRepositoryImpl
 import com.ptit.data.repository.HomeRepositoryImpl
 import com.ptit.data.repository.PaymentMethodRepositoryImpl
 import com.ptit.data.repository.ProductRepositoryImpl
 import com.ptit.data.repository.PurchaseRepositoryImpl
+import com.ptit.data.repository.ShopRepositoryImpl
 import com.ptit.data.repository.UserRepositoryImpl
 import com.ptit.domain.repository.AuthRepository
+import com.ptit.domain.repository.FileUploadRepository
 import com.ptit.domain.repository.HomeRepository
 import com.ptit.domain.repository.PaymentMethodRepository
 import com.ptit.domain.repository.ProductRepository
 import com.ptit.domain.repository.PurchaseRepository
+import com.ptit.domain.repository.ShopRepository
 import com.ptit.domain.repository.UserRepository
 import dagger.Binds
 import dagger.Module
@@ -40,6 +44,14 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindShopRepository(impl: ShopRepositoryImpl): ShopRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindFileRepository(impl: FileUploadRepositoryImpl): FileUploadRepository
 
     @Singleton
     @Binds

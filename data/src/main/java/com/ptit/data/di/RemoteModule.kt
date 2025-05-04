@@ -135,4 +135,16 @@ object RemoteModule {
     fun provideUserService(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): UserService = retrofit.create(UserService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideShopApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.ShopApi = retrofit.create(com.ptit.data.remote.api.ShopApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFileUploadApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.api.FileUploadApi = retrofit.create(com.ptit.data.api.FileUploadApi::class.java)
 }
