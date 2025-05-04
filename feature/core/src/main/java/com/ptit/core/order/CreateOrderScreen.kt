@@ -28,6 +28,7 @@ import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
 import com.ptit.domain.entity.order.OrderDomainEntity
+import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +37,7 @@ fun CreateOrderScreen(
     selectedItemIds: List<String>,
     viewModel: CreateOrderViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onOrderCreated: (OrderDomainEntity) -> Unit
+    onOrderCreated: (String) -> Unit
 ) {
     // Initialize the viewModel with the selected item IDs
     LaunchedEffect(selectedItemIds) {
@@ -45,6 +46,7 @@ fun CreateOrderScreen(
     }
 
     val orderState by viewModel.orderState.collectAsState()
+    val userProfileState by viewModel.userProfileState.collectAsState()
     val selectedItems = orderState.selectedItems
 
     // Calculate pricing info
@@ -63,16 +65,16 @@ fun CreateOrderScreen(
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is OrderEvent.OrderCreated -> {
-                    println("Order created: ${event.orderResponse}")
+                    println("Order created: ${event.orderResponse.orderId}")
                     snackbarHostState.showSnackbar("Đặt hàng thành công!")
-                    //onOrderCreated(event.orderResponse)
+                    onOrderCreated(event.orderResponse.orderId)
                 }
             }
         }
     }
 
-    // Show loading or error indicators
-    if (orderState.isLoading) {
+    // Show loading indicator when loading user profile or order items
+    if (orderState.isLoading || userProfileState is Resource.Loading) {
         FullScreenProgressBar()
         return
     }
@@ -155,7 +157,14 @@ fun CreateOrderScreen(
                         address = orderState.address,
                         onNameChange = viewModel::updateName,
                         onPhoneChange = viewModel::updatePhone,
-                        onAddressChange = viewModel::updateAddress
+                        onAddressChange = viewModel::updateAddress,
+                        isNameEditing = orderState.isNameEditing,
+                        isPhoneEditing = orderState.isPhoneEditing,
+                        isAddressEditing = orderState.isAddressEditing,
+                        toggleNameEditing = viewModel::toggleNameEditing,
+                        togglePhoneEditing = viewModel::togglePhoneEditing,
+                        toggleAddressEditing = viewModel::toggleAddressEditing,
+                        isUserInfoLoaded = orderState.isUserInfoLoaded
                     )
                 }
 
@@ -218,7 +227,14 @@ fun ShippingInformationSection(
     address: TextFieldValue,
     onNameChange: (TextFieldValue) -> Unit,
     onPhoneChange: (TextFieldValue) -> Unit,
-    onAddressChange: (TextFieldValue) -> Unit
+    onAddressChange: (TextFieldValue) -> Unit,
+    isNameEditing: Boolean,
+    isPhoneEditing: Boolean,
+    isAddressEditing: Boolean,
+    toggleNameEditing: () -> Unit,
+    togglePhoneEditing: () -> Unit,
+    toggleAddressEditing: () -> Unit,
+    isUserInfoLoaded: Boolean
 ) {
     Column(
         modifier = Modifier
@@ -234,48 +250,137 @@ fun ShippingInformationSection(
             color = colorResource(R.color.colorSystem_heading_button)
         )
 
-        // Sử dụng FilledTextField thay vì EditableTextField
-        FilledTextField(
-            value = name,
-            hint = "Họ tên đầy đủ",
-            onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth(),
-            trailingContent = {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    tint = colorResource(R.color.colorSystem_heading_button)
-                )
+        // Họ tên
+        if (isNameEditing || !isUserInfoLoaded || name.text.isEmpty()) {
+            FilledTextField(
+                value = name,
+                hint = "Họ tên đầy đủ",
+                onValueChange = onNameChange,
+                modifier = Modifier.fillMaxWidth(),
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Họ tên",
+                        style = CustomTypography.TextRegular,
+                        fontSize = 12.sp,
+                        color = colorResource(R.color.colorSystem_normal_text)
+                    )
+                    Text(
+                        text = name.text,
+                        style = CustomTypography.TextMedium,
+                        color = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+                IconButton(onClick = toggleNameEditing) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
             }
-        )
+        }
 
-        FilledTextField(
-            value = phone,
-            hint = "Số điện thoại",
-            onValueChange = onPhoneChange,
-            modifier = Modifier.fillMaxWidth(),
-            trailingContent = {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    tint = colorResource(R.color.colorSystem_heading_button)
-                )
+        // Số điện thoại
+        if (isPhoneEditing || !isUserInfoLoaded || phone.text.isEmpty()) {
+            FilledTextField(
+                value = phone,
+                hint = "Số điện thoại",
+                onValueChange = onPhoneChange,
+                modifier = Modifier.fillMaxWidth(),
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Số điện thoại",
+                        style = CustomTypography.TextRegular,
+                        fontSize = 12.sp,
+                        color = colorResource(R.color.colorSystem_normal_text)
+                    )
+                    Text(
+                        text = phone.text,
+                        style = CustomTypography.TextMedium,
+                        color = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+                IconButton(onClick = togglePhoneEditing) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
             }
-        )
+        }
 
-        FilledTextField(
-            value = address,
-            hint = "Địa chỉ",
-            onValueChange = onAddressChange,
-            modifier = Modifier.fillMaxWidth(),
-            trailingContent = {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    tint = colorResource(R.color.colorSystem_heading_button)
-                )
+        // Địa chỉ
+        if (isAddressEditing || !isUserInfoLoaded || address.text.isEmpty()) {
+            FilledTextField(
+                value = address,
+                hint = "Địa chỉ",
+                onValueChange = onAddressChange,
+                modifier = Modifier.fillMaxWidth(),
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Địa chỉ",
+                        style = CustomTypography.TextRegular,
+                        fontSize = 12.sp,
+                        color = colorResource(R.color.colorSystem_normal_text)
+                    )
+                    Text(
+                        text = address.text,
+                        style = CustomTypography.TextMedium,
+                        color = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
+                IconButton(onClick = toggleAddressEditing) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colorResource(R.color.colorSystem_heading_button)
+                    )
+                }
             }
-        )
+        }
 
         Text(
             text = "Phí vận chuyển: 30.000 đ",

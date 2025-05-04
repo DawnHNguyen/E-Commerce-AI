@@ -158,9 +158,9 @@ class MainActivity : ComponentActivity() {
                             CreateOrderScreen(
                                 selectedItemIds = args.selectedItemIds,
                                 onBack = navController::navigateUp,
-                                onOrderCreated = { order ->
+                                onOrderCreated = { orderId  ->
                                     // Navigate to OrderDetailScreen with the created order ID
-                                    navController.navigate(OrderDetailRoute(orderId = order.id))
+                                    navController.navigate(OrderDetailRoute(orderId = orderId.toString()))
                                 }
                             )
                         }

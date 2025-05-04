@@ -4,9 +4,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
 import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.PurchaseRepository
+import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,7 +24,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateOrderViewModel @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val userRepository: UserRepository // Thêm UserRepository
 ) : ViewModel() {
 
     // UI state for Order creation
@@ -32,6 +35,45 @@ class CreateOrderViewModel @Inject constructor(
     // Events for one-time actions like navigation
     private val _orderEvents = MutableSharedFlow<OrderEvent>()
     val orderEvents: SharedFlow<OrderEvent> = _orderEvents.asSharedFlow()
+
+    // State để theo dõi việc tải thông tin user
+    private val _userProfileState = MutableStateFlow<Resource<UserDomainEntity>>(Resource.idle())
+    val userProfileState: StateFlow<Resource<UserDomainEntity>> = _userProfileState.asStateFlow()
+
+    init {
+        // Lấy thông tin user khi ViewModel được khởi tạo
+        loadUserProfile()
+    }
+
+    // Function to load user profile
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            _userProfileState.update { Resource.loading() }
+
+            when (val result = userRepository.getUserProfile()) {
+                is Resource.Success -> {
+                    _userProfileState.update { Resource.success(result.data) }
+
+                    // Cập nhật thông tin vận chuyển từ user profile
+                    result.data?.let { user ->
+                        _orderState.update { state ->
+                            state.copy(
+                                name = TextFieldValue(user.name),
+                                phone = TextFieldValue(user.phone),
+                                address = TextFieldValue(user.shop.address),
+                                isUserInfoLoaded = true
+                            )
+                        }
+                    }
+                }
+                is Resource.Error -> {
+                    _userProfileState.update { Resource.error(result.error) }
+                    _orderEvents.emit(OrderEvent.ShowError("Failed to load user profile: ${result.error.message}"))
+                }
+                else -> {}
+            }
+        }
+    }
 
     // Function to set selected item IDs and load them
     fun setSelectedItemIds(itemIds: List<String>) {
@@ -76,19 +118,32 @@ class CreateOrderViewModel @Inject constructor(
 
     // Form field update functions
     fun updateName(value: TextFieldValue) {
-        _orderState.update { it.copy(name = value) }
+        _orderState.update { it.copy(name = value, nameEdited = true) }
     }
 
     fun updatePhone(value: TextFieldValue) {
-        _orderState.update { it.copy(phone = value) }
+        _orderState.update { it.copy(phone = value, phoneEdited = true) }
     }
 
     fun updateAddress(value: TextFieldValue) {
-        _orderState.update { it.copy(address = value) }
+        _orderState.update { it.copy(address = value, addressEdited = true) }
     }
 
     fun updateNote(value: TextFieldValue) {
         _orderState.update { it.copy(note = value) }
+    }
+
+    // Toggle field editing state
+    fun toggleNameEditing() {
+        _orderState.update { it.copy(isNameEditing = !it.isNameEditing) }
+    }
+
+    fun togglePhoneEditing() {
+        _orderState.update { it.copy(isPhoneEditing = !it.isPhoneEditing) }
+    }
+
+    fun toggleAddressEditing() {
+        _orderState.update { it.copy(isAddressEditing = !it.isAddressEditing) }
     }
 
     // Create order function
@@ -155,7 +210,16 @@ class CreateOrderViewModel @Inject constructor(
         val name: TextFieldValue = TextFieldValue(""),
         val phone: TextFieldValue = TextFieldValue(""),
         val address: TextFieldValue = TextFieldValue(""),
-        val note: TextFieldValue = TextFieldValue("")
+        val note: TextFieldValue = TextFieldValue(""),
+
+        // Thêm các trạng thái để quản lý việc chỉnh sửa
+        val isNameEditing: Boolean = false,
+        val isPhoneEditing: Boolean = false,
+        val isAddressEditing: Boolean = false,
+        val nameEdited: Boolean = false,
+        val phoneEdited: Boolean = false,
+        val addressEdited: Boolean = false,
+        val isUserInfoLoaded: Boolean = false
     )
 }
 

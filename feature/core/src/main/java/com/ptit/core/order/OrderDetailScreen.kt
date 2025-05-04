@@ -25,6 +25,9 @@ import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
 import com.ptit.domain.entity.cart.PurchaseDomainEntity
 import com.ptit.domain.entity.order.OrderDomainEntity
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,6 +158,12 @@ fun OrderDetailScreen(
                     item {
                         OrderStatusSection(status = order.status)
                     }
+                    item {
+                        OrderTimestampsSection(
+                            createdAt = order.createdAt,
+                            updatedAt = order.updatedAt
+                        )
+                    }
 
                     // Spacer at the bottom for better layout
                     item {
@@ -280,5 +289,79 @@ fun OrderStatusSection(status: String) {
             style = CustomTypography.TextSemiBold,
             color = statusColor
         )
+    }
+}
+
+@Composable
+fun OrderTimestampsSection(
+    createdAt: String,
+    updatedAt: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(colorResource(R.color.colorSystem_background_level_2))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Format the timestamps from ISO format to a more readable format
+        val formattedCreatedAt = formatTimestamp(createdAt)
+        val formattedUpdatedAt = formatTimestamp(updatedAt)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Thời gian tạo đơn hàng:",
+                style = CustomTypography.TextRegular,
+                color = colorResource(R.color.colorSystem_normal_text)
+            )
+
+            Text(
+                text = formattedCreatedAt,
+                style = CustomTypography.TextMedium,
+                color = colorResource(R.color.colorSystem_heading_button)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Thời gian cập nhật:",
+                style = CustomTypography.TextRegular,
+                color = colorResource(R.color.colorSystem_normal_text)
+            )
+
+            Text(
+                text = formattedUpdatedAt,
+                style = CustomTypography.TextMedium,
+                color = colorResource(R.color.colorSystem_heading_button)
+            )
+        }
+    }
+}
+
+/**
+ * Formats ISO 8601 timestamp to a more readable format
+ * Input: "2025-05-04T14:26:12.234Z"
+ * Output: "04/05/2025 14:26"
+ */
+private fun formatTimestamp(timestamp: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+
+        val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        outputFormat.timeZone = TimeZone.getDefault() // Convert to local timezone
+
+        val date = inputFormat.parse(timestamp)
+        date?.let { outputFormat.format(it) } ?: timestamp
+    } catch (e: Exception) {
+        // Fallback in case of parsing error
+        timestamp
     }
 }
