@@ -1,7 +1,6 @@
 package com.ptit.data.remote.datasource
 
 import com.ptit.data.remote.api.ProductApi
-import com.ptit.data.remote.dto.product.CreateProductDto
 import javax.inject.Inject
 
 class ProductRemoteDataSource @Inject constructor(private val remoteService: ProductApi) {
