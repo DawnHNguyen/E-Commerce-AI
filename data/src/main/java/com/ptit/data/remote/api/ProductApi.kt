@@ -2,7 +2,6 @@ package com.ptit.data.remote.api
 
 import com.ptit.data.remote.dto.home.ListProductResponse
 import com.ptit.data.remote.dto.product.CategoryDto
-import com.ptit.data.remote.dto.product.CreateProductDto
 import com.ptit.data.remote.dto.product.ProductDto
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.utils.Resource

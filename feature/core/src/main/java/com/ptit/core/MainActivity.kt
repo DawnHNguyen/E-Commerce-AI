@@ -251,8 +251,8 @@ class MainActivity : FragmentActivity() {
                         composable<ProductListRoute> {
                             ProductListScreen(
                                 onNavigateBack = navController::navigateUp,
-                                onNavigateToProductForm = {
-                                    navController.navigate(ProductFormRoute)
+                                onNavigateToProductForm = { productId ->
+                                    navController.navigate(ProductFormRoute(productId))
                                 },
                                 onNavigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId))
@@ -260,9 +260,12 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<ProductFormRoute> {
+                        composable<ProductFormRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ProductFormRoute>()
+                            val productId = args.productId
                             ProductForm(
                                 onNavigateBack = navController::navigateUp,
+                                productId = productId,
                             )
                         }
 

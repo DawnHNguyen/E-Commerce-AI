@@ -55,8 +55,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProductForm(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    productId: String? = null
 ) {
+    Log.d("ProductForm", "ProductForm started with productId: $productId")
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewModel = hiltViewModel<ProductViewModel>()
@@ -75,6 +77,45 @@ fun ProductForm(
     // Image handling
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var uploadedImageUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Determine if we're in edit mode
+    val isEditMode = productId != null
+
+    // Load product details if in edit mode
+    LaunchedEffect(productId) {
+        if (productId != null) {
+            viewModel.getProductDetails(productId)
+        }
+    }
+
+    // Observe product details state for edit mode
+    LaunchedEffect(Unit) {
+        lifecycleOwner.safeCollectFlow(viewModel.productDetailsState) {
+            it.onLoading {
+                isLoading.value = true
+            }.onError { error ->
+                isLoading.value = false
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Lỗi tải thông tin sản phẩm: ${error.message}",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }.onSuccess { product ->
+                isLoading.value = false
+                product?.let {
+                    // Populate form with existing product data
+                    name = it.name
+                    description = it.description
+                    price = it.price.toString()
+                    priceBeforeDiscount = it.priceBeforeDiscount.toString()
+                    quantity = it.quantity.toString()
+                    categoryId = it.category?.id ?: ""
+                    uploadedImageUrls = it.images
+                }
+            }
+        }
+    }
 
     // Image picker
     val multipleImagePicker = rememberLauncherForActivityResult(
@@ -180,7 +221,7 @@ fun ProductForm(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Text(
-                    text = "Tạo sản phẩm mới",
+                    text = if(isEditMode) "Cập nhật sản phẩm" else "Tạo sản phẩm mới",
                     style = CustomTypography.TextBold,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
@@ -197,113 +238,115 @@ fun ProductForm(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
-                // Product Images Section
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                if (!isEditMode) {
+                    // Product Images Section
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Text(
-                            text = "Hình ảnh sản phẩm",
-                            style = CustomTypography.TextSemiBold,
-                            fontSize = 18.sp,
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Main product image - shows first image selected
-                        Box(
-                            modifier = Modifier
-                                .size(200.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = colorResource(id = R.color.colorSystem_stroke),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(colorResource(id = R.color.colorSystem_background_level_1))
-                                .clickable { multipleImagePicker.launch("image/*") },
-                            contentAlignment = Alignment.Center
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            if (selectedImageUris.isNotEmpty()) {
-                                MainProductImage(imageUri = selectedImageUris.first())
-                            } else {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Photo,
-                                        contentDescription = "Add Image",
-                                        tint = colorResource(id = R.color.colorSystem_normal_text),
-                                        modifier = Modifier.size(48.dp)
+                            Text(
+                                text = "Hình ảnh sản phẩm",
+                                style = CustomTypography.TextSemiBold,
+                                fontSize = 18.sp,
+                                color = colorResource(id = R.color.colorSystem_heading_button)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Main product image - shows first image selected
+                            Box(
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .border(
+                                        width = 1.dp,
+                                        color = colorResource(id = R.color.colorSystem_stroke),
+                                        shape = RoundedCornerShape(8.dp)
                                     )
-                                    Text(
-                                        text = "Thêm hình ảnh",
-                                        style = CustomTypography.TextRegular,
-                                        color = colorResource(id = R.color.colorSystem_normal_text)
-                                    )
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colorResource(id = R.color.colorSystem_background_level_1))
+                                    .clickable { multipleImagePicker.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (selectedImageUris.isNotEmpty()) {
+                                    MainProductImage(imageUri = selectedImageUris.first())
+                                } else {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Photo,
+                                            contentDescription = "Add Image",
+                                            tint = colorResource(id = R.color.colorSystem_normal_text),
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Text(
+                                            text = "Thêm hình ảnh",
+                                            style = CustomTypography.TextRegular,
+                                            color = colorResource(id = R.color.colorSystem_normal_text)
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                        // Additional images
-                        Text(
-                            text = "Thêm hình ảnh sản phẩm (tối đa 5 hình)",
-                            style = CustomTypography.TextMedium,
-                            color = colorResource(id = R.color.colorSystem_normal_text)
-                        )
+                            // Additional images
+                            Text(
+                                text = "Thêm hình ảnh sản phẩm (tối đa 5 hình)",
+                                style = CustomTypography.TextMedium,
+                                color = colorResource(id = R.color.colorSystem_normal_text)
+                            )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(4.dp)
-                        ) {
-                            // Selected images
-                            items(selectedImageUris) { imageUri ->
-                                ProductImageItem(
-                                    imageUri = imageUri,
-                                    onRemove = {
-                                        selectedImageUris = selectedImageUris.filter { it != imageUri }
-                                    }
-                                )
-                            }
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(4.dp)
+                            ) {
+                                // Selected images
+                                items(selectedImageUris) { imageUri ->
+                                    ProductImageItem(
+                                        imageUri = imageUri,
+                                        onRemove = {
+                                            selectedImageUris =
+                                                selectedImageUris.filter { it != imageUri }
+                                        }
+                                    )
+                                }
 
-                            // Add image button (if less than 5 images)
-                            if (selectedImageUris.size < 5) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .border(
-                                                width = 1.dp,
-                                                color = colorResource(id = R.color.colorSystem_stroke),
-                                                shape = RoundedCornerShape(8.dp)
+                                // Add image button (if less than 5 images)
+                                if (selectedImageUris.size < 5) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = colorResource(id = R.color.colorSystem_stroke),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                )
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(colorResource(id = R.color.colorSystem_background_level_1))
+                                                .clickable { multipleImagePicker.launch("image/*") },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add Image",
+                                                tint = colorResource(id = R.color.colorSystem_normal_text)
                                             )
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(colorResource(id = R.color.colorSystem_background_level_1))
-                                            .clickable { multipleImagePicker.launch("image/*") },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add Image",
-                                            tint = colorResource(id = R.color.colorSystem_normal_text)
-                                        )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-
                 // Product Details Form
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -461,16 +504,28 @@ fun ProductForm(
                                 // Upload images first
                                 viewModel.uploadProductImages(selectedImageUris)
                             } else if (uploadedImageUrls.isNotEmpty()) {
-                                // Images already uploaded, create product
-                                viewModel.createProduct(
-                                    name = name,
-                                    description = description,
-                                    price = price.toIntOrNull() ?: 0,
-                                    priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
-                                    quantity = quantity.toIntOrNull() ?: 0,
-                                    imageFiles = uploadedImageUrls,
-                                    category = categoryId
-                                )
+                                if (isEditMode && productId != null) {
+                                    viewModel.updateProduct(
+                                        productId = productId,
+                                        name = name,
+                                        description = description,
+                                        price = price.toIntOrNull() ?: 0,
+                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
+                                        quantity = quantity.toIntOrNull() ?: 0,
+                                        imageFiles = uploadedImageUrls,
+                                        category = categoryId
+                                    )
+                                } else {
+                                    viewModel.createProduct(
+                                        name = name,
+                                        description = description,
+                                        price = price.toIntOrNull() ?: 0,
+                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
+                                        quantity = quantity.toIntOrNull() ?: 0,
+                                        imageFiles = uploadedImageUrls,
+                                        category = categoryId
+                                    )
+                                }
                             }
                         }
                     }
@@ -484,10 +539,11 @@ fun ProductForm(
                 )
             ) {
                 Text(
-                    text = if (selectedImageUris.isNotEmpty() && uploadedImageUrls.isEmpty())
-                        "Tải ảnh lên"
-                    else
-                        "Tạo sản phẩm",
+                    text = when {
+                        selectedImageUris.isNotEmpty() && uploadedImageUrls.isEmpty() -> "Tải ảnh lên"
+                        isEditMode -> "Cập nhập sản phẩm"
+                        else -> "Tạo sản phẩm"
+                    },
                     style = CustomTypography.TextSemiBold,
                     fontSize = 16.sp
                 )

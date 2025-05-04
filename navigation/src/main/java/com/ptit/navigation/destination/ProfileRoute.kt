@@ -18,4 +18,4 @@ data object ShopDetailRoute
 data object ProductListRoute
 
 @Serializable
-data object ProductFormRoute
+data class ProductFormRoute (val productId: String? = null)
