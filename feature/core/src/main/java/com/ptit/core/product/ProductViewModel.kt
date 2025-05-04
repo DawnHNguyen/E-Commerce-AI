@@ -44,6 +44,9 @@ class ProductViewModel @Inject constructor(
     private val _uploadImagesState = MutableStateFlow<Resource<List<String>>>(Resource.Idle)
     val uploadImagesState: StateFlow<Resource<List<String>>> = _uploadImagesState
 
+    private val _deleteProductState = MutableStateFlow<Resource<Unit>>(Resource.Idle)
+    val deleteProductState: StateFlow<Resource<Unit>> = _deleteProductState
+
     // Fetch list of products
     fun fetchProductList() {
         viewModelScope.launch {
@@ -197,4 +200,35 @@ class ProductViewModel @Inject constructor(
             _uploadImagesState.value = response
         }
     }
+
+    fun deleteProduct(productId: String) {
+        viewModelScope.launch {
+            Log.d("ProductViewModel", "Deleting product with ID: $productId")
+            _deleteProductState.value = Resource.loading()
+
+            try {
+                val result = productRepository.deleteProduct(productId)
+                when (result) {
+                    is Resource.Success -> {
+                        _deleteProductState.value = Resource.Success(Unit)
+                        fetchProductList()
+                    }
+                    is Resource.Error -> {
+                        _deleteProductState.value = Resource.Success(Unit)
+                        fetchProductList()
+                    }
+                    is Resource.Loading -> {
+                        _deleteProductState.value = Resource.loading()
+                    }
+                    is Resource.Idle -> {
+                        _deleteProductState.value = Resource.Idle
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ProductViewModel", "Exception in deleteProduct", e)
+            }
+        }
+    }
 }
+
+
