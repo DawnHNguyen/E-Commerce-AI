@@ -56,6 +56,7 @@ import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.shop.ShopDetailScreen
 import com.ptit.core.shop.UpdateShopScreen
@@ -64,6 +65,7 @@ import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.ProductDetailRoute
+import com.ptit.navigation.destination.ProductListRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
@@ -205,6 +207,18 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToEditShop = {
                                     navController.navigate(UpdateShopRoute)
+                                },
+                                onNavigateToProductList = {
+                                    navController.navigate(ProductListRoute)
+                                }
+                            )
+                        }
+
+                        composable<ProductListRoute> {
+                            ProductListScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onNavigateToProductForm = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId.toString()))
                                 }
                             )
                         }

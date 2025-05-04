@@ -13,4 +13,8 @@ class ProductRepositoryImpl @Inject constructor(private val remoteDataSource: Pr
     override suspend fun getProductDetail(productId: String): Resource<ProductDomainEntity> {
         return remoteDataSource.getProductDetail(productId).map { it.toDomainEntity() }
     }
+
+    override suspend fun getProductsByShop(): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getProductsByShop().map { response -> response.map { it.toDomainEntity() } }
+    }
 }

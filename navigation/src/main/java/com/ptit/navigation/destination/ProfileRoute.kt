@@ -13,3 +13,6 @@ data object UpdateShopRoute
 
 @Serializable
 data object ShopDetailRoute
+
+@Serializable
+data object ProductListRoute

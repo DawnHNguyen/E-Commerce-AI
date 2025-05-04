@@ -60,7 +60,8 @@ import com.ptit.domain.utils.onSuccess
 @Composable
 fun ShopDetailScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToEditShop: () -> Unit
+    onNavigateToEditShop: () -> Unit,
+    onNavigateToProductList: () -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -156,7 +157,7 @@ fun ShopDetailScreen(
 
             // Add Product Button
             Button(
-                onClick = { /* Navigate to add product screen */ },
+                onClick = onNavigateToProductList,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(id = R.color.colorSystem_heading_button)
@@ -164,7 +165,7 @@ fun ShopDetailScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Thêm sản phẩm",
+                    text = "Quản lý sản phẩm",
                     style = CustomTypography.TextSemiBold,
                     fontSize = 16.sp,
                     color = colorResource(id = R.color.colorSystem_greyscale_0_white),
