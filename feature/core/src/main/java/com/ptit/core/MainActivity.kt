@@ -56,6 +56,7 @@ import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.shop.ShopDetailScreen
@@ -65,6 +66,7 @@ import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.ProductDetailRoute
+import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
@@ -217,9 +219,18 @@ class MainActivity : ComponentActivity() {
                         composable<ProductListRoute> {
                             ProductListScreen(
                                 onNavigateBack = navController::navigateUp,
-                                onNavigateToProductForm = { productId ->
-                                    navController.navigate(ProductDetailRoute(productId.toString()))
-                                }
+                                onNavigateToProductForm = {
+                                    navController.navigate(ProductFormRoute)
+                                },
+                                onNavigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId))
+                                },
+                            )
+                        }
+
+                        composable<ProductFormRoute> {
+                            ProductForm(
+                                onNavigateBack = navController::navigateUp,
                             )
                         }
 
