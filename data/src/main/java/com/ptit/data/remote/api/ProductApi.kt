@@ -1,13 +1,21 @@
 package com.ptit.data.remote.api
 
 import com.ptit.data.remote.dto.home.ListProductResponse
+import com.ptit.data.remote.dto.product.CategoryDto
+import com.ptit.data.remote.dto.product.CreateProductDto
 import com.ptit.data.remote.dto.product.ProductDto
+import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.utils.Resource
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ProductApi {
+
     @GET("products")
     suspend fun listProducts(
         @Query("page") page: Int,
@@ -26,4 +34,34 @@ interface ProductApi {
 
     @GET("/admin/products/my-products")
     suspend fun getProductsByShop(): Resource<List<ProductDto>>
+
+    @GET("categories")
+    suspend fun getCategories(): Resource<List<CategoryDto>>
+
+    @FormUrlEncoded
+    @POST("/admin/products")
+    suspend fun createProduct(
+        @Field("name") name: String,
+      @Field("description") description: String,
+      @Field("price") price: Int,
+      @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
+      @Field("quantity") quantity: Int,
+      @Field("images") images: List<String>,
+        @Field("image") image: String,
+        @Field("category") category: String,
+    ): Resource<ProductDto>
+
+    @FormUrlEncoded
+    @PUT("/admin/products/{id_product}")
+    suspend fun updateProduct(
+        @Path("id_product") productId: String,
+        @Field("name") name: String,
+        @Field("description") description: String,
+        @Field("price") price: Int,
+        @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
+        @Field("quantity") quantity: Int,
+        @Field("images") images: List<String>,
+        @Field("image") image: String,
+        @Field("category") category: String,
+    ): Resource<ProductDto>
 }

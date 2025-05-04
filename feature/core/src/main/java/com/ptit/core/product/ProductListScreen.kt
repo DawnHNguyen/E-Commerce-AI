@@ -2,6 +2,7 @@ package com.ptit.core.product
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -45,13 +47,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.MaxSizeColumn
@@ -76,7 +82,8 @@ sealed class ProductDialogState {
 @Composable
 fun ProductListScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToProductForm: (String?) -> Unit
+    onNavigateToProductForm: (String?) -> Unit,
+    onNavigateToProductDetail: (String) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewModel = hiltViewModel<ProductViewModel>()
@@ -324,6 +331,7 @@ private fun DeleteProductConfirmationDialog(
     )
 }
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun ProductItem(
     product: ProductDomainEntity,
@@ -339,112 +347,132 @@ fun ProductItem(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product name row
-            Text(
-                text = product.name,
-                style = CustomTypography.TextSemiBold,
-                fontSize = 16.sp,
-                color = colorResource(id = R.color.colorSystem_heading_button),
-                maxLines = 2
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Product details row
-            Row {
-                // Price
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Giá",
-                        style = CustomTypography.TextRegular,
-                        fontSize = 12.sp,
-                        color = colorResource(id = R.color.colorSystem_normal_text)
+            // Product Image
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = colorResource(id = R.color.colorSystem_background_level_1),
+                        shape = RoundedCornerShape(8.dp)
                     )
-                    Text(
-                        text = "${product.price} đ",
-                        style = CustomTypography.TextBold,
-                        fontSize = 15.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                }
-
-                // Quantity
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Số lượng",
-                        style = CustomTypography.TextRegular,
-                        fontSize = 12.sp,
-                        color = colorResource(id = R.color.colorSystem_normal_text)
-                    )
-                    Text(
-                        text = product.quantity.toString(),
-                        style = CustomTypography.TextBold,
-                        fontSize = 15.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
+            ) {
+                GlideImage(
+                    model = product.image,
+                    contentDescription = "Product Image",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                ) {
+                    it.centerCrop()
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                // Edit button
-                Button(
-                    onClick = onEditClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorResource(id = R.color.colorSystem_heading_button)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Cập nhật",
-                            tint = colorResource(id = R.color.colorSystem_greyscale_0_white),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.size(4.dp))
+                // Product name row
+                Text(
+                    text = product.name,
+                    style = CustomTypography.TextSemiBold,
+                    fontSize = 16.sp,
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    maxLines = 2
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Product details row
+                Row {
+                    // Price
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Cập nhật",
-                            style = CustomTypography.TextMedium,
-                            fontSize = 14.sp,
-                            color = colorResource(id = R.color.colorSystem_greyscale_0_white)
+                            text = "Giá",
+                            style = CustomTypography.TextRegular,
+                            fontSize = 12.sp,
+                            color = colorResource(id = R.color.colorSystem_normal_text)
+                        )
+                        Text(
+                            text = "${product.price} đ",
+                            style = CustomTypography.TextBold,
+                            fontSize = 15.sp,
+                            color = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+
+                    // Quantity
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Số lượng",
+                            style = CustomTypography.TextRegular,
+                            fontSize = 12.sp,
+                            color = colorResource(id = R.color.colorSystem_normal_text)
+                        )
+                        Text(
+                            text = "${product.quantity}",
+                            style = CustomTypography.TextBold,
+                            fontSize = 15.sp,
+                            color = colorResource(id = R.color.colorSystem_heading_button)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.size(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Delete button
-                Button(
-                    onClick = onDeleteClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    // Edit button
+                    Button(
+                        onClick = onEditClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorResource(id = R.color.colorSystem_heading_button)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Sửa",
+                            tint = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Sửa",
+                            style = CustomTypography.TextSemiBold,
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.colorSystem_greyscale_0_white)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.size(8.dp))
+
+                    // Delete button
+                    Button(
+                        onClick = onDeleteClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Xóa",
                             tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.size(4.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Xóa",
-                            style = CustomTypography.TextMedium,
+                            style = CustomTypography.TextSemiBold,
                             fontSize = 14.sp,
                             color = Color.White
                         )

@@ -16,3 +16,6 @@ data object ShopDetailRoute
 
 @Serializable
 data object ProductListRoute
+
+@Serializable
+data object ProductFormRoute
