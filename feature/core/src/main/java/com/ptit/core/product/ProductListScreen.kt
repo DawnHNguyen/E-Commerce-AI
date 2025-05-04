@@ -115,33 +115,38 @@ fun ProductListScreen(
                     isLoading.value = false
                 }
         }
+    }
 
-//        lifecycleOwner.safeCollectFlow(viewModel.deleteProductState) {
-//            when (it) {
-//                is ProductViewModel.DeleteProductState.Loading -> {
-//                    isLoading.value = true
-//                }
-//                is ProductViewModel.DeleteProductState.Error -> {
-//                    isLoading.value = false
-//                    scope.launch {
-//                        snackbarHostState.showSnackbar(
-//                            message = "Không thể xóa sản phẩm: ${it.message}",
-//                            duration = SnackbarDuration.Short
-//                        )
-//                    }
-//                }
-//                is ProductViewModel.DeleteProductState.Success -> {
-//                    isLoading.value = false
-//                    scope.launch {
-//                        snackbarHostState.showSnackbar(
-//                            message = "Đã xóa sản phẩm thành công",
-//                            duration = SnackbarDuration.Short
-//                        )
-//                    }
-//                }
-//                else -> {}
-//            }
-//        }
+    // Add this inside the ProductListScreen composable
+    LaunchedEffect(Unit) {
+        // Existing fetchProductList() call...
+
+        // Add monitoring for delete operations
+        lifecycleOwner.safeCollectFlow(viewModel.deleteProductState) { state ->
+            state
+                .onLoading {
+                    isLoading.value = true
+                }
+                .onError { error ->
+                    isLoading.value = false
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Không thể xóa sản phẩm: ${error.message}",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+
+                }
+                .onSuccess { _ ->
+                    isLoading.value = false
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Xóa sản phẩm thành công",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+        }
     }
 
     Box(
@@ -224,7 +229,7 @@ fun ProductListScreen(
                         dialogState = ProductDialogState.Hidden
                         scope.launch {
                             delay(150) // Wait briefly to ensure dialog has closed
-//                            viewModel.deleteProduct(currentDialog.product.id)
+                            viewModel.deleteProduct(currentDialog.product.id)
                         }
                     },
                     onDismiss = { dialogState = ProductDialogState.Hidden }

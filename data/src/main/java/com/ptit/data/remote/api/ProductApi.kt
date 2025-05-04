@@ -6,6 +6,7 @@ import com.ptit.data.remote.dto.product.CreateProductDto
 import com.ptit.data.remote.dto.product.ProductDto
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.utils.Resource
+import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -38,6 +39,11 @@ interface ProductApi {
     @GET("categories")
     suspend fun getCategories(): Resource<List<CategoryDto>>
 
+    @DELETE("/admin/products/delete/{id_product}")
+    suspend fun deleteProduct(
+        @Path("id_product") productId: String
+    ): Resource<Unit>
+
     @FormUrlEncoded
     @POST("/admin/products")
     suspend fun createProduct(
@@ -64,4 +70,6 @@ interface ProductApi {
         @Field("image") image: String,
         @Field("category") category: String,
     ): Resource<ProductDto>
+
+
 }

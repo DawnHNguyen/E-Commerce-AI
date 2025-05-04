@@ -37,5 +37,8 @@ class ProductRepositoryImpl @Inject constructor(private val remoteDataSource: Pr
         return remoteDataSource.updateProduct(productId, name, description, price, priceBeforeDiscount, quantity, images, image, category).map { it.toDomainEntity() }
     }
 
+    override suspend fun deleteProduct(productId: String): Resource<Unit> {
+        return remoteDataSource.deleteProduct(productId).map { it }
+    }
 
 }
