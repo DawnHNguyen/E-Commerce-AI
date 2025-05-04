@@ -13,4 +13,8 @@ data class CreateAndUpdateShopResponse(
     val phone: String,
     @SerializedName("avatar")
     val avatar: String,
+    @SerializedName("totalProduct")
+    val totalProduct: Int? = 0,
+    @SerializedName("totalOrder")
+    val totalOrder: Int? = 0,
 )

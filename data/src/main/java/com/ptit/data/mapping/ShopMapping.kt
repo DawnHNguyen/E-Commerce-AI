@@ -9,4 +9,6 @@ fun CreateAndUpdateShopResponse.toDomainEntity() = ShopDomainEntity(
     phone = phone ?: "",
     description = description ?: "",
     avatar = avatar ?: "",
+    totalProduct = totalProduct ?: 0,
+    totalOrder = totalOrder ?: 0,
 )

@@ -147,7 +147,9 @@ fun ShopDetailScreen(
             ShopInfoSection(
                 shopName = uiModel.value.shop.name,
                 shopDescription = uiModel.value.shop.description,
-                shopAddress = uiModel.value.shop.address
+                shopAddress = uiModel.value.shop.address,
+                totalProduct = uiModel.value.shop.totalProduct ?: 0,
+                totalOrder = uiModel.value.shop.totalOrder ?: 0
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -260,7 +262,9 @@ private fun ShopProfileSection(
 private fun ShopInfoSection(
     shopName: String,
     shopDescription: String,
-    shopAddress: String
+    shopAddress: String,
+    totalProduct: Int = 0,
+    totalOrder: Int = 0
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -340,19 +344,13 @@ private fun ShopInfoSection(
             ) {
                 StatisticItem(
                     title = "Sản phẩm",
-                    value = "0",
+                    value = totalProduct.toString(),
                     modifier = Modifier.weight(1f)
                 )
 
                 StatisticItem(
                     title = "Đơn hàng",
-                    value = "0",
-                    modifier = Modifier.weight(1f)
-                )
-
-                StatisticItem(
-                    title = "Đánh giá",
-                    value = "0",
+                    value = totalOrder.toString(),
                     modifier = Modifier.weight(1f)
                 )
             }
