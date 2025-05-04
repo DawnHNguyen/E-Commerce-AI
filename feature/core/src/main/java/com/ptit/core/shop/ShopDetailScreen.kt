@@ -70,6 +70,7 @@ fun ShopDetailScreen(
 
 
     LaunchedEffect(Unit) {
+        viewModel.fetchMyShopDetails()
         lifecycleOwner.safeCollectFlow(viewModel.shopDetailsState) {
             it
                 .onLoading {
@@ -191,66 +192,70 @@ private fun ShopProfileSection(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(modifier = Modifier.align(Alignment.End)) {
-                IconButton(
-                    onClick = onEditClick,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Chỉnh sửa cửa hàng",
-                        tint = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                }
-            }
-
-            // Shop logo/image
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = onEditClick,
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(colorResource(R.color.colorSystem_background_level_2))
-                    .border(2.dp, colorResource(R.color.colorSystem_stroke), CircleShape),
-                contentAlignment = Alignment.Center
+                    .size(40.dp)
+                    .align(Alignment.TopEnd)
             ) {
-                if (shop.avatar.isNotEmpty()) {
-                    GlideImage(
-                        model = shop.avatar,
-                        contentDescription = "Logo cửa hàng",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.Crop,
-                        transition = MyCrossFade
-                    ) {
-                        it.centerCrop()
-                    }
-                } else {
-                    Text(
-                        text = if (shop.name.isNotEmpty()) shop.name.first().toString().uppercase() else "?",
-                        style = CustomTypography.TextBold,
-                        fontSize = 40.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = "Chỉnh sửa cửa hàng",
+                    tint = colorResource(id = R.color.colorSystem_heading_button)
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Content column centered in the box
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Shop logo/image
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .background(colorResource(R.color.colorSystem_background_level_2))
+                        .border(2.dp, colorResource(R.color.colorSystem_stroke), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (shop.avatar.isNotEmpty()) {
+                        GlideImage(
+                            model = shop.avatar,
+                            contentDescription = "Logo cửa hàng",
+                            modifier = Modifier.fillMaxWidth(),
+                            contentScale = ContentScale.Crop,
+                            transition = MyCrossFade
+                        ) {
+                            it.centerCrop()
+                        }
+                    } else {
+                        Text(
+                            text = if (shop.name.isNotEmpty()) shop.name.first().toString().uppercase() else "?",
+                            style = CustomTypography.TextBold,
+                            fontSize = 40.sp,
+                            color = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+                }
 
-            // Shop name
-            Text(
-                text = shop.name,
-                style = CustomTypography.TextBold,
-                fontSize = 22.sp,
-                color = colorResource(id = R.color.colorSystem_heading_button),
-                textAlign = TextAlign.Center
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Shop name
+                Text(
+                    text = shop.name,
+                    style = CustomTypography.TextBold,
+                    fontSize = 22.sp,
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
-
 @Composable
 private fun ShopInfoSection(
     shopName: String,

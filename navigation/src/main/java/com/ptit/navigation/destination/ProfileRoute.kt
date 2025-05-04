@@ -9,7 +9,7 @@ data object ListPaymentMethodRoute
 data object ConfigPaymentMethodRoute
 
 @Serializable
-data object AddShopRoute
+data object UpdateShopRoute
 
 @Serializable
 data object ShopDetailRoute

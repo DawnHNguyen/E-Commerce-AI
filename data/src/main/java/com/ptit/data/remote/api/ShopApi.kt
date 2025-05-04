@@ -9,7 +9,7 @@ import retrofit2.http.PUT
 
 interface ShopApi {
     @PUT("/admin/shop")
-    suspend fun createShop(
+    suspend fun updateShop(
        @Body createAndUpdateShopRequest: CreateAndUpdateShopRequest,
     ): Resource<CreateAndUpdateShopResponse>
 

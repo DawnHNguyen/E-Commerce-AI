@@ -11,4 +11,6 @@ data class CreateAndUpdateShopRequest (
     val description: String,
     @SerializedName("phone")
     val phone: String,
+    @SerializedName("avatar")
+    val avatar: String,
 )

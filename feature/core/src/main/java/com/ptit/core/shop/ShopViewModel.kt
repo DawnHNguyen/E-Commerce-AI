@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.shop.ShopDomainEntity
+import com.ptit.domain.repository.FileUploadRepository
 import com.ptit.domain.repository.ShopRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,8 @@ data class ShopUiModel(
 
 @HiltViewModel
 class ShopViewModel @Inject constructor(
-    private val shopRepository: ShopRepository
+    private val shopRepository: ShopRepository,
+    private val fileUploadRepository: FileUploadRepository
 ) : ViewModel() {
 
     // UI state
@@ -29,7 +31,13 @@ class ShopViewModel @Inject constructor(
 
     // API result states
     private val _shopDetailsState = MutableStateFlow<Resource<ShopDomainEntity>>(Resource.idle())
-    val shopDetailsState= _shopDetailsState.asStateFlow()
+    val shopDetailsState = _shopDetailsState.asStateFlow()
+
+    private val _updateShopState = MutableStateFlow<Resource<ShopDomainEntity>>(Resource.idle())
+    val updateShopState = _updateShopState.asStateFlow()
+
+    private val _uploadImageState = MutableStateFlow<Resource<String>>(Resource.idle())
+    val uploadImageState = _uploadImageState.asStateFlow()
 
     init {
         fetchMyShopDetails()
@@ -37,7 +45,7 @@ class ShopViewModel @Inject constructor(
 
     // Load existing shop details
     fun fetchMyShopDetails() {
-       if (shopDetailsState.value is Resource.Loading) return
+        if (shopDetailsState.value is Resource.Loading) return
         _shopDetailsState.value = Resource.loading()
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -51,5 +59,31 @@ class ShopViewModel @Inject constructor(
         }
     }
 
+    // Update shop details
+    fun updateShopDetails(updatedShop: ShopDomainEntity) {
+        if (_updateShopState.value is Resource.Loading) return
+        _updateShopState.value = Resource.loading()
 
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = shopRepository.updateShop(updatedShop.name, updatedShop.description, updatedShop.address, updatedShop.phone, updatedShop.avatar)
+            Log.e("ShopViewModel", "Shop update response: $response")
+            _updateShopState.value = response
+
+            if (response is Resource.Success) {
+                _uiModel.value = ShopUiModel(shop = response.data)
+            }
+        }
+    }
+
+    // Upload shop avatar image
+    fun uploadShopImage(imageUri: Uri) {
+        if (_uploadImageState.value is Resource.Loading) return
+        _uploadImageState.value = Resource.loading()
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = fileUploadRepository.uploadSingleFile(imageUri)
+            Log.e("ShopViewModel", "Image upload response: $response")
+            _uploadImageState.value = response
+        }
+    }
 }
