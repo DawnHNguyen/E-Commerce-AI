@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateOrderScreen(
-    selectedItemIds: ArrayList<String>,
+    selectedItemIds: List<String>,
     viewModel: CreateOrderViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onOrderCreated: (OrderDomainEntity) -> Unit

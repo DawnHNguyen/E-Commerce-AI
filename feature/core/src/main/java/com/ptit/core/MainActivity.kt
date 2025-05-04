@@ -145,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = navController::navigateUp,
                                 onCheckout = { selectedItemIds ->
                                     // Now we're directly receiving the IDs
-                                    navController.navigate(CreateOrderRoute(selectedItemIds = ArrayList(selectedItemIds)))
+                                    navController.navigate(CreateOrderRoute(selectedItemIds = selectedItemIds))
                                 },
                                 onProductClick = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
