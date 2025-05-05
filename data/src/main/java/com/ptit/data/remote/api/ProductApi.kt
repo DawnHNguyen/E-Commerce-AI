@@ -23,4 +23,7 @@ interface ProductApi {
     suspend fun getProductDetail(
         @Path("id_product") productId: String
     ): Resource<ProductDto>
+
+    @GET("/admin/products/my-products")
+    suspend fun getProductsByShop(): Resource<List<ProductDto>>
 }
