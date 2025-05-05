@@ -22,6 +22,7 @@ fun CustomSearchBar(
     enabled: Boolean = true,
     onValueChange: (String) -> Unit,
     onClickSearch: (String) -> Unit = {},
+    onSearch: () -> Unit = {}, // Added parameter to match HomeScreen usage
 ) {
     FilledTextField(
         value = value,
@@ -35,6 +36,7 @@ fun CustomSearchBar(
         keyboardActions = KeyboardActions(
             onSearch = {
                 onClickSearch(value)
+                onSearch() // Call the new parameter
             }
         ),
         singleLine = true,
@@ -67,6 +69,7 @@ fun CustomSearchBar(
     enabled: Boolean = true,
     onValueChange: (TextFieldValue) -> Unit,
     onClickSearch: (String) -> Unit = {},
+    onSearch: () -> Unit = {}, // Added parameter to match HomeScreen usage
 ) {
     FilledTextField(
         value = value,
@@ -80,6 +83,7 @@ fun CustomSearchBar(
         keyboardActions = KeyboardActions(
             onSearch = {
                 onClickSearch(value.text)
+                onSearch() // Call the new parameter
             }
         ),
         singleLine = true,

@@ -25,7 +25,25 @@ class HomeRepositoryImpl @Inject constructor(private val remoteDataSource: Produ
             }
         ).flow
 
+    override fun searchProducts(query: String): Flow<PagingData<ProductDomainEntity>> =
+        Pager(
+            config = PagingConfig(
+                pageSize = SEARCH_PRODUCT_PAGE_SIZE,
+                prefetchDistance = SEARCH_PRODUCT_PAGE_SIZE / 2,
+                initialLoadSize = SEARCH_PRODUCT_PAGE_SIZE
+            ),
+            pagingSourceFactory = {
+                ProductPagingSource(
+                    remoteDataSource = remoteDataSource,
+                    name = query
+                )
+            }
+        ).flow
+
     companion object {
         private const val RECOMMENDED_PRODUCT_PAGE_SIZE = 20
+        private const val SEARCH_PRODUCT_PAGE_SIZE = 20
     }
+
+
 }
