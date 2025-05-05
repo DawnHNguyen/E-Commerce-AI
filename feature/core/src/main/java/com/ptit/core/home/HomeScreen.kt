@@ -18,15 +18,25 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -63,11 +73,26 @@ fun HomeScreen(
     val viewModel = hiltViewModel<HomeViewModel>()
     val paginatedRecommendedProduct = viewModel.paginatedRecommendedProduct.collectAsLazyPagingItems()
 
+    val searchQuery = viewModel.searchQuery.collectAsState().value
+    val searchResults = viewModel.searchResults.collectAsLazyPagingItems()
+
+    // Track whether search is active
+    val isSearchActive = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
     CustomPullToRefreshBox(
         modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0)),
-        isRefreshing = paginatedRecommendedProduct.loadState.refresh == LoadState.Loading,
+        isRefreshing = if (isSearchActive.value)
+            searchResults.loadState.refresh == LoadState.Loading
+        else
+            paginatedRecommendedProduct.loadState.refresh == LoadState.Loading,
         onRefresh = {
-            paginatedRecommendedProduct.refresh()
+            if (isSearchActive.value) {
+                searchResults.refresh()
+            } else {
+                paginatedRecommendedProduct.refresh()
+            }
         }
     ) {
         MaxSizeColumn {
@@ -82,74 +107,139 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CustomSearchBar(
-                    value = "",
-                    onValueChange = {},
+                    value = searchQuery,
+                    onValueChange = {
+                        viewModel.updateSearchQuery(it)
+                        if (it.isNotBlank()) {
+                            isSearchActive.value = true
+                        } else {
+                            isSearchActive.value = false
+                        }
+                    },
                     hint = "Tìm kiếm sản phẩm",
                     modifier = Modifier
-                        .noRippleClickable(onClick = navigateToSearch)
-                        .weight(1f),
-                    enabled = false,
+                        .weight(1f)
+                        .focusRequester(focusRequester),
+                    enabled = true,
+                    onSearch = {
+                        focusManager.clearFocus()
+                    },
                 )
-
-//                BadgedBox(
-//                    badge = {
-//                        Badge {
-//                            Text(
-//                                text = "99+",
-//                                style = CustomTypography.TextRegular.merge(
-//                                    color = colorResource(R.color.colorSystem_greyscale_0_white),
-//                                    fontSize = 10.sp
-//                                )
-//                            )
-//                        }
-//                    }
-//                ) {
-//                    IconButton(onClick = navigateToCart) {
-//                        Icon(
-//                            imageVector = Icons.Outlined.ShoppingCart,
-//                            contentDescription = null,
-//                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-//                        )
-//                    }
-//                }
             }
 
-            LazyVerticalGrid(
-                modifier = Modifier.weight(1f),
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(
-                    vertical = 8.dp,
-                    horizontal = 16.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item(
-                    key = "recommend_title",
-                    span = {
-                        GridItemSpan(maxCurrentLineSpan)
-                    }
+            // Content changes based on search state
+            if (isSearchActive.value) {
+                // Search results
+                LazyVerticalGrid(
+                    modifier = Modifier.weight(1f),
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(
+                        vertical = 8.dp,
+                        horizontal = 16.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Gợi ý cho bạn",
-                        style = CustomTypography.TextSemiBold.merge(
-                            color = colorResource(R.color.colorSystem_heading_button),
-                            fontSize = 20.sp
-                        ),
-                    )
-                }
+                    item(
+                        key = "search_title",
+                        span = { GridItemSpan(maxCurrentLineSpan) }
+                    ) {
+                        MaxWidthRow(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Kết quả tìm kiếm",
+                                style = CustomTypography.TextSemiBold.merge(
+                                    color = colorResource(R.color.colorSystem_heading_button),
+                                    fontSize = 20.sp
+                                ),
+                            )
 
-                items(
-                    count = paginatedRecommendedProduct.itemCount,
-                    key = paginatedRecommendedProduct.itemKey { it.id }
-                ) { index ->
-                    paginatedRecommendedProduct[index]?.let { product ->
-                        RecommendProductItem(
-                            product = product,
-                            onClickProduct = {
-                                navigateToProductDetail(product.id)
+                            TextButton(
+                                onClick = {
+                                    viewModel.updateSearchQuery("")
+                                    isSearchActive.value = false
+                                    focusManager.clearFocus()
+                                }
+                            ) {
+                                Text("Hủy")
                             }
+                        }
+                    }
+
+                    if (searchResults.loadState.refresh is LoadState.Loading) {
+                        item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                            MaxSizeBox(
+                                modifier = Modifier.padding(top = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    } else if (searchResults.itemCount == 0) {
+                        item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                            MaxSizeBox(
+                                modifier = Modifier.padding(top = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Không tìm thấy sản phẩm",
+                                    style = CustomTypography.TextMedium.merge(
+                                        color = colorResource(R.color.colorSystem_normal_text)
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        items(
+                            count = searchResults.itemCount,
+                            key = searchResults.itemKey { it.id }
+                        ) { index ->
+                            searchResults[index]?.let { product ->
+                                RecommendProductItem(
+                                    product = product,
+                                    onClickProduct = { navigateToProductDetail(product.id) }
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Normal home content
+                LazyVerticalGrid(
+                    modifier = Modifier.weight(1f),
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(
+                        vertical = 8.dp,
+                        horizontal = 16.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item(
+                        key = "recommend_title",
+                        span = { GridItemSpan(maxCurrentLineSpan) }
+                    ) {
+                        Text(
+                            text = "Gợi ý cho bạn",
+                            style = CustomTypography.TextSemiBold.merge(
+                                color = colorResource(R.color.colorSystem_heading_button),
+                                fontSize = 20.sp
+                            ),
                         )
+                    }
+
+                    items(
+                        count = paginatedRecommendedProduct.itemCount,
+                        key = paginatedRecommendedProduct.itemKey { it.id }
+                    ) { index ->
+                        paginatedRecommendedProduct[index]?.let { product ->
+                            RecommendProductItem(
+                                product = product,
+                                onClickProduct = { navigateToProductDetail(product.id) }
+                            )
+                        }
                     }
                 }
             }
