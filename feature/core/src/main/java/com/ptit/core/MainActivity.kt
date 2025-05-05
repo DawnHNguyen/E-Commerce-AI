@@ -70,6 +70,10 @@ import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
+import com.ptit.core.order.CreateOrderScreen
+import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.OrderDetailRoute
+import com.ptit.core.order.OrderDetailScreen
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
@@ -145,11 +149,36 @@ class MainActivity : ComponentActivity() {
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
                                 onBack = navController::navigateUp,
-                                onCheckout = {
-
+                                onCheckout = { selectedItemIds ->
+                                    // Now we're directly receiving the IDs
+                                    navController.navigate(CreateOrderRoute(selectedItemIds = selectedItemIds))
                                 },
                                 onProductClick = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
+                                }
+                            )
+                        }
+
+                        composable<CreateOrderRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<CreateOrderRoute>()
+                            CreateOrderScreen(
+                                selectedItemIds = args.selectedItemIds,
+                                onBack = navController::navigateUp,
+                                onOrderCreated = { orderId  ->
+                                    // Navigate to OrderDetailScreen with the created order ID
+                                    navController.navigate(OrderDetailRoute(orderId = orderId.toString()))
+                                }
+                            )
+                        }
+
+                        composable<OrderDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<OrderDetailRoute>()
+                            OrderDetailScreen(
+                                orderId = args.orderId,
+                                onBack = navController::navigateUp,
+                                onPaymentClick = { orderId ->
+                                    // Handle payment for the order
+                                    // This will be implemented later
                                 }
                             )
                         }

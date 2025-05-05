@@ -11,6 +11,7 @@ import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface PurchaseApi {
@@ -28,11 +29,6 @@ interface PurchaseApi {
     suspend fun addToCart(
         @Body addToCartRequest: AddToCartRequestDto
     ): Resource<PurchaseDto>
-//    @DELETE("purchases")
-//    suspend fun deletePurchases(
-//        @Body purchaseIds: List<String>
-//    ): Resource<DeletePurchaseResponseDto>
-
 
     // Thay đổi từ @DELETE sang @HTTP với method = "DELETE" và hasBody = true
     @HTTP(method = "DELETE", hasBody = true, path = "purchases")
@@ -40,4 +36,9 @@ interface PurchaseApi {
         @Body purchaseIds: List<String>
     ): Resource<DeletePurchaseResponseDto>
 
+    // Add new method to get a purchase by ID
+    @GET("purchases/{purchaseId}")
+    suspend fun getPurchaseById(
+        @Path("purchaseId") purchaseId: String
+    ): Resource<PurchaseDto>
 }

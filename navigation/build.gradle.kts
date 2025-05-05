@@ -40,10 +40,12 @@ dependencies {
     implementation(libs.compose.ui.graphics)
 
     implementation(libs.kotlinx.serialization)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)
 
     implementation(project(":common"))
+    implementation(project(":domain"))
 }

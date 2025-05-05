@@ -271,7 +271,7 @@ fun ProductDetailContent(
                         // Image indicator (e.g., "1/5")
                         Box(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
+                                .align(Alignment.BottomEnd)
                                 .padding(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(Color.Black.copy(alpha = 0.6f))

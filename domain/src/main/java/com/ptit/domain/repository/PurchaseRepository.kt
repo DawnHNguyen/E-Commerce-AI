@@ -9,4 +9,7 @@ interface PurchaseRepository {
     suspend fun updatePurchase(productId: String, buyCount: Int): Resource<PurchaseDomainEntity>
     suspend fun addToCart(productId: String, buyCount: Int): Resource<PurchaseDomainEntity>
     suspend fun deletePurchases(purchaseIds: List<String>): Resource<DeletePurchaseResult>
+
+    // Add new method to get purchases by their IDs
+    suspend fun getPurchaseById(id: String): Resource<PurchaseDomainEntity>
 }
