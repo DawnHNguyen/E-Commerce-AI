@@ -38,6 +38,7 @@ fun BaseBottomSheet(
                 WindowInsets.navigationBars.union(WindowInsets.ime)
             },
             scrimColor = Color.Gray.copy(alpha = 0.5f),
+            dragHandle = null,
             content = content
         )
     }

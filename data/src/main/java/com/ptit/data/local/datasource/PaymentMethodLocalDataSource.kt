@@ -15,6 +15,9 @@ import javax.inject.Inject
 class PaymentMethodLocalDataSource @Inject constructor(
     private val database: PtitEcomDatabase,
 ) {
+    suspend fun getDefaultPaymentMethod(): TblPaymentMethod? = withContext(Dispatchers.IO) {
+        database.ecomDatabaseQueries.getDefaultPaymentMethod().executeAsOneOrNull()
+    }
     suspend fun insertPaymentMethod(
         firstSixNum: String,
         lastFourNum: String,

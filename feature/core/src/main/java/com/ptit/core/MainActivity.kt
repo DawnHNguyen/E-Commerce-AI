@@ -36,6 +36,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -56,6 +57,8 @@ import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.order.CreateOrderScreen
+import com.ptit.core.order.OrderDetailScreen
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.shop.ShopDetailScreen
@@ -63,21 +66,19 @@ import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
+import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
+import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.ptit.navigation.destination.ProductListRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
-import com.ptit.core.order.CreateOrderScreen
-import com.ptit.navigation.destination.CreateOrderRoute
-import com.ptit.navigation.destination.OrderDetailRoute
-import com.ptit.core.order.OrderDetailScreen
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         window.decorView
         super.onCreate(savedInstanceState)
@@ -164,9 +165,9 @@ class MainActivity : ComponentActivity() {
                             CreateOrderScreen(
                                 selectedItemIds = args.selectedItemIds,
                                 onBack = navController::navigateUp,
-                                onOrderCreated = { orderId  ->
+                                onOrderCreated = { orderId ->
                                     // Navigate to OrderDetailScreen with the created order ID
-                                    navController.navigate(OrderDetailRoute(orderId = orderId.toString()))
+                                    navController.navigate(OrderDetailRoute(orderId = orderId))
                                 }
                             )
                         }

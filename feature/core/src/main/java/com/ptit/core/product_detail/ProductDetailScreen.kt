@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -71,7 +70,7 @@ fun ProductDetailScreen(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onBuyNowClick: () -> Unit
+    onBuyNowClick: () -> Unit,
 ) {
     LocalBottomNavigationVisibility.current.value = false
 
@@ -94,11 +93,13 @@ fun ProductDetailScreen(
                     snackbarHostState.showSnackbar("Product successfully added to cart")
                 }
             }
+
             is AddToCartState.Error -> {
 //                scope.launch {
 //                    snackbarHostState.showSnackbar("Error: ${(addToCartState as AddToCartState.Error).message}")
 //                }
             }
+
             else -> {} // Handle other states if needed
         }
     }
@@ -191,7 +192,7 @@ fun ProductDetailContent(
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     onBuyNowClick: () -> Unit,
-    isAddingToCart: Boolean = false
+    isAddingToCart: Boolean = false,
 ) {
     MaxSizeColumn(
         modifier = Modifier

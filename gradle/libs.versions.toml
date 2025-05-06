@@ -2,6 +2,7 @@
 agp = "8.9.1"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
+biometric = "1.4.0-alpha03"
 
 composeBom = "2025.04.00"
 activityCompose = "1.10.1"
@@ -72,6 +73,8 @@ logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", ver
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 recurly = { module = "com.github.DawnHNguyen:recurly-client-android", version.ref = "recurly" }
+
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 
 sql-delight = { module = "app.cash.sqldelight:android-driver", version.ref = "sql-delight" }
 sql-delight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sql-delight" }
