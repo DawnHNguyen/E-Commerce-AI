@@ -1,5 +1,6 @@
 package com.ptit.core.category
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,18 +24,23 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.bumptech.glide.integration.compose.placeholder // Thêm import này
+import com.bumptech.glide.integration.compose.RequestBuilderTransform
+import com.bumptech.glide.integration.compose.placeholder
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.navigation.destination.ProductsByCategoryRoute // Import route mới
 
 // Data class for Category Item
 data class CategoryItem(
     val id: String,
-    val name: String,
-    val imageUrl: String,
-    // val route: String // Add if navigation from category item is needed
+    val name: String, // Đây sẽ là tên dùng để lọc
+    val displayName: String, // Tên hiển thị, có thể có dấu
+    val imageUrl: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,11 +49,14 @@ fun CategoryScreen(navController: NavController) {
     LocalBottomNavigationVisibility.current.value = true
     val context = LocalContext.current
 
+    // Cập nhật danh sách categories
     val categories = listOf(
-        CategoryItem("1", "Thời trang", "https://cdn-icons-png.flaticon.com/512/3205/3205438.png"),
-        CategoryItem("2", "Đồ gia dụng", "https://cdn-icons-png.flaticon.com/512/7540/7540904.png"),
-        CategoryItem("3", "Nội thất", "https://cdn-icons-png.flaticon.com/512/1434/1434247.png"),
-        CategoryItem("4", "Mỹ phẩm", "https://cdn-icons-png.flaticon.com/512/3501/3501241.png")
+        CategoryItem("67f1ebef40ab575580040f42", "Thời trang", "Thời trang", "https://cdn-icons-png.flaticon.com/512/3205/3205438.png"),
+        CategoryItem("67fe76b4a2e13b000d81e942", "Đồ gia dụng", "Đồ gia dụng", "https://cdn-icons-png.flaticon.com/512/7540/7540904.png"),
+        CategoryItem("67f1ebe740ab575580040f41", "Nội thất", "Nội thất", "https://cdn-icons-png.flaticon.com/512/1434/1434247.png"),
+        CategoryItem("67fe764aa2e13b000d81e941", "Mỹ phẩm", "Mỹ phẩm", "https://cdn-icons-png.flaticon.com/512/3501/3501241.png"),
+        CategoryItem("67f1ebde40ab575580040f40", "Điện tử", "Điện tử", "https://cdn-icons-png.flaticon.com/512/3696/3696504.png"),
+        CategoryItem("67fe7b38a2e13b000d81e947", "Thực phẩm", "Thực phẩm", "https://cdn-icons-png.flaticon.com/512/7910/7910878.png"),
     )
 
     Scaffold(
@@ -74,15 +83,20 @@ fun CategoryScreen(navController: NavController) {
                 .padding(16.dp)
         ) {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2), // 2 columns in the grid
+                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(categories, key = { it.id }) { category ->
                     CategoryCard(categoryItem = category) {
-                        // Handle category item click, e.g., navigate to a product list for that category
-                        // navController.navigate("products_by_category/${category.id}")
+                        // Điều hướng đến màn hình danh sách sản phẩm theo category
+                        navController.navigate(
+                            ProductsByCategoryRoute(
+                                categoryId = category.id, // Truyền tên category để lọc
+                                categoryDisplayName = category.displayName // Truyền tên hiển thị cho AppBar
+                            )
+                        )
                     }
                 }
             }
@@ -114,14 +128,38 @@ fun CategoryCard(
         ) {
             GlideImage(
                 model = categoryItem.imageUrl,
-                contentDescription = categoryItem.name,
+                contentDescription = categoryItem.displayName,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(8.dp)
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop,
-                loading = placeholder { // Hiển thị khi đang tải
+                requestBuilderTransform = {
+                    it.listener(object : RequestListener<android.graphics.drawable.Drawable> {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<android.graphics.drawable.Drawable>,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            Log.e("CategoryCard", "Glide Load Failed for URL: ${categoryItem.imageUrl}", e)
+                            return false
+                        }
+
+                        override fun onResourceReady(
+                            resource: android.graphics.drawable.Drawable,
+                            model: Any,
+                            target: Target<android.graphics.drawable.Drawable>?,
+                            dataSource: com.bumptech.glide.load.DataSource,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            Log.d("CategoryCard", "Glide Load Success for URL: ${categoryItem.imageUrl}")
+                            return false
+                        }
+                    })
+                },
+                loading = placeholder {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(32.dp),
@@ -129,22 +167,20 @@ fun CategoryCard(
                         )
                     }
                 },
-                failure = placeholder { // Hiển thị khi tải lỗi
+                failure = placeholder {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(colorResource(id = R.color.colorSystem_greyscale_200)), // Màu nền placeholder
+                            .background(colorResource(id = R.color.colorSystem_greyscale_200)),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Bạn có thể thêm Icon lỗi ở đây nếu muốn
-                        // Icon(imageVector = Icons.Filled.BrokenImage, contentDescription = "Lỗi tải ảnh")
                         Text("Lỗi ảnh", color = colorResource(id = R.color.colorSystem_greyscale_600))
                     }
                 }
             )
 
             Text(
-                text = categoryItem.name,
+                text = categoryItem.displayName,
                 style = CustomTypography.TextSemiBold,
                 fontSize = 16.sp,
                 color = colorResource(id = R.color.colorSystem_heading_button),

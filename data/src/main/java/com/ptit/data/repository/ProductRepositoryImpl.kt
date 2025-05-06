@@ -28,4 +28,10 @@ class ProductRepositoryImpl @Inject constructor(
             productDtoList.map { it.toDomainEntity() }
         }
     }
+
+    override suspend fun getAllProducts(): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getAllProducts(limit = 1000).map { listProductResponse ->
+            listProductResponse.products?.map { it.toDomainEntity() } ?: emptyList()
+        }
+    }
 }

@@ -22,6 +22,17 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
         name = name
     )
 
+    // Hàm mới để lấy tất cả sản phẩm
+    suspend fun getAllProducts(limit: Int = 1000) = remoteService.listProducts(
+        page = 1,
+        limit = limit,
+        sortBy = null,
+        minPrice = null,
+        maxPrice = null,
+        rating = null,
+        name = null
+    )
+
     suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
     suspend fun getProductsByShop() = remoteService.getProductsByShop()
 
