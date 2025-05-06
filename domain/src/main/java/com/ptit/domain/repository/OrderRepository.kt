@@ -18,4 +18,9 @@ interface OrderRepository {
     suspend fun getOrders(): Resource<List<OrderDomainEntity>>
 
     suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity>
+
+    suspend fun payOrder(
+        orderId: String,
+        tokenId: String
+    ): Resource<Unit>
 }

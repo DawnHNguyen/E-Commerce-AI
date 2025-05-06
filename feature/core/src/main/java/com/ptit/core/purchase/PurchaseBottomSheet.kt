@@ -1,8 +1,6 @@
 package com.ptit.core.purchase
 
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +31,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,8 +40,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -58,7 +53,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.component.BaseBottomSheet
@@ -90,11 +84,11 @@ fun PurchaseBottomSheet(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     val paymentMethods by viewModel.paymentMethodsState.collectAsStateWithLifecycle()
     val isShowProgressBar = rememberState { false }
-    
+
     val modalBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
-    
+
     // Handle payment methods loading state
     LaunchedEffect(Unit) {
         lifecycleOwner.safeCollectFlow(viewModel.paymentMethodsState) { resource ->
@@ -115,7 +109,7 @@ fun PurchaseBottomSheet(
                 }
         }
     }
-    
+
     BaseBottomSheet(
         modalSheetState = modalBottomSheetState,
         isShowBottomSheet = isVisible,
@@ -148,7 +142,7 @@ fun PurchaseBottomSheet(
                     )
                 }
             }
-            
+
             // Content
             if (uiState.value.selectedPaymentMethod == null && !isShowProgressBar.value) {
                 NoPaymentMethodState(onAddPaymentMethod = onAddPaymentMethod)
@@ -162,63 +156,63 @@ fun PurchaseBottomSheet(
                     onAddPaymentMethod = onAddPaymentMethod,
                     onConfirmPayment = {
 //                        if (context is FragmentActivity) {
-                            viewModel.startAuthentication()
-                            
-                            if (BiometricUtil.canAuthenticate(context)) {
-                                BiometricUtil.showBiometricPrompt(
-                                    activity = context,
-                                    title = "Xác thực thanh toán",
-                                    subtitle = "Sử dụng sinh trắc học để xác thực",
-                                    description = "Xác thực để hoàn tất thanh toán",
-                                    onSuccess = { 
-                                        scope.launch {
-                                            viewModel.getTokenizedPaymentInfo()?.let { token ->
-                                                // Set this payment method as default
-                                                viewModel.setDefaultPaymentMethod()
-                                                onConfirmedPurchase(token)
-                                            } ?: run {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Lỗi: Không thể lấy thông tin thanh toán",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                            viewModel.finishAuthentication()
+                        viewModel.startAuthentication()
+
+                        if (BiometricUtil.canAuthenticate(context)) {
+                            BiometricUtil.showBiometricPrompt(
+                                activity = context,
+                                title = "Xác thực thanh toán",
+                                subtitle = "Sử dụng sinh trắc học để xác thực",
+                                description = "Xác thực để hoàn tất thanh toán",
+                                onSuccess = {
+                                    scope.launch {
+                                        viewModel.getTokenizedPaymentInfo()?.let { token ->
+                                            // Set this payment method as default
+                                            viewModel.setDefaultPaymentMethod()
+                                            onConfirmedPurchase(token)
+                                        } ?: run {
+                                            Toast.makeText(
+                                                context,
+                                                "Lỗi: Không thể lấy thông tin thanh toán",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
-                                    },
-                                    onError = { error ->
                                         viewModel.finishAuthentication()
-                                        Toast.makeText(
-                                            context,
-                                            "Xác thực thất bại: $error",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                     }
-                                )
-                            } else {
-                                // Biometric authentication not available, proceed anyway
-                                scope.launch {
-                                    viewModel.getTokenizedPaymentInfo()?.let { token ->
-                                        // Set this payment method as default
-                                        viewModel.setDefaultPaymentMethod()
-                                        onConfirmedPurchase(token)
-                                    } ?: run {
-                                        Toast.makeText(
-                                            context,
-                                            "Lỗi: Không thể lấy thông tin thanh toán",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
+                                },
+                                onError = { error ->
                                     viewModel.finishAuthentication()
+                                    Toast.makeText(
+                                        context,
+                                        "Xác thực thất bại: $error",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
+                            )
+                        } else {
+                            // Biometric authentication not available, proceed anyway
+                            scope.launch {
+                                viewModel.getTokenizedPaymentInfo()?.let { token ->
+                                    // Set this payment method as default
+                                    viewModel.setDefaultPaymentMethod()
+                                    onConfirmedPurchase(token)
+                                } ?: run {
+                                    Toast.makeText(
+                                        context,
+                                        "Lỗi: Không thể lấy thông tin thanh toán",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                viewModel.finishAuthentication()
                             }
+                        }
 //                        }
                     }
                 )
             }
         }
     }
-    
+
     // Loading indicator
     if (isShowProgressBar.value || uiState.value.isAuthenticating) {
         FullScreenProgressBar()
@@ -229,7 +223,7 @@ fun PurchaseBottomSheet(
 private fun NoPaymentMethodState(
     onAddPaymentMethod: () -> Unit,
 ) {
-    MaxSizeColumn(
+    MaxWidthColumn(
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -240,9 +234,9 @@ private fun NoPaymentMethodState(
             modifier = Modifier.size(80.dp),
             tint = colorResource(id = R.color.colorSystem_heading_button)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "Bạn chưa có phương thức thanh toán !!!",
             style = CustomTypography.TextMedium,
@@ -250,9 +244,9 @@ private fun NoPaymentMethodState(
             color = colorResource(id = R.color.colorSystem_heading_button),
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         FilledButton(
             onClick = onAddPaymentMethod,
             text = "Cài đặt",
@@ -299,9 +293,9 @@ private fun PaymentMethodSelectionState(
                         modifier = Modifier.size(40.dp),
                         contentScale = ContentScale.Fit
                     )
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     MaxWidthColumn(
                         modifier = Modifier.weight(1f)
                     ) {
@@ -311,9 +305,9 @@ private fun PaymentMethodSelectionState(
                             fontSize = 16.sp,
                             color = colorResource(id = R.color.colorSystem_heading_button)
                         )
-                        
+
                         Spacer(modifier = Modifier.height(4.dp))
-                        
+
                         Text(
                             text = PaymentMethodUtils.formatCardNumber(
                                 paymentMethod.firstSixNum,
@@ -324,7 +318,7 @@ private fun PaymentMethodSelectionState(
                             color = colorResource(id = R.color.colorSystem_normal_text)
                         )
                     }
-                    
+
                     Icon(
                         imageVector = Icons.Outlined.Check,
                         contentDescription = "Selected",
@@ -333,7 +327,7 @@ private fun PaymentMethodSelectionState(
                 }
             }
         }
-        
+
         // Choose another payment method section
         Card(
             modifier = Modifier
@@ -356,34 +350,34 @@ private fun PaymentMethodSelectionState(
                         tint = colorResource(id = R.color.colorSystem_heading_button),
                         modifier = Modifier.size(24.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     Text(
                         text = "Chọn phương thức thanh toán khác",
                         style = CustomTypography.TextMedium,
                         modifier = Modifier.weight(1f),
                         color = colorResource(id = R.color.colorSystem_heading_button)
                     )
-                    
+
                     val rotationAngle = if (isSelectingPaymentMethod) 180f else 0f
                     Icon(
-                        imageVector = if (isSelectingPaymentMethod) 
-                            Icons.Outlined.KeyboardArrowUp 
-                        else 
+                        imageVector = if (isSelectingPaymentMethod)
+                            Icons.Outlined.KeyboardArrowUp
+                        else
                             Icons.Outlined.KeyboardArrowDown,
                         contentDescription = if (isSelectingPaymentMethod) "Hide" else "Show",
                         tint = colorResource(id = R.color.colorSystem_heading_button)
                     )
                 }
-                
+
                 // Payment method selection list
                 if (isSelectingPaymentMethod && paymentMethods.isNotEmpty()) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         color = colorResource(id = R.color.colorSystem_text_button).copy(alpha = 0.2f)
                     )
-                    
+
                     // Limit height and make scrollable
                     LazyColumn(
                         modifier = Modifier
@@ -395,7 +389,7 @@ private fun PaymentMethodSelectionState(
                             MaxWidthRow(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { 
+                                    .clickable {
                                         onSelectPaymentMethod(paymentMethod)
                                     }
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -405,18 +399,18 @@ private fun PaymentMethodSelectionState(
                                     selected = false, // Always false because we filter out the selected one
                                     onClick = { onSelectPaymentMethod(paymentMethod) }
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                                 GlideImage(
                                     model = PaymentMethodUtils.getCardTypeIcon(paymentMethod.cardType),
                                     contentDescription = "Card Type",
                                     modifier = Modifier.size(32.dp),
                                     contentScale = ContentScale.Fit
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                                 Text(
                                     text = PaymentMethodUtils.formatCardNumber(
                                         paymentMethod.firstSixNum,
@@ -431,7 +425,7 @@ private fun PaymentMethodSelectionState(
                 }
             }
         }
-        
+
         // Add payment method
         Card(
             modifier = Modifier
@@ -461,9 +455,9 @@ private fun PaymentMethodSelectionState(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(16.dp))
-                
+
                 Text(
                     text = "Thêm phương thức thanh toán mới",
                     style = CustomTypography.TextMedium,
@@ -471,7 +465,7 @@ private fun PaymentMethodSelectionState(
                     modifier = Modifier.weight(1f),
                     color = colorResource(id = R.color.colorSystem_heading_button)
                 )
-                
+
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = "Navigate",
@@ -479,11 +473,11 @@ private fun PaymentMethodSelectionState(
                 )
             }
         }
-        
+
         // Confirm button
         if (selectedPaymentMethod != null) {
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             FilledButton(
                 onClick = onConfirmPayment,
                 text = "Xác nhận thanh toán",

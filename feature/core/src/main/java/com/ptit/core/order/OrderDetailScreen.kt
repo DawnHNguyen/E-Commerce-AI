@@ -24,11 +24,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.FilledButton
+import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
+import com.ptit.core.purchase.PurchaseBottomSheet
 import com.ptit.domain.utils.Resource
 import com.ptit.domain.utils.onError
 import com.ptit.domain.utils.onLoading
@@ -42,7 +45,11 @@ import java.util.TimeZone
 fun OrderDetailScreen(
     orderId: String,
     onBack: () -> Unit,
+    navigateToPaymentMethod: () -> Unit,
+    backToCart: () -> Unit,
 ) {
+    LocalBottomNavigationVisibility.current.value = false
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
@@ -51,6 +58,7 @@ fun OrderDetailScreen(
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
+    val isShowPurchaseConfirmBottomSheet = rememberState { false }
 
     LaunchedEffect(Unit) {
         viewModel.loadOrderDetails(orderId)
@@ -68,6 +76,30 @@ fun OrderDetailScreen(
                     Toast.makeText(
                         context,
                         "Có lỗi xảy ra trong quá trình tải đơn hàng",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        }
+
+        lifecycleOwner.safeCollectFlow(viewModel.payOrderState) {
+            it
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
+                .onSuccess {
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Thanh toán thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    backToCart()
+                }
+                .onError {
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Có lỗi xảy ra trong quá trình thanh toán",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -182,7 +214,7 @@ fun OrderDetailScreen(
                         FilledButton(
                             text = "Thanh toán",
                             onClick = {
-
+                                isShowPurchaseConfirmBottomSheet.value = true
                             },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -191,6 +223,22 @@ fun OrderDetailScreen(
             }
         }
     }
+
+    PurchaseBottomSheet(
+        isVisible = isShowPurchaseConfirmBottomSheet.value,
+        onDismiss = { isShowPurchaseConfirmBottomSheet.value = false },
+        onAddPaymentMethod = navigateToPaymentMethod,
+        onConfirmedPurchase = { token ->
+            isShowPurchaseConfirmBottomSheet.value = false
+            viewModel.payOrder(
+                orderId = orderId,
+                token = token
+            )
+        }
+    )
+
+    if (isShowProgressBar.value)
+        FullScreenProgressBar()
 }
 
 @Composable

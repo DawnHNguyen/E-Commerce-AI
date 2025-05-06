@@ -20,12 +20,28 @@ class OrderDetailViewModel @Inject constructor(
     private val _orderState = MutableStateFlow<Resource<OrderDomainEntity>>(Resource.idle())
     val orderState = _orderState.asStateFlow()
 
+    private val _payOrderState = MutableStateFlow<Resource<Unit>>(Resource.idle())
+    val payOrderState = _payOrderState.asStateFlow()
+
     fun loadOrderDetails(orderId: String) {
         viewModelScope.launch {
             _orderState.value = Resource.loading()
 
             _orderState.update {
                 orderRepository.getOrderById(orderId)
+            }
+        }
+    }
+
+    fun payOrder(orderId: String, token: String) {
+        viewModelScope.launch {
+            _payOrderState.value = Resource.loading()
+
+            _payOrderState.update {
+                orderRepository.payOrder(
+                    orderId = orderId,
+                    tokenId = token
+                )
             }
         }
     }

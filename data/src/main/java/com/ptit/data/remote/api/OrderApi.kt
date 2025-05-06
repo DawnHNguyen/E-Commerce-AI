@@ -4,6 +4,7 @@ import com.ptit.data.remote.dto.order.CreateOrderRequest
 import com.ptit.data.remote.dto.order.CreateOrderResponse
 import com.ptit.data.remote.dto.order.OrderDetailResponse
 import com.ptit.data.remote.dto.order.OrderDto
+import com.ptit.data.remote.dto.order.PayOrderRequest
 import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -23,4 +24,10 @@ interface OrderApi {
     suspend fun getOrderById(
         @Path("orderId") orderId: String
     ): Resource<OrderDetailResponse>
+
+    @POST("orders/{orderId}/pay")
+    suspend fun payOrder(
+        @Path("orderId") orderId: String,
+        @Body payOrderRequest: PayOrderRequest
+    ): Resource<Unit>
 }

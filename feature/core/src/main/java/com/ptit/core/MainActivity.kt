@@ -177,6 +177,12 @@ class MainActivity : FragmentActivity() {
                             OrderDetailScreen(
                                 orderId = args.orderId,
                                 onBack = navController::navigateUp,
+                                navigateToPaymentMethod = {
+                                    navController.navigate(ListPaymentMethodRoute)
+                                },
+                                backToCart = {
+                                    navController.popBackStack(BottomNavigationScreen.CartScreen, false)
+                                }
                             )
                         }
 

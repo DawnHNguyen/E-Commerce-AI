@@ -3,6 +3,7 @@ package com.ptit.data.remote.datasource
 import com.ptit.data.remote.api.OrderApi
 import com.ptit.data.remote.dto.order.CreateOrderRequest
 import com.ptit.data.remote.dto.order.OrderDetailResponse
+import com.ptit.data.remote.dto.order.PayOrderRequest
 import com.ptit.domain.utils.Resource
 import javax.inject.Inject
 
@@ -32,4 +33,12 @@ class OrderRemoteDataSource @Inject constructor(private val remoteService: Order
     suspend fun getOrderById(orderId: String): Resource<OrderDetailResponse> {
         return remoteService.getOrderById(orderId)
     }
+
+    suspend fun payOrder(
+        orderId: String,
+        tokenId: String
+    ) = remoteService.payOrder(
+        orderId = orderId,
+        payOrderRequest = PayOrderRequest(tokenId = tokenId)
+    )
 }
