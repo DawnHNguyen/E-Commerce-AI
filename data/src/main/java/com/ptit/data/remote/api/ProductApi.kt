@@ -26,4 +26,11 @@ interface ProductApi {
 
     @GET("/admin/products/my-products")
     suspend fun getProductsByShop(): Resource<List<ProductDto>>
+
+    // Thêm phương thức mới
+    @GET("https://recommend-system-722597103220.us-central1.run.app/recommendations/similar/{product_id}")
+    suspend fun getSimilarProducts(
+        @Path("product_id") productId: String,
+        @Query("amount") amount: Int = 6
+    ): Resource<List<ProductDto>> // API trả về một mảng ProductDto
 }
