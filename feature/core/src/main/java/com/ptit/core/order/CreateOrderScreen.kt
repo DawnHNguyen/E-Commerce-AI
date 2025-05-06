@@ -24,6 +24,7 @@ import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
@@ -39,6 +40,7 @@ fun CreateOrderScreen(
     onBack: () -> Unit,
     onOrderCreated: (String) -> Unit
 ) {
+    LocalBottomNavigationVisibility.current.value = false
     // Initialize the viewModel with the selected item IDs
     LaunchedEffect(selectedItemIds) {
         println("CreateOrderScreen received ${selectedItemIds.size} item IDs: $selectedItemIds")
@@ -219,7 +221,6 @@ fun CreateOrderScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShippingInformationSection(
     name: TextFieldValue,

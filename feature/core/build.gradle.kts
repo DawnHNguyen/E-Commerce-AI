@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.paging.compose)
 
     implementation(libs.recurly)
+    implementation(libs.androidx.biometric)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

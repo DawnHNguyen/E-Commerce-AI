@@ -46,6 +46,7 @@ import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.CustomPullToRefreshBox
 import com.ptit.common.presentation.component.CustomSearchBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
@@ -57,6 +58,8 @@ fun HomeScreen(
     navigateToCart: () -> Unit,
     navigateToProductDetail: (String) -> Unit,
 ) {
+    LocalBottomNavigationVisibility.current.value = true
+
     val viewModel = hiltViewModel<HomeViewModel>()
     val paginatedRecommendedProduct = viewModel.paginatedRecommendedProduct.collectAsLazyPagingItems()
 

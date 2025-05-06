@@ -15,6 +15,10 @@ VALUES (:firstSixNum, :lastFourNum, :cardType, :isDefault);
 getAllPaymentMethods:
 SELECT * FROM tblPaymentMethod;
 
+getDefaultPaymentMethod:
+SELECT * FROM tblPaymentMethod
+WHERE isDefault = 1;
+
 deletePaymentMethod:
 DELETE FROM tblPaymentMethod
 WHERE firstSixNum = :firstSixNum AND lastFourNum = :lastFourNum;

@@ -1,5 +1,6 @@
 package com.ptit.core.order
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,19 +13,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.FilledButton
+import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
+import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
-import com.ptit.domain.entity.order.OrderDomainEntity
+import com.ptit.core.purchase.PurchaseBottomSheet
+import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.onError
+import com.ptit.domain.utils.onLoading
+import com.ptit.domain.utils.onSuccess
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -33,45 +44,69 @@ import java.util.TimeZone
 @Composable
 fun OrderDetailScreen(
     orderId: String,
-    viewModel: OrderDetailViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onPaymentClick: (String) -> Unit
+    navigateToPaymentMethod: () -> Unit,
+    backToCart: () -> Unit,
 ) {
-    val orderState by viewModel.orderState.collectAsState()
+    LocalBottomNavigationVisibility.current.value = false
 
-    // Fix: Ensure this is called only once and properly triggers
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
+    val viewModel: OrderDetailViewModel = hiltViewModel()
+
+    val orderState by viewModel.orderState.collectAsStateWithLifecycle()
+
+    val isShowProgressBar = rememberState { false }
+    val isShowPurchaseConfirmBottomSheet = rememberState { false }
+
     LaunchedEffect(Unit) {
         viewModel.loadOrderDetails(orderId)
-    }
 
-    val order = orderState.order
-    val subtotal = order?.purchases?.sumOf { it.price * it.buyCount } ?: 0
-    val shippingFee = order?.shippingFee ?: 30000
-    val totalPrice = subtotal + shippingFee
-
-    // Show loading or error states
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // Debug to see what we're receiving
-    LaunchedEffect(orderState) {
-        println("Debug OrderDetailScreen: isLoading=${orderState.isLoading}, error=${orderState.error}, order=${orderState.order != null}")
-    }
-
-    if (orderState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        lifecycleOwner.safeCollectFlow(viewModel.orderState) {
+            it
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
+                .onSuccess {
+                    isShowProgressBar.value = false
+                }
+                .onError {
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Có lỗi xảy ra trong quá trình tải đơn hàng",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
         }
-        return
-    }
 
-    if (orderState.error != null) {
-        LaunchedEffect(orderState.error) {
-            snackbarHostState.showSnackbar(orderState.error!!)
+        lifecycleOwner.safeCollectFlow(viewModel.payOrderState) {
+            it
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
+                .onSuccess {
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Thanh toán thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    backToCart()
+                }
+                .onError {
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Có lỗi xảy ra trong quá trình thanh toán",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -100,17 +135,14 @@ fun OrderDetailScreen(
             )
         }
     ) { paddingValues ->
-        MaxSizeColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(colorResource(R.color.colorSystem_background_level_0))
-        ) {
-            if (order == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Không tìm thấy dữ liệu đơn hàng")
-                }
-            } else {
+        if (orderState is Resource.Success) {
+            val order = remember(orderState) { (orderState as Resource.Success).data }
+            MaxSizeColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(colorResource(R.color.colorSystem_background_level_0))
+            ) {
                 // Content
                 LazyColumn(
                     modifier = Modifier
@@ -151,7 +183,7 @@ fun OrderDetailScreen(
 
                     // Total amount
                     item {
-                        SharedTotalAmountSection(subtotal = subtotal, shippingFee = shippingFee, totalPrice = totalPrice)
+                        SharedTotalAmountSection(subtotal = order.subTotal, shippingFee = order.shippingFee, totalPrice = order.totalPrice)
                     }
 
                     // Order status
@@ -181,22 +213,39 @@ fun OrderDetailScreen(
                     ) {
                         FilledButton(
                             text = "Thanh toán",
-                            onClick = { onPaymentClick(orderId) },
+                            onClick = {
+                                isShowPurchaseConfirmBottomSheet.value = true
+                            },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !orderState.isLoading
                         )
                     }
                 }
             }
         }
     }
+
+    PurchaseBottomSheet(
+        isVisible = isShowPurchaseConfirmBottomSheet.value,
+        onDismiss = { isShowPurchaseConfirmBottomSheet.value = false },
+        onAddPaymentMethod = navigateToPaymentMethod,
+        onConfirmedPurchase = { token ->
+            isShowPurchaseConfirmBottomSheet.value = false
+            viewModel.payOrder(
+                orderId = orderId,
+                token = token
+            )
+        }
+    )
+
+    if (isShowProgressBar.value)
+        FullScreenProgressBar()
 }
 
 @Composable
 fun OrderInfoSection(
     name: String,
     phone: String,
-    address: String
+    address: String,
 ) {
     Column(
         modifier = Modifier
@@ -266,7 +315,7 @@ fun OrderNoteDisplay(note: String) {
 
 @Composable
 fun OrderStatusSection(status: String) {
-    val statusColor = when(status) {
+    val statusColor = when (status) {
         "Paid" -> colorResource(R.color.colorSystem_heading_button)
         "Pending" -> colorResource(R.color.colorSystem_tint_yellow)
         else -> colorResource(R.color.colorSystem_normal_text)
@@ -295,7 +344,7 @@ fun OrderStatusSection(status: String) {
 @Composable
 fun OrderTimestampsSection(
     createdAt: String,
-    updatedAt: String
+    updatedAt: String,
 ) {
     Column(
         modifier = Modifier

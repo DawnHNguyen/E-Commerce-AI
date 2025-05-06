@@ -32,15 +32,26 @@ class PaymentMethodRepositoryImpl @Inject constructor(
     override fun getPaymentMethods(): Flow<List<PaymentMethodDomainEntity>> {
         return localDataSource.getAllPaymentMethods().map { paymentMethods ->
             paymentMethods.map { paymentMethod ->
-                val token = getPaymentMethodToken(paymentMethod.firstSixNum, paymentMethod.lastFourNum) ?: ""
                 PaymentMethodDomainEntity(
                     firstSixNum = paymentMethod.firstSixNum,
                     lastFourNum = paymentMethod.lastFourNum,
                     cardType = paymentMethod.cardType,
-                    token = token,
+                    token = "", // Don't load tokens here for security
                     isDefault = paymentMethod.isDefault == 1L
                 )
             }
+        }
+    }
+    
+    override suspend fun getDefaultPaymentMethod(): PaymentMethodDomainEntity? {
+        return localDataSource.getDefaultPaymentMethod()?.let { paymentMethod ->
+            PaymentMethodDomainEntity(
+                firstSixNum = paymentMethod.firstSixNum,
+                lastFourNum = paymentMethod.lastFourNum,
+                cardType = paymentMethod.cardType,
+                token = "", // Don't load token here for security
+                isDefault = true
+            )
         }
     }
 

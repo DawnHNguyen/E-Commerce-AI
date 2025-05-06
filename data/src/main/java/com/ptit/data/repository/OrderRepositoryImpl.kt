@@ -10,7 +10,7 @@ import com.ptit.domain.utils.map
 import javax.inject.Inject
 
 class OrderRepositoryImpl @Inject constructor(
-    private val remoteDataSource: OrderRemoteDataSource
+    private val remoteDataSource: OrderRemoteDataSource,
 ) : OrderRepository {
 
     override suspend fun createOrder(
@@ -20,7 +20,7 @@ class OrderRepositoryImpl @Inject constructor(
         address: String,
         note: String,
         totalAmount: Int,
-        shippingFee: Int
+        shippingFee: Int,
     ): Resource<CreateOrderResponseDomainEntity> {
         return remoteDataSource.createOrder(
             purchaseIds = purchaseIds,
@@ -41,7 +41,12 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity> {
         return remoteDataSource.getOrderById(orderId).map { orderDetailResponse ->
-            orderDetailResponse.order?.toDomainEntity() ?: return Resource.Error("Order not found")
+            orderDetailResponse.order?.toDomainEntity() ?: OrderDomainEntity()
         }
     }
+
+    override suspend fun payOrder(
+        orderId: String,
+        tokenId: String,
+    ) = remoteDataSource.payOrder(orderId, tokenId)
 }

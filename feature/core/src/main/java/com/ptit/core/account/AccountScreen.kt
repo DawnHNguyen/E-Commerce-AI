@@ -66,6 +66,7 @@ import com.ptit.common.presentation.MaxWidthColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
@@ -84,6 +85,8 @@ fun AccountScreen(
     onNavigateToCreateShop: () -> Unit,
     onLogoutSuccess: () -> Unit,
 ) {
+    LocalBottomNavigationVisibility.current.value = true
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
