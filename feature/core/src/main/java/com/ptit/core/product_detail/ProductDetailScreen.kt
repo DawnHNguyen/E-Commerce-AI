@@ -546,9 +546,14 @@ fun ColumnScope.SimilarProductsSection(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
+
         SimilarProductsState.Initial -> {
             // Có thể hiển thị placeholder hoặc không làm gì cả
         }
+
+         else -> {
+             // Xử lý cho các trường hợp khác không được liệt kê ở trên
+         }
     }
 }
 

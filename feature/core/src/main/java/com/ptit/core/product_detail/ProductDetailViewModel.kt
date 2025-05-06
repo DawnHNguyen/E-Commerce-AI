@@ -30,7 +30,6 @@ class ProductDetailViewModel @Inject constructor(
     private val _similarProductsState = MutableStateFlow<SimilarProductsState>(SimilarProductsState.Initial)
     val similarProductsState: StateFlow<SimilarProductsState> = _similarProductsState.asStateFlow()
 
-
     fun getProductDetail(productId: String) {
         viewModelScope.launch {
             _productDetailState.value = ProductDetailState.Loading
