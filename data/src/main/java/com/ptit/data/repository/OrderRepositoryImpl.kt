@@ -41,7 +41,7 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity> {
         return remoteDataSource.getOrderById(orderId).map { orderDetailResponse ->
-            orderDetailResponse.order?.toDomainEntity() ?: return Resource.Error("Order not found")
+            orderDetailResponse.order?.toDomainEntity() ?: OrderDomainEntity()
         }
     }
 }

@@ -176,10 +176,6 @@ class MainActivity : ComponentActivity() {
                             OrderDetailScreen(
                                 orderId = args.orderId,
                                 onBack = navController::navigateUp,
-                                onPaymentClick = { orderId ->
-                                    // Handle payment for the order
-                                    // This will be implemented later
-                                }
                             )
                         }
 

@@ -20,4 +20,12 @@ data class OrderDomainEntity(
     val paymentGatewayResponse: String? = null,
     val recurlyAccountId: String? = null,
     val recurlyTransactionId: String? = null
-)
+) {
+    val subTotal by lazy {
+        purchases.sumOf { it.product.price * it.buyCount }
+    }
+
+    val totalPrice by lazy {
+        subTotal + shippingFee
+    }
+}

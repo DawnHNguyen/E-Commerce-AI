@@ -56,6 +56,7 @@ import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
@@ -72,6 +73,8 @@ fun ProductDetailScreen(
     onAddToCartClick: () -> Unit,
     onBuyNowClick: () -> Unit
 ) {
+    LocalBottomNavigationVisibility.current.value = false
+
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
     val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()

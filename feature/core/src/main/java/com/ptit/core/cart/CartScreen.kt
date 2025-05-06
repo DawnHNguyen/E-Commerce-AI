@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.core.cart.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -23,6 +24,8 @@ fun CartScreen(
     onCheckout: (List<String>) -> Unit, // Modified to accept IDs instead of PurchaseDomainEntity objects
     onProductClick: (String) -> Unit = {}
 ) {
+    LocalBottomNavigationVisibility.current.value = true
+
     val cartState by viewModel.cartState.collectAsState()
     val updatePurchaseState by viewModel.updatePurchaseState.collectAsState()
     val deletePurchaseState by viewModel.deletePurchaseState.collectAsState()
