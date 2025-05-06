@@ -132,7 +132,7 @@ fun ProductDetailScreen(
                         onBackClick = onBackClick,
                         onCartClick = onCartClick,
                         onAddToCartClick = { viewModel.addToCart(state.product.id) }, // Sử dụng onAddToCartClick từ ViewModel
-                        onBuyNowClick = { /* TODO: Implement Buy Now logic */ }, // Sử dụng onBuyNowClick từ ViewModel
+                        onBuyNowClick = onBuyNowClick,
                         isAddingToCart = addToCartState is AddToCartState.Loading,
                         onProductItemClick = onProductItemClick // Truyền callback
                     )
@@ -562,7 +562,7 @@ fun ColumnScope.SimilarProductsSection(
 fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .width(160.dp) // Chiều rộng cố định cho item
+            .width(160.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
@@ -576,7 +576,7 @@ fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
                 contentDescription = product.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f), // Giữ tỷ lệ vuông cho ảnh
+                    .aspectRatio(1f),
                 contentScale = ContentScale.Crop,
                 transition = MyCrossFade
             ) {
@@ -586,22 +586,27 @@ fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
                 modifier = Modifier
                     .padding(12.dp)
                     .fillMaxWidth()
+                    .height(75.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = product.name,
-                    style = CustomTypography.TextMedium,
-                    fontSize = 14.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = colorResource(id = R.color.colorSystem_heading_button)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${product.price}đ",
-                    style = CustomTypography.TextSemiBold,
-                    fontSize = 14.sp,
-                    color = colorResource(id = R.color.colorSystem_tint_red) // Màu giá nổi bật
-                )
+                Column { // Gom Text và Spacer vào một Column con để kiểm soát tốt hơn
+                    Text(
+                        text = product.name,
+                        style = CustomTypography.TextMedium,
+                        fontSize = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${product.price}đ",
+                        style = CustomTypography.TextSemiBold,
+                        fontSize = 14.sp,
+                        color = colorResource(id = R.color.colorSystem_tint_red) // Màu giá nổi bật
+                    )
+                }
+
                 if (product.hasDiscount.value) {
                     Text(
                         text = "${product.priceBeforeDiscount}đ",
@@ -611,6 +616,10 @@ fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
                         ),
                         color = Color.Gray
                     )
+                } else {
+                    // Để giữ không gian tương đương khi không có khuyến mãi, bạn có thể thêm một Spacer ở đây
+                    // Ví dụ: Spacer(modifier = Modifier.height(14.sp)) // Chiều cao tương đương Text khuyến mãi
+                    // Hoặc để trống nếu Arrangement.SpaceBetween đã đủ để xử lý
                 }
             }
         }
