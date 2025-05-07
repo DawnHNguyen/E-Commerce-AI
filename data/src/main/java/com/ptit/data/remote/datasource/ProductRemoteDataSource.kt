@@ -22,6 +22,17 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
         name = name
     )
 
+    // Hàm mới để lấy tất cả sản phẩm
+    suspend fun getAllProducts(limit: Int = 1000) = remoteService.listProducts(
+        page = 1,
+        limit = limit,
+        sortBy = null,
+        minPrice = null,
+        maxPrice = null,
+        rating = null,
+        name = null
+    )
+
     suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
     suspend fun getProductsByShop() = remoteService.getProductsByShop()
     suspend fun getCategories() = remoteService.getCategories()
@@ -31,4 +42,7 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
 
     suspend fun createProduct(name: String, description: String, price: Int, priceBeforeDiscount: Int, quantity: Int, images: List<String>, image: String, category: String) = remoteService.createProduct(name, description, price, priceBeforeDiscount, quantity, images, image, category )
     suspend fun updateProduct(productId: String, name: String, description: String, price: Int, priceBeforeDiscount: Int, quantity: Int, images: List<String>, image:String, category:String) = remoteService.updateProduct(productId, name, description, price, priceBeforeDiscount, quantity, images, image, category)
+
+    suspend fun getSimilarProducts(productId: String, amount: Int = 6) =
+        remoteService.getSimilarProducts(productId, amount)
 }

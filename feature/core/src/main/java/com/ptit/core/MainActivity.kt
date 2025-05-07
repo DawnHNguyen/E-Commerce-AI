@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apps // Sử dụng icon này cho Category
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -55,6 +56,7 @@ import com.ptit.core.account.AccountScreen
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
+import com.ptit.core.category.CategoryScreen // Import CategoryScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
@@ -78,6 +80,8 @@ import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
+import com.ptit.core.category.ProductsByCategoryScreen // Import màn hình mới
+import com.ptit.navigation.destination.ProductsByCategoryRoute
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
@@ -97,7 +101,6 @@ class MainActivity : FragmentActivity() {
             val navController = rememberNavController()
             val layoutDirection = LocalLayoutDirection.current
 
-            // A surface container using the 'background' color from the theme
             CompositionLocalProvider(
                 LocalBottomNavigationVisibility provides rememberState { true },
             ) {
@@ -156,11 +159,26 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
+                            CategoryScreen(navController = navController)
+                        }
+
+                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
+                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
+                            ProductsByCategoryScreen(
+                                navController = navController,
+                                categoryId = args.categoryId,
+                                categoryDisplayName = args.categoryDisplayName,
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                }
+                            )
+                        }
+
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
                                 onBack = navController::navigateUp,
                                 onCheckout = { selectedItemIds ->
-                                    // Now we're directly receiving the IDs
                                     navController.navigate(CreateOrderRoute(selectedItemIds = selectedItemIds))
                                 },
                                 onProductClick = { productId ->
@@ -175,8 +193,9 @@ class MainActivity : FragmentActivity() {
                                 selectedItemIds = args.selectedItemIds,
                                 onBack = navController::navigateUp,
                                 onOrderCreated = { orderId ->
-                                    // Navigate to OrderDetailScreen with the created order ID
-                                    navController.navigate(OrderDetailRoute(orderId = orderId))
+                                    navController.navigate(OrderDetailRoute(orderId = orderId)) {
+                                        popUpTo(BottomNavigationScreen.CartScreen) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -198,16 +217,16 @@ class MainActivity : FragmentActivity() {
                         composable<BottomNavigationScreen.ProfileScreen> {
                             AccountScreen(
                                 onLogoutSuccess = {
-
+                                    // TODO: Navigate to AuthActivity
                                 },
                                 onNavigateToOrders = {
-
+                                    // TODO: Implement navigation to Orders
                                 },
                                 onNavigateToEditProfile = {
-
+                                    // TODO: Implement navigation to Edit Profile
                                 },
                                 onNavigateToChangePassword = {
-
+                                    // TODO: Implement navigation to Change Password
                                 },
                                 onNavigateToPaymentMethods = {
                                     navController.navigate(ListPaymentMethodRoute)
@@ -216,7 +235,7 @@ class MainActivity : FragmentActivity() {
                                     navController.navigate(ShopDetailRoute)
                                 },
                                 onNavigateToCreateShop = {
-
+                                    // TODO: Implement navigation to Create Shop
                                 },
                             )
                         }
@@ -276,7 +295,6 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        // In MainActivity.kt, update the ProductDetailScreen composable
                         composable<ProductDetailRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<ProductDetailRoute>()
                             val productId = args.productId
@@ -285,20 +303,22 @@ class MainActivity : FragmentActivity() {
                                 onBackClick = navController::navigateUp,
                                 onCartClick = {
                                     navController.navigate(BottomNavigationScreen.CartScreen) {
-                                        // Pop up to the start destination of the graph to
-                                        // avoid building up a large stack of destinations
                                         popUpTo(navController.graph.startDestinationId)
-                                        // Avoid multiple copies of the same destination when
-                                        // reselecting the same item
                                         launchSingleTop = true
                                     }
                                 },
                                 onAddToCartClick = {
-
+                                    // Logic handled in ViewModel
                                 },
                                 onBuyNowClick = {
-
+                                    // TODO: Implement Buy Now logic (e.g., direct to checkout)
                                 },
+                                onProductItemClick = { similarProductId ->
+                                    navController.navigate(ProductDetailRoute(productId = similarProductId)) {
+                                        launchSingleTop = true
+                                        popUpTo(BottomNavigationScreen.HomeScreen) // Optional: pop back to home to avoid deep stack
+                                    }
+                                }
                             )
                         }
                     }
@@ -318,6 +338,11 @@ class MainActivity : FragmentActivity() {
                     icon = Icons.Outlined.Home,
                     title = "Trang chủ",
                     screen = BottomNavigationScreen.HomeScreen
+                ),
+                BottomNavigationItem( // Thêm mục Danh mục
+                    icon = Icons.Outlined.Apps, // Sử dụng icon Apps hoặc một icon Category phù hợp
+                    title = "Danh mục",
+                    screen = BottomNavigationScreen.CategoryScreen
                 ),
                 BottomNavigationItem(
                     icon = Icons.Outlined.ShoppingCart,
@@ -354,21 +379,24 @@ class MainActivity : FragmentActivity() {
                         interactionSource = remember { MutableInteractionSource() },
                         onClick = {
                             navController.navigate(item.screen) {
-                                popUpTo(navController.graph.startDestinationId)
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
+                                restoreState = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
-                            unselectedIconColor = colorResource(id = R.color.colorSystem_heading_button),
-                            selectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
-                            unselectedTextColor = colorResource(id = R.color.colorSystem_heading_button),
-                            indicatorColor = colorResource(R.color.colorSystem_normal_button)
+                            selectedIconColor = colorResource(id = R.color.colorSystem_heading_button), // Thay đổi màu selected
+                            unselectedIconColor = colorResource(id = R.color.colorSystem_greyscale_500), // Màu xám cho unselected
+                            selectedTextColor = colorResource(id = R.color.colorSystem_heading_button), // Màu text selected
+                            unselectedTextColor = colorResource(id = R.color.colorSystem_greyscale_600), // Màu text unselected
+                            indicatorColor = colorResource(R.color.colorSystem_text_field) // Màu nền khi selected
                         ),
                         icon = {
                             Icon(
                                 imageVector = item.icon,
-                                contentDescription = null
+                                contentDescription = item.title
                             )
                         },
                         label = {

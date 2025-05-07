@@ -1,28 +1,37 @@
 package com.ptit.core.product_detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack // Đã sửa
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.ShoppingCart // Đã sửa
+import androidx.compose.material.icons.outlined.StarRate // Đã sửa
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Snackbar
@@ -62,6 +71,7 @@ import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.presentation.viewmodel.AddToCartState
 import com.ptit.presentation.viewmodel.ProductDetailState
 import com.ptit.presentation.viewmodel.ProductDetailViewModel
+import com.ptit.presentation.viewmodel.SimilarProductsState // Import mới
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,12 +81,14 @@ fun ProductDetailScreen(
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     onBuyNowClick: () -> Unit,
+    onProductItemClick: (String) -> Unit // Thêm callback này
 ) {
     LocalBottomNavigationVisibility.current.value = false
 
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
     val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()
+    val similarProductsState by viewModel.similarProductsState.collectAsStateWithLifecycle() // Lấy state sản phẩm tương tự
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -90,17 +102,17 @@ fun ProductDetailScreen(
         when (addToCartState) {
             is AddToCartState.Success -> {
                 scope.launch {
-                    snackbarHostState.showSnackbar("Product successfully added to cart")
+                    snackbarHostState.showSnackbar("Đã thêm sản phẩm vào giỏ hàng")
                 }
             }
 
             is AddToCartState.Error -> {
-//                scope.launch {
-//                    snackbarHostState.showSnackbar("Error: ${(addToCartState as AddToCartState.Error).message}")
-//                }
+                scope.launch {
+                    snackbarHostState.showSnackbar("Lỗi: ${(addToCartState as AddToCartState.Error).message}")
+                }
             }
-
-            else -> {} // Handle other states if needed
+            // Thêm else để when expression là exhaustive
+            else -> {}
         }
     }
 
@@ -111,52 +123,43 @@ fun ProductDetailScreen(
             modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
         ) {
             when (val state = productState) {
-                is ProductDetailState.Initial -> {
-                    // Initial state, might show placeholder
-                }
-
-                is ProductDetailState.Loading -> {
-                    FullScreenProgressBar()
-                }
-
+                is ProductDetailState.Initial -> {}
+                is ProductDetailState.Loading -> FullScreenProgressBar()
                 is ProductDetailState.Success -> {
                     ProductDetailContent(
                         product = state.product,
+                        similarProductsState = similarProductsState, // Truyền state vào
                         onBackClick = onBackClick,
                         onCartClick = onCartClick,
-                        onAddToCartClick = {
-                            viewModel.addToCart(state.product.id)
-                        },
+                        onAddToCartClick = { viewModel.addToCart(state.product.id) }, // Sử dụng onAddToCartClick từ ViewModel
                         onBuyNowClick = onBuyNowClick,
-                        isAddingToCart = addToCartState is AddToCartState.Loading
+                        isAddingToCart = addToCartState is AddToCartState.Loading,
+                        onProductItemClick = onProductItemClick // Truyền callback
                     )
                 }
-
                 is ProductDetailState.Error -> {
-                    // Show error state
                     MaxSizeColumn(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Error: ${state.message}",
+                            text = "Lỗi: ${state.message}",
                             style = CustomTypography.TextRegular.merge(
                                 color = colorResource(id = R.color.colorSystem_heading_button)
                             )
                         )
                     }
                 }
-
+                // Thêm else để when expression là exhaustive
                 else -> {
-                    // Handle other states if necessary
                     MaxSizeColumn(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Unexpected state",
+                            text = "Trạng thái không mong muốn",
                             style = CustomTypography.TextRegular.merge(
                                 color = colorResource(id = R.color.colorSystem_heading_button)
                             )
@@ -166,12 +169,11 @@ fun ProductDetailScreen(
             }
         }
 
-        // Snackbar host for showing feedback
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp) // Position above the buttons
+                .padding(bottom = 80.dp)
         ) { data ->
             Snackbar(
                 modifier = Modifier.padding(16.dp),
@@ -188,18 +190,19 @@ fun ProductDetailScreen(
 @Composable
 fun ProductDetailContent(
     product: ProductDomainEntity,
+    similarProductsState: SimilarProductsState, // Thêm trạng thái sản phẩm tương tự
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     onBuyNowClick: () -> Unit,
     isAddingToCart: Boolean = false,
+    onProductItemClick: (String) -> Unit // Thêm callback khi click vào sản phẩm gợi ý
 ) {
     MaxSizeColumn(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
             .background(colorResource(id = R.color.colorSystem_background_level_0))
     ) {
-        // Light green container for back button, image carousel, and cart button
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -223,7 +226,7 @@ fun ProductDetailContent(
                         onClick = onBackClick,
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Back",
                             tint = colorResource(id = R.color.colorSystem_heading_button)
                         )
@@ -234,7 +237,7 @@ fun ProductDetailContent(
                         onClick = onCartClick,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
+                            imageVector = Icons.Outlined.ShoppingCart,
                             contentDescription = "Cart",
                             tint = colorResource(id = R.color.colorSystem_heading_button)
                         )
@@ -318,7 +321,7 @@ fun ProductDetailContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Star,
+                    imageVector = Icons.Outlined.StarRate,
                     contentDescription = "Rating",
                     tint = colorResource(id = R.color.colorSystem_tint_yellow),
                     modifier = Modifier.padding(end = 4.dp)
@@ -411,7 +414,7 @@ fun ProductDetailContent(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(
-                        text = "    ${product.shop.shop.name}",
+                        text = product.shop.shop.name, // Giả sử product.shop.shop.name không null
                         style = CustomTypography.TextMedium,
                         modifier = Modifier.weight(1f)
                     )
@@ -447,6 +450,13 @@ fun ProductDetailContent(
                 )
             )
 
+            // Similar Products Section
+            SimilarProductsSection(
+                similarProductsState = similarProductsState,
+                onProductItemClick = onProductItemClick
+            )
+
+
             Spacer(modifier = Modifier.height(80.dp)) // Space for buttons
         }
     }
@@ -473,8 +483,145 @@ fun ProductDetailContent(
                 modifier = Modifier.weight(1f),
                 text = "Mua ngay",
                 onClick = onBuyNowClick,
-                enabled = !isAddingToCart
+                enabled = !isAddingToCart,
+                // Sử dụng ButtonDefaults để tùy chỉnh màu cho nút "Mua ngay"
+                // colors = ButtonDefaults.buttonColors( // Lỗi: FilledButton không có tham số colors trực tiếp
+                // containerColor = colorResource(id = R.color.colorSystem_tint_red)
+                // )
             )
+        }
+    }
+}
+
+
+@Composable
+fun ColumnScope.SimilarProductsSection(
+    similarProductsState: SimilarProductsState,
+    onProductItemClick: (String) -> Unit
+) {
+    Spacer(modifier = Modifier.height(24.dp))
+    Text(
+        text = "Sản phẩm tương tự",
+        style = CustomTypography.TextSemiBold.merge(
+            color = colorResource(id = R.color.colorSystem_heading_button),
+            fontSize = 16.sp
+        )
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+
+    when (similarProductsState) {
+        is SimilarProductsState.Loading -> {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = 16.dp)
+            )
+        }
+        is SimilarProductsState.Success -> {
+            if (similarProductsState.products.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(similarProductsState.products, key = { it.id }) { product ->
+                        SimilarProductItem(
+                            product = product,
+                            onClick = { onProductItemClick(product.id) }
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "Không tìm thấy sản phẩm tương tự.",
+                    style = CustomTypography.TextRegular,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+        is SimilarProductsState.Error -> {
+            Text(
+                text = "Lỗi: ${similarProductsState.message}",
+                style = CustomTypography.TextRegular,
+                color = Color.Red,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+
+        SimilarProductsState.Initial -> {
+            // Có thể hiển thị placeholder hoặc không làm gì cả
+        }
+
+         else -> {
+             // Xử lý cho các trường hợp khác không được liệt kê ở trên
+         }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorResource(id = R.color.colorSystem_background_level_2)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            GlideImage(
+                model = product.image,
+                contentDescription = product.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f),
+                contentScale = ContentScale.Crop,
+                transition = MyCrossFade
+            ) {
+                it.centerCrop()
+            }
+            Column(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+                    .height(75.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column { // Gom Text và Spacer vào một Column con để kiểm soát tốt hơn
+                    Text(
+                        text = product.name,
+                        style = CustomTypography.TextMedium,
+                        fontSize = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${product.price}đ",
+                        style = CustomTypography.TextSemiBold,
+                        fontSize = 14.sp,
+                        color = colorResource(id = R.color.colorSystem_tint_red) // Màu giá nổi bật
+                    )
+                }
+
+                if (product.hasDiscount.value) {
+                    Text(
+                        text = "${product.priceBeforeDiscount}đ",
+                        style = CustomTypography.TextRegular.copy(
+                            fontSize = 12.sp,
+                            textDecoration = TextDecoration.LineThrough
+                        ),
+                        color = Color.Gray
+                    )
+                } else {
+                    // Để giữ không gian tương đương khi không có khuyến mãi, bạn có thể thêm một Spacer ở đây
+                    // Ví dụ: Spacer(modifier = Modifier.height(14.sp)) // Chiều cao tương đương Text khuyến mãi
+                    // Hoặc để trống nếu Arrangement.SpaceBetween đã đủ để xử lý
+                }
+            }
         }
     }
 }

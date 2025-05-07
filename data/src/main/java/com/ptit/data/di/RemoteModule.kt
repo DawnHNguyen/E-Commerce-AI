@@ -8,8 +8,8 @@ import com.ptit.data.remote.api.OrderApi
 import com.ptit.data.remote.api.ProductApi
 import com.ptit.data.remote.api.PurchaseApi
 import com.ptit.data.remote.api.UserService
-import com.ptit.data.remote.datasource.OrderRemoteDataSource
-import com.ptit.data.remote.datasource.ProductRemoteDataSource
+import com.ptit.data.remote.api.RecommendApi
+import javax.inject.Named
 import com.ptit.data.remote.util.CallAdapterFactory
 import com.ptit.data.remote.util.HeaderAuthorizationInterceptor
 import com.ptit.data.remote.util.RefreshTokenAuthenticator
@@ -28,6 +28,28 @@ import javax.inject.Singleton
 @Module
 object RemoteModule {
     private const val BASE_URL: String = BuildConfig.BASE_URL
+    private const val RECOMMEND_BASE_URL: String = "https://recommend-system-722597103220.us-central1.run.app/"
+
+    @Singleton
+    @Provides
+    @Named("RecommendRetrofit")
+    fun provideRecommendRetrofit(
+        @NoAuthInterceptorRemoteService client: OkHttpClient,
+        gson: Gson,
+    ): Retrofit {
+        return Retrofit.Builder()
+            .client(client)
+            .baseUrl(RECOMMEND_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .addCallAdapterFactory(CallAdapterFactory())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRecommendApi(
+        @Named("RecommendRetrofit") retrofit: Retrofit,
+    ): RecommendApi = retrofit.create(RecommendApi::class.java)
 
     @Singleton
     @Provides
