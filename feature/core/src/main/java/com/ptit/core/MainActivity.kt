@@ -1,7 +1,6 @@
 package com.ptit.core
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.tween
@@ -57,6 +56,7 @@ import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
 import com.ptit.core.product.ProductForm
@@ -73,6 +73,7 @@ import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
+import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
@@ -137,15 +138,21 @@ class MainActivity : FragmentActivity() {
                     ) {
                         composable<BottomNavigationScreen.HomeScreen> {
                             HomeScreen(
-                                navigateToCart = {
-
-                                },
                                 navigateToSearch = {
-
+                                    navController.navigate(SearchRoute)
                                 },
                                 navigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
                                 }
+                            )
+                        }
+
+                        composable<SearchRoute> {
+                            SearchScreen(
+                                navigateBack = navController::navigateUp,
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                },
                             )
                         }
 
