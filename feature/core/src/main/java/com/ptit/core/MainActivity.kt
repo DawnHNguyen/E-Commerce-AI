@@ -1,7 +1,6 @@
 package com.ptit.core
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.tween
@@ -59,8 +58,10 @@ import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.category.CategoryScreen // Import CategoryScreen
 import com.ptit.core.home.HomeScreen
+import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
+import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.shop.ShopDetailScreen
@@ -72,7 +73,9 @@ import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.ProductDetailRoute
+import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
+import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
@@ -138,15 +141,21 @@ class MainActivity : FragmentActivity() {
                     ) {
                         composable<BottomNavigationScreen.HomeScreen> {
                             HomeScreen(
-                                navigateToCart = {
-                                    navController.navigate(BottomNavigationScreen.CartScreen)
-                                },
                                 navigateToSearch = {
-                                    // TODO: Implement search navigation
+                                    navController.navigate(SearchRoute)
                                 },
                                 navigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
                                 }
+                            )
+                        }
+
+                        composable<SearchRoute> {
+                            SearchScreen(
+                                navigateBack = navController::navigateUp,
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                },
                             )
                         }
 
@@ -269,9 +278,20 @@ class MainActivity : FragmentActivity() {
                             ProductListScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToProductForm = { productId ->
-                                    productId?.let { navController.navigate(ProductDetailRoute(productId = it)) }
-                                    // TODO: Handle case when productId is null (create new product)
-                                }
+                                    navController.navigate(ProductFormRoute(productId))
+                                },
+                                onNavigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId))
+                                },
+                            )
+                        }
+
+                        composable<ProductFormRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ProductFormRoute>()
+                            val productId = args.productId
+                            ProductForm(
+                                onNavigateBack = navController::navigateUp,
+                                productId = productId,
                             )
                         }
 

@@ -4,3 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ProductDetailRoute(val productId: String)
+
+@Serializable
+data object SearchRoute

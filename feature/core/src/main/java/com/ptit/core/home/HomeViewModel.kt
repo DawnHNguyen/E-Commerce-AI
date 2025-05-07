@@ -13,7 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     homeRepository: HomeRepository,
-): ViewModel() {
+) : ViewModel() {
     val paginatedRecommendedProduct: Flow<PagingData<ProductDomainEntity>> =
         homeRepository.paginatedRecommendedProduct()
             .cachedIn(viewModelScope)
