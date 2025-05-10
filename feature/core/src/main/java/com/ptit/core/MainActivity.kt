@@ -310,9 +310,6 @@ class MainActivity : FragmentActivity() {
                                 onAddToCartClick = {
                                     // Logic handled in ViewModel
                                 },
-                                onBuyNowClick = {
-                                    // TODO: Implement Buy Now logic (e.g., direct to checkout)
-                                },
                                 onProductItemClick = { similarProductId ->
                                     navController.navigate(ProductDetailRoute(productId = similarProductId)) {
                                         launchSingleTop = true
