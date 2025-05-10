@@ -25,7 +25,8 @@ interface ProductApi {
         @Query("price_min") minPrice: Int?,
         @Query("price_max") maxPrice: Int?,
         @Query("rating") rating: Int?,
-        @Query("name") name: String?
+        @Query("name") name: String?,
+        @Query("category") category: String?
     ): Resource<ListProductResponse>
 
     @GET("products/{id_product}")
@@ -55,11 +56,11 @@ interface ProductApi {
     @POST("/admin/products")
     suspend fun createProduct(
         @Field("name") name: String,
-      @Field("description") description: String,
-      @Field("price") price: Int,
-      @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
-      @Field("quantity") quantity: Int,
-      @Field("images") images: List<String>,
+        @Field("description") description: String,
+        @Field("price") price: Int,
+        @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
+        @Field("quantity") quantity: Int,
+        @Field("images") images: List<String>,
         @Field("image") image: String,
         @Field("category") category: String,
     ): Resource<ProductDto>

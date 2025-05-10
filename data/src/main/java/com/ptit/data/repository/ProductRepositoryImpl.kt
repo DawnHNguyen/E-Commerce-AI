@@ -1,10 +1,7 @@
 package com.ptit.data.repository
 
-import android.util.Log
 import com.ptit.data.mapping.toDomainEntity
-import com.ptit.data.remote.api.RecommendApi // Thêm import
 import com.ptit.data.remote.datasource.ProductRemoteDataSource
-import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.repository.ProductRepository
@@ -14,7 +11,6 @@ import javax.inject.Inject
 
 class ProductRepositoryImpl @Inject constructor(
     private val remoteDataSource: ProductRemoteDataSource,
-    private val recommendApi: RecommendApi // Inject RecommendApi
 ) : ProductRepository {
 
     override suspend fun getProductDetail(productId: String): Resource<ProductDomainEntity> {
@@ -32,16 +28,10 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getAllProducts(): Resource<List<ProductDomainEntity>> {
-        return remoteDataSource.getAllProducts(limit = 1000).map { listProductResponse ->
-            listProductResponse.products?.map { it.toDomainEntity() } ?: emptyList()
-        }
-    }
-
     override suspend fun getCategories(): Resource<List<CategoryDomainEntity>> {
         return remoteDataSource.getCategories().map { response ->
             response.map { categoryDto ->
-                (categoryDto as CategoryDto).toDomainEntity()
+                (categoryDto).toDomainEntity()
             }
         }
     }
@@ -55,7 +45,12 @@ class ProductRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteProduct(productId: String): Resource<Unit> {
-        return remoteDataSource.deleteProduct(productId).map { it }
+        return remoteDataSource.deleteProduct(productId)
     }
 
+    override suspend fun getProductsByCategory(category: String): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getProductsByCategory(category).map { listProductResponse ->
+            listProductResponse.products?.map { it.toDomainEntity() } ?: emptyList()
+        }
+    }
 }
