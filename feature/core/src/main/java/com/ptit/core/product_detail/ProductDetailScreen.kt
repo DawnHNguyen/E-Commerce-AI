@@ -41,8 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,7 +82,6 @@ fun ProductDetailScreen(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onBuyNowClick: () -> Unit,
     onProductItemClick: (String) -> Unit // Thêm callback này
 ) {
     LocalBottomNavigationVisibility.current.value = false
@@ -93,8 +94,30 @@ fun ProductDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // State for bottom sheet visibility
+    var showAddToCartBottomSheet by remember { mutableStateOf(false) }
+
+
     LaunchedEffect(key1 = productId) {
         viewModel.getProductDetail(productId)
+    }
+
+    // Handle add to cart state changes
+    LaunchedEffect(key1 = addToCartState) {
+        when (addToCartState) {
+            is AddToCartState.Success -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Đã thêm sản phẩm vào giỏ hàng")
+                }
+            }
+
+            is AddToCartState.Error -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Lỗi: ${(addToCartState as AddToCartState.Error).message}")
+                }
+            }
+            else -> {}
+        }
     }
 
     // Handle add to cart state changes
@@ -131,11 +154,25 @@ fun ProductDetailScreen(
                         similarProductsState = similarProductsState, // Truyền state vào
                         onBackClick = onBackClick,
                         onCartClick = onCartClick,
-                        onAddToCartClick = { viewModel.addToCart(state.product.id) }, // Sử dụng onAddToCartClick từ ViewModel
-                        onBuyNowClick = onBuyNowClick,
+                        onAddToCartClick = {
+                            // Show bottom sheet instead of immediately adding to cart
+                            showAddToCartBottomSheet = true
+                        },
                         isAddingToCart = addToCartState is AddToCartState.Loading,
                         onProductItemClick = onProductItemClick // Truyền callback
                     )
+                    // Add to cart bottom sheet
+                    if (state.product != null) {
+                        AddToCartBottomSheet(
+                            product = state.product,
+                            isShowBottomSheet = showAddToCartBottomSheet,
+                            onDismiss = { showAddToCartBottomSheet = false },
+                            onAddToCart = { quantity ->
+                                // Call ViewModel's addToCart with quantity
+                                viewModel.addToCart(state.product.id, quantity)
+                            }
+                        )
+                    }
                 }
                 is ProductDetailState.Error -> {
                     MaxSizeColumn(
@@ -194,7 +231,6 @@ fun ProductDetailContent(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onBuyNowClick: () -> Unit,
     isAddingToCart: Boolean = false,
     onProductItemClick: (String) -> Unit // Thêm callback khi click vào sản phẩm gợi ý
 ) {
@@ -392,6 +428,18 @@ fun ProductDetailContent(
                     )
                 }
             }
+            // Stock information
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (product.quantity > 0) "Kho: ${product.quantity}" else "Hết hàng",
+                style = CustomTypography.TextRegular.merge(
+                    color = if (product.quantity > 0)
+                        colorResource(id = R.color.colorSystem_normal_text)
+                    else
+                        Color.Red,
+                    fontSize = 14.sp
+                )
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -414,18 +462,11 @@ fun ProductDetailContent(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(
-                        text = product.shop.shop.name, // Giả sử product.shop.shop.name không null
+                        text = product.shop.shop.name,
                         style = CustomTypography.TextMedium,
                         modifier = Modifier.weight(1f)
                     )
 
-                    Text(
-                        text = "Xem shop",
-                        style = CustomTypography.TextRegular.merge(
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        ),
-                        modifier = Modifier.noRippleClickable { /* Navigate to shop */ }
-                    )
                 }
             }
 
@@ -477,17 +518,6 @@ fun ProductDetailContent(
                 text = if (isAddingToCart) "Đang thêm..." else "Thêm vào giỏ hàng",
                 onClick = onAddToCartClick,
                 enabled = !isAddingToCart
-            )
-
-            FilledButton(
-                modifier = Modifier.weight(1f),
-                text = "Mua ngay",
-                onClick = onBuyNowClick,
-                enabled = !isAddingToCart,
-                // Sử dụng ButtonDefaults để tùy chỉnh màu cho nút "Mua ngay"
-                // colors = ButtonDefaults.buttonColors( // Lỗi: FilledButton không có tham số colors trực tiếp
-                // containerColor = colorResource(id = R.color.colorSystem_tint_red)
-                // )
             )
         }
     }
