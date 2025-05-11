@@ -23,6 +23,7 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
             .onSuccess {
                 mmkv.putString(SecureStorageKey.ACCESS_TOKEN, it.accessToken)
                 mmkv.putString(SecureStorageKey.REFRESH_TOKEN, it.refreshToken)
+                mmkv.putString(SecureStorageKey.USER_ID, it.user!!.id)
             }
             .map { }
     }

@@ -21,13 +21,6 @@ class ProductRepositoryImpl @Inject constructor(
         return remoteDataSource.getProductsByShop().map { response -> response.map { it.toDomainEntity() } }
     }
 
-    // Implement function mới
-    override suspend fun getSimilarProducts(productId: String, amount: Int): Resource<List<ProductDomainEntity>> {
-        return remoteDataSource.getSimilarProducts(productId, amount).map { productDtoList ->
-            productDtoList.map { it.toDomainEntity() }
-        }
-    }
-
     override suspend fun getCategories(): Resource<List<CategoryDomainEntity>> {
         return remoteDataSource.getCategories().map { response ->
             response.map { categoryDto ->
@@ -53,4 +46,23 @@ class ProductRepositoryImpl @Inject constructor(
             listProductResponse.products?.map { it.toDomainEntity() } ?: emptyList()
         }
     }
+
+    override suspend fun getSimilarProducts(productId: String, amount: Int): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getSimilarProducts(productId, amount).map { productDtoList ->
+            productDtoList.map { it.toDomainEntity() }
+        }
+    }
+
+    override suspend fun getTrendingProducts(amount: Int): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getTrendingProducts(amount).map { productDtoList ->
+            productDtoList.map { it.toDomainEntity() }
+        }
+    }
+
+    override suspend fun getHomeRecommendations(): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getHomeRecommendations().map { productDtoList ->
+            productDtoList.map { it.toDomainEntity() }
+        }
+    }
+
 }

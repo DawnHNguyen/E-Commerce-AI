@@ -15,5 +15,7 @@ interface ProductRepository {
 
     //
     suspend fun getProductsByCategory(category: String): Resource<List<ProductDomainEntity>>
-    suspend fun getSimilarProducts(productId: String, amount: Int = 6): Resource<List<ProductDomainEntity>>
+    suspend fun getSimilarProducts(productId: String, amount: Int ): Resource<List<ProductDomainEntity>>
+    suspend fun getTrendingProducts(amount: Int) : Resource<List<ProductDomainEntity>>
+    suspend fun getHomeRecommendations() : Resource<List<ProductDomainEntity>>
 }
