@@ -191,10 +191,10 @@ class CreateOrderViewModel @Inject constructor(
                 is Resource.Error -> {
                     _orderState.update { it.copy(
                         isLoading = false,
-                        error = result.error.message
+                        error = result.error.error?.message
                     )}
                     _orderEvents.emit(OrderEvent.ShowError(
-                        result.error.message?: "Tạo đơn hàng thất bại"
+                        result.error.error?.message?: "Tạo đơn hàng thất bại"
                     ))
                 }
                 else -> {}
