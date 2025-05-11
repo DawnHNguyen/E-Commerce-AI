@@ -159,12 +159,12 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
+                        composable<BottomNavigationScreen.CategoryScreen> {
                             CategoryScreen(navController = navController)
                         }
 
-                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
-                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
+                        composable<ProductsByCategoryRoute> { backStackEntry ->
+                            backStackEntry.toRoute<ProductsByCategoryRoute>()
                             ProductsByCategoryScreen(
                                 navController = navController,
                                 navigateToProductDetail = { productId ->

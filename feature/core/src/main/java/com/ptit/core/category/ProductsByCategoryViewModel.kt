@@ -36,7 +36,9 @@ class ProductsByCategoryViewModel @Inject constructor(
 
     init {
         _uiState.update { it.copy(categoryDisplayName = categoryDisplayName) }
+    }
 
+    fun refreshProducts() {
         if (categoryIdFilter.isNotEmpty()) {
             fetchProductsByCategoryId(categoryIdFilter)
         } else {

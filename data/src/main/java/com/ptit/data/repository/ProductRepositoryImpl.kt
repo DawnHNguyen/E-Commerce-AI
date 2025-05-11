@@ -59,8 +59,8 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getHomeRecommendations(): Resource<List<ProductDomainEntity>> {
-        return remoteDataSource.getHomeRecommendations().map { productDtoList ->
+    override suspend fun getHomeRecommendations(userId: String): Resource<List<ProductDomainEntity>> {
+        return remoteDataSource.getHomeRecommendations(userId).map { productDtoList ->
             productDtoList.map { it.toDomainEntity() }
         }
     }

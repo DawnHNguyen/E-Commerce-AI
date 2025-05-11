@@ -85,7 +85,6 @@ interface ProductApi {
 
     @GET("https://recommend-system-323292678684.us-central1.run.app/recommendations/home")
     suspend fun getHomeRecommendations(
-        @Query("user_id") userId: String = MMKV.defaultMMKV().decodeString(SecureStorageKey.USER_ID)
-            .toString(),
+        @Query("user_id") userId: String,
     ): Resource<List<ProductDto>>
 }

@@ -58,7 +58,7 @@ fun HomeScreen(
 ) {
     LocalBottomNavigationVisibility.current.value = true
 
-    val viewModel = hiltViewModel<HomeViewModel>()
+    val viewModel : HomeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {

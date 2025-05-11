@@ -85,9 +85,9 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
         remoteService.getSimilarProducts(productId, amount)
 
     suspend fun getTrendingProducts(amount: Int) =
-        remoteService.getTrendingProducts(amount = amount)
+        remoteService.getTrendingProducts(amount)
 
-    suspend fun getHomeRecommendations() =
-        remoteService.getHomeRecommendations()
+    suspend fun getHomeRecommendations(userId: String) =
+        remoteService.getHomeRecommendations(userId)
 
 }

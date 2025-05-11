@@ -2,10 +2,12 @@ package com.ptit.core.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ptit.common.const.SecureStorageKey
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.repository.HomeRepository
 import com.ptit.domain.repository.ProductRepository // Thêm ProductRepository
 import com.ptit.domain.utils.Resource
+import com.tencent.mmkv.MMKV
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,11 +34,6 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    init {
-        fetchTrendingProducts()
-        fetchHomeRecommendations()
-    }
-
     fun fetchTrendingProducts() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingTrending = true, errorTrending = null) }
@@ -57,7 +54,9 @@ class HomeViewModel @Inject constructor(
     fun fetchHomeRecommendations() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingRecommended = true, errorRecommended = null) }
-            when (val result = productRepository.getHomeRecommendations()) {
+            when (val result = productRepository.getHomeRecommendations(
+                MMKV.defaultMMKV().decodeString(SecureStorageKey.USER_ID).toString()
+            )) {
                 is Resource.Success -> {
                     _uiState.update { it.copy(isLoadingRecommended = false, recommendedProducts = result.data) }
                 }
