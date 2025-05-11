@@ -44,7 +44,6 @@ class ProductsByCategoryViewModel @Inject constructor(
         }
     }
 
-    // Đổi tên hàm và tham số để phản ánh việc lọc bằng ID
     private fun fetchProductsByCategoryId(categoryId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, error = null) }

@@ -108,7 +108,7 @@ fun ProductsByCategoryScreen(
                     )
                 }
 
-                uiState.products.isEmpty() -> { // Xử lý trường hợp không có sản phẩm (kể cả khi không có lỗi)
+                uiState.products.isEmpty() -> {
                     ProductEmptyState(
                         message = "Không có sản phẩm nào trong danh mục '${uiState.categoryDisplayName}'.",
                         buttonText = "Quay lại Danh mục",

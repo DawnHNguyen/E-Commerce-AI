@@ -56,7 +56,7 @@ class ProductDetailViewModel @Inject constructor(
     // Hàm để tải sản phẩm gợi ý
     private fun fetchSimilarProducts(productId: String) {
         viewModelScope.launch {
-            when (val result = productRepository.getSimilarProducts(productId)) {
+            when (val result = productRepository.getSimilarProducts(productId, 6)) {
                 is Resource.Success -> {
                     _similarProductsState.value = SimilarProductsState.Success(result.data)
                 }

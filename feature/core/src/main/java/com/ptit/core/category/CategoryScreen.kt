@@ -31,11 +31,10 @@ import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.navigation.destination.ProductsByCategoryRoute // Import route mới
 
-// Data class for Category Item
 data class CategoryItem(
     val id: String,
-    val name: String, // Đây sẽ là tên dùng để lọc
-    val displayName: String, // Tên hiển thị, có thể có dấu
+    val name: String,
+    val displayName: String,
     val imageUrl: String
 )
 
