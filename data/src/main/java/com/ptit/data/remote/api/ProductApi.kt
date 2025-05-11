@@ -1,10 +1,11 @@
 package com.ptit.data.remote.api
 
+import com.ptit.common.const.SecureStorageKey
 import com.ptit.data.remote.dto.home.ListProductResponse
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.ProductDto
-import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.utils.Resource
+import com.tencent.mmkv.MMKV
 import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -13,7 +14,6 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.Url
 
 interface ProductApi {
 
@@ -25,7 +25,8 @@ interface ProductApi {
         @Query("price_min") minPrice: Int?,
         @Query("price_max") maxPrice: Int?,
         @Query("rating") rating: Int?,
-        @Query("name") name: String?
+        @Query("name") name: String?,
+        @Query("category") category: String?
     ): Resource<ListProductResponse>
 
     @GET("products/{id_product}")
@@ -35,13 +36,6 @@ interface ProductApi {
 
     @GET("/admin/products/my-products")
     suspend fun getProductsByShop(): Resource<List<ProductDto>>
-
-    // Thêm phương thức mới
-    @GET("https://recommend-system-722597103220.us-central1.run.app/recommendations/similar/{product_id}")
-    suspend fun getSimilarProducts(
-        @Path("product_id") productId: String,
-        @Query("amount") amount: Int = 6
-    ): Resource<List<ProductDto>> // API trả về một mảng ProductDto
 
     @GET("categories")
     suspend fun getCategories(): Resource<List<CategoryDto>>
@@ -55,11 +49,11 @@ interface ProductApi {
     @POST("/admin/products")
     suspend fun createProduct(
         @Field("name") name: String,
-      @Field("description") description: String,
-      @Field("price") price: Int,
-      @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
-      @Field("quantity") quantity: Int,
-      @Field("images") images: List<String>,
+        @Field("description") description: String,
+        @Field("price") price: Int,
+        @Field("priceBeforeDiscount") priceBeforeDiscount: Int,
+        @Field("quantity") quantity: Int,
+        @Field("images") images: List<String>,
         @Field("image") image: String,
         @Field("category") category: String,
     ): Resource<ProductDto>
@@ -78,8 +72,20 @@ interface ProductApi {
         @Field("category") category: String,
     ): Resource<ProductDto>
 
-    @GET("recommendations/trending")
+    @GET("https://recommend-system-323292678684.us-central1.run.app/recommendations/trending")
     suspend fun getTrendingProducts(
         @Query("amount") amount: Int,
+    ): Resource<List<ProductDto>>
+
+    @GET("https://recommend-system-323292678684.us-central1.run.app/recommendations/similar")
+    suspend fun getSimilarProducts(
+        @Query("product_id") productId: String,
+        @Query("amount") amount: Int
+    ): Resource<List<ProductDto>>
+
+    @GET("https://recommend-system-323292678684.us-central1.run.app/recommendations/home")
+    suspend fun getHomeRecommendations(
+        @Query("user_id") userId: String = MMKV.defaultMMKV().decodeString(SecureStorageKey.USER_ID)
+            .toString(),
     ): Resource<List<ProductDto>>
 }

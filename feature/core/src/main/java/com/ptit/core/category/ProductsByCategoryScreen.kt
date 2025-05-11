@@ -1,10 +1,12 @@
+@file:Suppress("DEPRECATION")
+
 package com.ptit.core.category
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
-// import androidx.compose.foundation.lazy.grid.GridItemSpan // Không cần dùng nữa
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +18,6 @@ import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Star // Đổi sang filled để giống các màn hình khác
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-// import androidx.compose.runtime.LaunchedEffect // Không cần ở đây nữa
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,7 +41,6 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.FullScreenProgressBar
@@ -54,12 +54,11 @@ import com.ptit.domain.entity.product.ProductDomainEntity
 @Composable
 fun ProductsByCategoryScreen(
     navController: NavController,
-    categoryId: String,
-    categoryDisplayName: String,
     navigateToProductDetail: (String) -> Unit,
-    viewModel: ProductsByCategoryViewModel = hiltViewModel()
 ) {
     LocalBottomNavigationVisibility.current.value = false
+
+    val viewModel: ProductsByCategoryViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -67,7 +66,7 @@ fun ProductsByCategoryScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = uiState.categoryDisplayName.ifEmpty { categoryDisplayName },
+                        text = uiState.categoryDisplayName.ifEmpty { uiState.categoryDisplayName },
                         style = CustomTypography.TextBold,
                         fontSize = 20.sp,
                         color = colorResource(id = R.color.colorSystem_greyscale_0_white),
@@ -100,6 +99,7 @@ fun ProductsByCategoryScreen(
                 uiState.isLoading -> {
                     FullScreenProgressBar()
                 }
+
                 uiState.error != null && uiState.products.isEmpty() -> { // Chỉ hiện empty state nếu không có sản phẩm nào VÀ có lỗi
                     ProductEmptyState(
                         message = uiState.error ?: "Không có sản phẩm nào trong danh mục này.",
@@ -107,16 +107,17 @@ fun ProductsByCategoryScreen(
                         onActionClick = { navController.popBackStack() }
                     )
                 }
-                uiState.products.isEmpty() -> { // Xử lý trường hợp không có sản phẩm (kể cả khi không có lỗi)
+
+                uiState.products.isEmpty() -> {
                     ProductEmptyState(
                         message = "Không có sản phẩm nào trong danh mục '${uiState.categoryDisplayName}'.",
                         buttonText = "Quay lại Danh mục",
                         onActionClick = { navController.popBackStack() }
                     )
                 }
+
                 else -> {
                     ProductGrid(products = uiState.products, navigateToProductDetail = navigateToProductDetail)
-                    // Hiển thị lỗi nhỏ ở dưới nếu có sản phẩm nhưng vẫn gặp lỗi khác (ví dụ: lỗi tải thêm)
                     if (uiState.error != null) {
                         Text(
                             text = "Lưu ý: ${uiState.error}",
@@ -158,6 +159,7 @@ fun ProductGrid(
 }
 
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 private fun ProductItemCard(
@@ -198,7 +200,8 @@ private fun ProductItemCard(
         Column(
             modifier = Modifier.fillMaxWidth() // Cho phép Column mở rộng theo chiều rộng
         ) {
-            Box { // Box để chứa ảnh và badge giảm giá
+            // Box để chứa ảnh và badge giảm giá
+            Box {
                 GlideImage(
                     model = product.image.ifEmpty { Icons.Default.BrokenImage },
                     contentDescription = product.name,
@@ -218,6 +221,7 @@ private fun ProductItemCard(
                         }
                     }
                 )
+
                 // Badge giảm giá, hiển thị ở góc trên cùng bên phải của ảnh
                 if (product.hasDiscount.value) {
                     Text(

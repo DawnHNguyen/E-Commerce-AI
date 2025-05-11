@@ -14,6 +14,7 @@ class ProductPagingSource(
     private val minPrice: Int? = null,
     private val maxPrice: Int? = null,
     private val sortBy: String? = null,
+    private val category: String? = null
 ): PagingSource<Int, ProductDomainEntity>() {
     override fun getRefreshKey(state: PagingState<Int, ProductDomainEntity>): Int? = null
 
@@ -29,6 +30,7 @@ class ProductPagingSource(
             minPrice = minPrice,
             maxPrice = maxPrice,
             sortBy = sortBy,
+            category = category
         )
 
         return if (response is Resource.Success) {

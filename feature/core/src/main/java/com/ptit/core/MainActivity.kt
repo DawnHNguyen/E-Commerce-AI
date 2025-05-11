@@ -167,8 +167,6 @@ class MainActivity : FragmentActivity() {
                             val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
                             ProductsByCategoryScreen(
                                 navController = navController,
-                                categoryId = args.categoryId,
-                                categoryDisplayName = args.categoryDisplayName,
                                 navigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
                                 }
