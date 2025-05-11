@@ -68,7 +68,7 @@ class CreateOrderViewModel @Inject constructor(
                 }
                 is Resource.Error -> {
                     _userProfileState.update { Resource.error(result.error) }
-                    _orderEvents.emit(OrderEvent.ShowError("Failed to load user profile: ${result.error.message}"))
+                    _orderEvents.emit(OrderEvent.ShowError("Tải thông tin user thất bại: ${result.error.message}"))
                 }
                 else -> {}
             }
@@ -78,7 +78,7 @@ class CreateOrderViewModel @Inject constructor(
     // Function to set selected item IDs and load them
     fun setSelectedItemIds(itemIds: List<String>) {
         if (itemIds.isEmpty()) {
-            _orderEvents.tryEmit(OrderEvent.ShowError("No items selected"))
+            _orderEvents.tryEmit(OrderEvent.ShowError("Không sản phẩm nào được chọn"))
             return
         }
 
@@ -96,7 +96,7 @@ class CreateOrderViewModel @Inject constructor(
                     }
                     is Resource.Error -> {
                         hasError = true
-                        _orderEvents.emit(OrderEvent.ShowError("Failed to load item: ${result.error.message}"))
+                        _orderEvents.emit(OrderEvent.ShowError("Load sản phẩm thất bại: ${result.error.message}"))
                     }
                     else -> {}
                 }
@@ -105,7 +105,7 @@ class CreateOrderViewModel @Inject constructor(
             if (hasError && purchases.isEmpty()) {
                 _orderState.update { it.copy(
                     isLoading = false,
-                    error = "Failed to load items"
+                    error = "Load sản phẩm thất bại",
                 )}
             } else {
                 _orderState.update { it.copy(
@@ -152,7 +152,7 @@ class CreateOrderViewModel @Inject constructor(
 
         if (currentState.selectedItems.isEmpty()) {
             viewModelScope.launch {
-                _orderEvents.emit(OrderEvent.ShowError("No items selected for order"))
+                _orderEvents.emit(OrderEvent.ShowError("Không sản phẩm nào được chọn để thanh toán"))
             }
             return
         }
@@ -161,7 +161,7 @@ class CreateOrderViewModel @Inject constructor(
             currentState.phone.text.isBlank() ||
             currentState.address.text.isBlank()) {
             viewModelScope.launch {
-                _orderEvents.emit(OrderEvent.ShowError("Please fill in all required fields"))
+                _orderEvents.emit(OrderEvent.ShowError("Vui lòng điền đầy đủ thông tin"))
             }
             return
         }
@@ -194,7 +194,7 @@ class CreateOrderViewModel @Inject constructor(
                         error = result.error.message
                     )}
                     _orderEvents.emit(OrderEvent.ShowError(
-                        result.error.message ?: "Failed to create order"
+                        result.error.message?: "Tạo đơn hàng thất bại"
                     ))
                 }
                 else -> {}
