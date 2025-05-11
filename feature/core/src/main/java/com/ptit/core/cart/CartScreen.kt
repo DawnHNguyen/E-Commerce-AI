@@ -19,11 +19,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun CartScreen(
-    viewModel: CartViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onCheckout: (List<String>) -> Unit, // Modified to accept IDs instead of PurchaseDomainEntity objects
     onProductClick: (String) -> Unit = {}
 ) {
+    val viewModel: CartViewModel = hiltViewModel()
     LocalBottomNavigationVisibility.current.value = true
 
     val cartState by viewModel.cartState.collectAsState()
