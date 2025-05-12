@@ -164,7 +164,10 @@ fun AccountScreen(
             // Profile Card
             ProfileCard(
                 user = uiModel.value.user,
-                onEditClick = onNavigateToEditProfile
+                onEditClick = {
+                    viewModel.onEditProfile()
+                    onNavigateToEditProfile()
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))

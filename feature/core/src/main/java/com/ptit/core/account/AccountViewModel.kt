@@ -105,6 +105,13 @@ class AccountViewModel @Inject constructor(
         }
     }
 
+    fun onEditProfile() {
+        _updateProfileState.value = Resource.idle()
+        _updateProfileUiModel.value = UpdateProfileUiModel(
+            original = uiModel.value.user
+        )
+    }
+
     fun onNameChanged(name: String) {
         _updateProfileUiModel.update {
             it.copy(name = name)
