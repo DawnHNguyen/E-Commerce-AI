@@ -49,6 +49,7 @@ import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.FullScreenProgressBar
+import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
@@ -63,6 +64,8 @@ fun ShopDetailScreen(
     onNavigateToEditShop: () -> Unit,
     onNavigateToProductList: () -> Unit,
 ) {
+    LocalBottomNavigationVisibility.current.value = false
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val viewModel = hiltViewModel<ShopViewModel>()
