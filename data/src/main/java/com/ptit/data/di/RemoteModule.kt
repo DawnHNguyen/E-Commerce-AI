@@ -98,7 +98,6 @@ object RemoteModule {
     @Provides
     fun provideGson(): Gson =
         Gson().newBuilder()
-            .serializeNulls()
             .create()
 
     @Singleton

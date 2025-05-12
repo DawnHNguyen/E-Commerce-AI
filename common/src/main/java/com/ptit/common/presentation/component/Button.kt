@@ -14,6 +14,27 @@ import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
 
 @Composable
+fun NeutralButton(
+    modifier: Modifier = Modifier,
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    BaseButton(
+        modifier = modifier,
+        enabled = enabled,
+        text = text,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorResource(id = R.color.colorSystem_greyscale_200),
+            disabledContainerColor = colorResource(id = R.color.colorSystem_greyscale_200).copy(0.5f),
+            contentColor = colorResource(id = R.color.colorSystem_text_button),
+            disabledContentColor = colorResource(id = R.color.colorSystem_text_button),
+        ),
+        onClick = onClick
+    )
+}
+
+@Composable
 fun FilledButton(
     modifier: Modifier = Modifier,
     text: String,

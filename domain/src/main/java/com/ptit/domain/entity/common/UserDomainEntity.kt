@@ -10,6 +10,7 @@ data class UserDomainEntity(
     val name: String = "",
     val phone: String = "",
     val avatar: String = "",
+    val address: String = "",
 ) {
     data class Shop(
         val address: String = "",

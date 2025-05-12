@@ -8,4 +8,9 @@ object Navigator {
         val intent = Intent(context, Class.forName("com.ptit.core.MainActivity"))
         context.startActivity(intent)
     }
+
+    fun navigateToAuthActivity(context: Context) {
+        val intent = Intent(context, Class.forName("com.ptit.auth.AuthActivity"))
+        context.startActivity(intent)
+    }
 }
