@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
@@ -77,6 +78,7 @@ import com.ptit.domain.utils.onSuccess
 
 @Composable
 fun AccountScreen(
+    backStackEntry: NavBackStackEntry,
     onNavigateToOrders: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
@@ -90,7 +92,7 @@ fun AccountScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
-    val viewModel = hiltViewModel<AccountViewModel>()
+    val viewModel = hiltViewModel<AccountViewModel>(viewModelStoreOwner = backStackEntry)
     val uiModel = viewModel.uiModel.collectAsStateWithLifecycle()
     val isShowProgressBar = rememberState { false }
 
@@ -113,10 +115,7 @@ fun AccountScreen(
                     isShowProgressBar.value = false
                 }
         }
-    }
 
-    // Handle logout result
-    LaunchedEffect(Unit) {
         lifecycleOwner.safeCollectFlow(viewModel.logoutState) {
             it
                 .onLoading {
@@ -299,17 +298,17 @@ private fun SettingsMenuCard(
             modifier = Modifier.padding(8.dp)
         ) {
             // My Orders
-            MenuItem(
-                icon = Icons.Outlined.ShoppingBag,
-                title = "Đơn hàng của tôi",
-                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
-                onClick = onOrdersClick
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = colorResource(id = R.color.colorSystem_text_button)
-            )
+//            MenuItem(
+//                icon = Icons.Outlined.ShoppingBag,
+//                title = "Đơn hàng của tôi",
+//                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
+//                onClick = onOrdersClick
+//            )
+//
+//            HorizontalDivider(
+//                modifier = Modifier.padding(horizontal = 16.dp),
+//                color = colorResource(id = R.color.colorSystem_text_button)
+//            )
 
             // My Shop or Create Shop
             MenuItem(
@@ -333,7 +332,8 @@ private fun SettingsMenuCard(
             MenuItem(
                 icon = Icons.Outlined.Settings,
                 title = "Cài đặt",
-                subtitle = "Phương thức thanh toán, mật khẩu, đăng xuất",
+//                subtitle = "Phương thức thanh toán, mật khẩu, đăng xuất",
+                subtitle = "Phương thức thanh toán, đăng xuất",
                 onClick = onSettingsClick,
                 trailingIcon = {
                     Icon(
@@ -371,19 +371,19 @@ private fun SettingsMenuCard(
                         color = colorResource(id = R.color.colorSystem_text_button)
                     )
 
-                    // Change Password
-                    MenuItem(
-                        icon = Icons.Outlined.Password,
-                        title = "Đổi mật khẩu",
-                        subtitle = "Cập nhật mật khẩu tài khoản",
-                        onClick = onChangePasswordClick,
-                        isSubItem = true
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(end = 16.dp, start = 56.dp),
-                        color = colorResource(id = R.color.colorSystem_text_button)
-                    )
+//                    // Change Password
+//                    MenuItem(
+//                        icon = Icons.Outlined.Password,
+//                        title = "Đổi mật khẩu",
+//                        subtitle = "Cập nhật mật khẩu tài khoản",
+//                        onClick = onChangePasswordClick,
+//                        isSubItem = true
+//                    )
+//
+//                    HorizontalDivider(
+//                        modifier = Modifier.padding(end = 16.dp, start = 56.dp),
+//                        color = colorResource(id = R.color.colorSystem_text_button)
+//                    )
 
                     // Logout
                     MenuItem(

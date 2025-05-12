@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Apps // Sử dụng icon này cho Category
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -44,6 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.ptit.common.R
 import com.ptit.common.presentation.EventManager
@@ -53,10 +54,12 @@ import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
+import com.ptit.core.account.EditProfile
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
-import com.ptit.core.category.CategoryScreen // Import CategoryScreen
+import com.ptit.core.category.CategoryScreen
+import com.ptit.core.category.ProductsByCategoryScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
@@ -66,22 +69,24 @@ import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.shop.ShopDetailScreen
 import com.ptit.core.shop.UpdateShopScreen
+import com.ptit.navigation.Navigator
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
+import com.ptit.navigation.destination.ProductsByCategoryRoute
+import com.ptit.navigation.destination.ProfileRoute
 import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
-import com.ptit.core.category.ProductsByCategoryScreen // Import màn hình mới
-import com.ptit.navigation.destination.ProductsByCategoryRoute
 
 @OptIn(ExperimentalComposeUiApi::class)
 @AndroidEntryPoint
@@ -212,30 +217,48 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<BottomNavigationScreen.ProfileScreen> {
-                            AccountScreen(
-                                onLogoutSuccess = {
-                                    // TODO: Navigate to AuthActivity
-                                },
-                                onNavigateToOrders = {
-                                    // TODO: Implement navigation to Orders
-                                },
-                                onNavigateToEditProfile = {
-                                    // TODO: Implement navigation to Edit Profile
-                                },
-                                onNavigateToChangePassword = {
-                                    // TODO: Implement navigation to Change Password
-                                },
-                                onNavigateToPaymentMethods = {
-                                    navController.navigate(ListPaymentMethodRoute)
-                                },
-                                onNavigateToShop = {
-                                    navController.navigate(ShopDetailRoute)
-                                },
-                                onNavigateToCreateShop = {
-                                    // TODO: Implement navigation to Create Shop
-                                },
-                            )
+                        navigation<BottomNavigationScreen.ProfileScreen>(
+                            startDestination = ProfileRoute,
+                        ) {
+                            composable<ProfileRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                AccountScreen(
+                                    backStackEntry = accountGraphBackStackEntry,
+                                    onLogoutSuccess = {
+                                        Navigator.navigateToAuthActivity(this@MainActivity)
+                                    },
+                                    onNavigateToOrders = {
+                                        // TODO: Implement navigation to Orders
+                                    },
+                                    onNavigateToEditProfile = {
+                                        navController.navigate(EditProfileRoute)
+                                    },
+                                    onNavigateToChangePassword = {
+                                        // TODO: Implement navigation to Change Password
+                                    },
+                                    onNavigateToPaymentMethods = {
+                                        navController.navigate(ListPaymentMethodRoute)
+                                    },
+                                    onNavigateToShop = {
+                                        navController.navigate(ShopDetailRoute)
+                                    },
+                                    onNavigateToCreateShop = {
+                                        // TODO: Implement navigation to Create Shop
+                                    },
+                                )
+                            }
+
+                            composable<EditProfileRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                EditProfile(
+                                    backStackEntry = accountGraphBackStackEntry,
+                                    onBack = navController::navigateUp,
+                                )
+                            }
                         }
 
                         composable<ListPaymentMethodRoute> {
@@ -374,11 +397,8 @@ class MainActivity : FragmentActivity() {
                         interactionSource = remember { MutableInteractionSource() },
                         onClick = {
                             navController.navigate(item.screen) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.startDestinationId)
                                 launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(

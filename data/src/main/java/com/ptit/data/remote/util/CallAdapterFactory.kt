@@ -116,15 +116,15 @@ class CallAdapterFactory private constructor() : CallAdapter.Factory() {
 
                 override fun onResponse(call: Call<BaseSuccessResponse<S>>, response: Response<BaseSuccessResponse<S>>) {
                     val baseResponse = response.body()
-                    val actualData = baseResponse?.data
+                    val actualData = baseResponse?.data ?: Unit as S
                     val code = response.code()
                     val errorBody = response.errorBody()?.string().orEmpty()
 
-                    if (response.isSuccessful && (actualData != null || code == 204)) {
+                    if (response.isSuccessful) {
                         callback.onResponse(
                             this@ResourceCall, Response.success(
                                 Resource.success(
-                                    actualData!!
+                                    if (code == 204) Unit as S else actualData
                                 )
                             )
                         )

@@ -11,8 +11,8 @@ import com.tencent.mmkv.MMKV
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthRemoteDataSource) : AuthRepository {
+    val mmkv = MMKV.defaultMMKV()
     override suspend fun login(email: String, password: String): Resource<Unit> {
-        val mmkv = MMKV.defaultMMKV()
         val request = LoginAndRegisterRequest(
             email = email,
             password = password
@@ -29,7 +29,6 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
     }
 
     override suspend fun register(password: String, email: String): Resource<Unit> {
-        val mmkv = MMKV.defaultMMKV()
         val request = LoginAndRegisterRequest(
             email = email,
             password = password
@@ -48,8 +47,13 @@ class AuthRepositoryImpl @Inject constructor(private val remoteDataSource: AuthR
         remoteDataSource
             .logout()
             .onSuccess {
-                MMKV.defaultMMKV().remove(SecureStorageKey.ACCESS_TOKEN)
-                MMKV.defaultMMKV().remove(SecureStorageKey.REFRESH_TOKEN)
+                mmkv.removeValuesForKeys(
+                    arrayOf(
+                        SecureStorageKey.ACCESS_TOKEN,
+                        SecureStorageKey.REFRESH_TOKEN,
+                        SecureStorageKey.USER_ID
+                    )
+                )
             }
             .map { }
 }

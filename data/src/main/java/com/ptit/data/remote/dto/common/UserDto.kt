@@ -21,6 +21,8 @@ data class UserDto(
     val phone: String?,
     @SerializedName("avatar")
     val avatar: String?,
+    @SerializedName("address")
+    val address: String?,
 ) {
     data class Shop(
         @SerializedName("address")
