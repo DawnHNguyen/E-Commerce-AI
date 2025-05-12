@@ -91,7 +91,11 @@ fun CartItemRow(
 
             QuantityControl(
                 quantity = quantity,
-                onIncrease = { onQuantityUpdate(product.id, quantity + 1) },
+                onIncrease = { 
+		    if (quantity < product.quantity){
+		        onQuantityUpdate(product.id, quantity + 1) 
+		    }
+		},
                 onDecrease = {
                     if (quantity > 1) {
                         onQuantityUpdate(product.id, quantity - 1)
