@@ -28,12 +28,12 @@ fun CartTopBar(onBack: () -> Unit) {
             .statusBarsPadding(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Back",
-            modifier = Modifier.noRippleClickable { onBack() },
-            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-        )
+//        Icon(
+//            imageVector = Icons.Default.ArrowBack,
+//            contentDescription = "Back",
+//            modifier = Modifier.noRippleClickable { onBack() },
+//            tint = colorResource(R.color.colorSystem_greyscale_0_white)
+//        )
 
         Spacer(modifier = Modifier.weight(1f))
 

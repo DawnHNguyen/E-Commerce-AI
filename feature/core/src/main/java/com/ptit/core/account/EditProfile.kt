@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,8 +47,10 @@ import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
+import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
+import com.ptit.common.presentation.component.NeutralButton
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
@@ -70,6 +73,7 @@ fun EditProfile(
     val uiModel = viewModel.updateProfileUiModel.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
+    val isShowAlertDialog = rememberState { false }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -112,7 +116,13 @@ fun EditProfile(
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = {
+                if (uiModel.value.isChanged) {
+                    isShowAlertDialog.value = true
+                } else {
+                    onBack()
+                }
+            }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Quay lại",
@@ -282,5 +292,43 @@ fun EditProfile(
             } else null
         )
     }
+
+    if (isShowAlertDialog.value)
+        AlertDialog(
+            onDismissRequest = {
+                isShowAlertDialog.value = false
+            },
+            confirmButton = {
+                FilledButton(
+                    text = "Thoát"
+                ) {
+                    isShowAlertDialog.value = false
+                    onBack()
+                }
+            },
+            dismissButton = {
+                NeutralButton(
+                    text = "Hủy",
+                ) {
+                    isShowAlertDialog.value = false
+                }
+            },
+            title = {
+                Text(
+                    text = "Bạn có chắc chắn muốn thoát không?",
+                    style = CustomTypography.TextMedium,
+                    fontSize = 16.sp,
+                    color = colorResource(id = R.color.colorSystem_heading_button)
+                )
+            },
+            text = {
+                Text(
+                    text = "Tất cả thay đổi sẽ không được lưu lại",
+                    style = CustomTypography.TextMedium,
+                    fontSize = 14.sp,
+                    color = colorResource(id = R.color.colorSystem_normal_text)
+                )
+            },
+        )
 
 }
