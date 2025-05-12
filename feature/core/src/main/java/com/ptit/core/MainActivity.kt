@@ -245,7 +245,7 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(ShopDetailRoute)
                                     },
                                     onNavigateToCreateShop = {
-                                        // TODO: Implement navigation to Create Shop
+                                        navController.navigate(UpdateShopRoute)
                                     },
                                 )
                             }
