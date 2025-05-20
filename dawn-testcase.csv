@@ -1,0 +1,391 @@
+ID,Summary,Steps to Test,Expected Output,Test Result,Actual Result
+PM-F-001,"Verify navigation to Add Payment Method screen","1. Launch the app
+2. Log in with valid credentials
+3. Navigate to Account section
+4. Tap on Payment Methods option
+5. Tap on the + button (FAB)","User should be navigated to the Add Payment Method screen where they can enter card details.",,,
+PM-F-002,"Verify all required UI elements are present on Add Payment Method screen","1. Navigate to Add Payment Method screen
+2. Check for presence of:
+   - Toolbar with back button and title
+   - Card information section title
+   - Card number field with card icon
+   - Expiration date field
+   - CVV field
+   - Default payment method checkbox
+   - Save button","All UI elements should be present and properly arranged according to the design specs.",,,
+PM-F-003,"Verify default state of form fields","1. Navigate to Add Payment Method screen
+2. Observe initial state of all fields without any interaction","1. All fields should be empty
+2. Generic card icon should be displayed
+3. Save button should be disabled
+4. Default payment method checkbox should be unchecked",,,
+PM-F-004,"Verify successful addition of Visa card","1. Navigate to Add Payment Method screen
+2. Enter valid Visa card number (e.g., 4111 1111 1111 1111)
+3. Enter valid expiration date (future date in MM/YY format)
+4. Enter valid CVV (3 digits)
+5. Check 'Set as default payment method' checkbox
+6. Tap Save button","1. Card should be successfully added
+2. Success toast message should appear
+3. User should be returned to Payment Methods screen
+4. The new card should appear in the list with default indicator",,,
+PM-F-005,"Verify successful addition of Mastercard","1. Navigate to Add Payment Method screen
+2. Enter valid Mastercard number (e.g., 5555 5555 5555 4444)
+3. Enter valid expiration date (future date in MM/YY format)
+4. Enter valid CVV (3 digits)
+5. Tap Save button","1. Card should be successfully added
+2. Success toast message should appear
+3. User should be returned to Payment Methods screen
+4. The new card should appear in the list",,,
+PM-F-006,"Verify successful addition of American Express card","1. Navigate to Add Payment Method screen
+2. Enter valid American Express card number (e.g., 3714 4963 5398 431)
+3. Enter valid expiration date (future date in MM/YY format)
+4. Enter valid CVV (4 digits for Amex)
+5. Tap Save button","1. Card should be successfully added
+2. Success toast message should appear
+3. User should be returned to Payment Methods screen
+4. The new card should appear in the list",,,
+PM-F-007,"Verify successful addition of Discover card","1. Navigate to Add Payment Method screen
+2. Enter valid Discover card number (e.g., 6011 1111 1111 1117)
+3. Enter valid expiration date (future date in MM/YY format)
+4. Enter valid CVV (3 digits)
+5. Tap Save button","1. Card should be successfully added
+2. Success toast message should appear
+3. User should be returned to Payment Methods screen
+4. The new card should appear in the list",,,
+PM-F-008,"Verify auto detection of card type for Visa","1. Navigate to Add Payment Method screen
+2. Enter first 6 digits of a Visa card (e.g., 411111)
+3. Observe the card icon","Card icon should change to Visa logo after entering the first 6 digits",,,
+PM-F-009,"Verify auto detection of card type for Mastercard","1. Navigate to Add Payment Method screen
+2. Enter first 6 digits of a Mastercard (e.g., 555555)
+3. Observe the card icon","Card icon should change to Mastercard logo after entering the first 6 digits",,,
+PM-F-010,"Verify auto detection of card type for Amex","1. Navigate to Add Payment Method screen
+2. Enter first 6 digits of an American Express card (e.g., 371449)
+3. Observe the card icon","Card icon should change to American Express logo after entering the first 6 digits",,,
+PM-F-011,"Verify field validation - Card number required","1. Navigate to Add Payment Method screen
+2. Leave card number field empty
+3. Fill in other fields with valid data
+4. Try to submit form","Save button should remain disabled",,,
+PM-F-012,"Verify field validation - Expiration date required","1. Navigate to Add Payment Method screen
+2. Leave expiration date field empty
+3. Fill in other fields with valid data
+4. Try to submit form","Save button should remain disabled",,,
+PM-F-013,"Verify field validation - CVV required","1. Navigate to Add Payment Method screen
+2. Leave CVV field empty
+3. Fill in other fields with valid data
+4. Try to submit form","Save button should remain disabled",,,
+PM-F-014,"Verify field validation - Invalid card number","1. Navigate to Add Payment Method screen
+2. Enter invalid card number (e.g., 1234 5678 9012 3456)
+3. Fill in other fields with valid data
+4. Observe field state","1. Error message should appear under card number field
+2. Save button should remain disabled",,,
+PM-F-015,"Verify field validation - Expired card","1. Navigate to Add Payment Method screen
+2. Enter valid card number
+3. Enter past date for expiration (e.g., 01/20)
+4. Enter valid CVV
+5. Observe field state","1. Error message should appear under expiration date field
+2. Save button should remain disabled",,,
+PM-F-016,"Verify field validation - Invalid CVV (too short)","1. Navigate to Add Payment Method screen
+2. Enter valid card number
+3. Enter valid expiration date
+4. Enter 2-digit CVV (too short)
+5. Observe field state","1. Error message should appear under CVV field
+2. Save button should remain disabled",,,
+PM-F-017,"Verify field validation - Invalid CVV (too long for Visa)","1. Navigate to Add Payment Method screen
+2. Enter valid Visa card number
+3. Enter valid expiration date
+4. Enter 5-digit CVV (too long)
+5. Observe field state","1. System should prevent entering more than 3 digits for Visa CVV
+2. No more than 3 digits should be displayed",,,
+PM-F-018,"Verify field validation - CVV length for Amex","1. Navigate to Add Payment Method screen
+2. Enter valid American Express card number
+3. Enter valid expiration date
+4. Enter 4-digit CVV
+5. Observe field state","1. No error message should appear under CVV field
+2. Save button should be enabled if all other fields are valid",,,
+PM-F-019,"Verify backward navigation","1. Navigate to Add Payment Method screen
+2. Enter some data in the fields
+3. Tap the back button in the toolbar","User should be returned to Payment Methods screen without saving any data",,,
+PM-F-020,"Verify card number formatting while typing","1. Navigate to Add Payment Method screen
+2. Start typing a card number continuously
+3. Observe the formatting","Card number should be automatically formatted with spaces according to the card type pattern (e.g., 4111 1111 1111 1111 for Visa)",,,
+PM-F-021,"Verify expiration date formatting","1. Navigate to Add Payment Method screen
+2. Enter digits in expiration date field
+3. Observe the formatting","After entering 2 digits for month, a forward slash should be automatically added before year digits (e.g., 12/25)",,,
+PM-F-022,"Verify saving first card as default","1. Ensure no payment methods exist
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Observe default checkbox
+5. Save the card","1. Default checkbox should be available to check
+2. After saving, card should appear as default in payment methods list",,,
+PM-F-023,"Verify adding a second card as non-default","1. Ensure at least one card already exists
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Leave default checkbox unchecked
+5. Save the card","1. Card should be saved successfully
+2. First card should remain as default
+3. New card should be in the list without default indicator",,,
+PM-F-024,"Verify adding a second card as default","1. Ensure at least one card already exists
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Check the default checkbox
+5. Save the card","1. Card should be saved successfully
+2. Previous default card should no longer be marked as default
+3. New card should appear with default indicator",,,
+PM-F-025,"Verify handling of network error during tokenization","1. Enable airplane mode
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Tap Save button","1. Error message should be displayed
+2. Card should not be saved
+3. User should remain on Add Payment Method screen",,,
+PM-F-026,"Verify field clearing when returning to screen","1. Navigate to Add Payment Method screen
+2. Enter some data without saving
+3. Go back to Payment Methods screen
+4. Navigate again to Add Payment Method screen","All fields should be empty and in initial state",,,
+PM-F-027,"Verify handling of special characters in card number field","1. Navigate to Add Payment Method screen
+2. Try to enter letters and special characters in card number field","Only numeric characters should be accepted and displayed",,,
+PM-F-028,"Verify handling of special characters in expiration date field","1. Navigate to Add Payment Method screen
+2. Try to enter letters and special characters in expiration date field","Only numeric characters should be accepted and displayed, with automatic formatting",,,
+PM-F-029,"Verify handling of special characters in CVV field","1. Navigate to Add Payment Method screen
+2. Try to enter letters and special characters in CVV field","Only numeric characters should be accepted and displayed",,,
+PM-F-030,"Verify maximum character limits - Card number","1. Navigate to Add Payment Method screen
+2. Try to enter more than 19 digits in card number field (including spaces)","System should prevent entering more than the maximum allowed digits for the detected card type",,,
+PM-F-031,"Verify maximum character limits - Expiration date","1. Navigate to Add Payment Method screen
+2. Try to enter more than 4 digits in expiration date field (MM/YY)","System should allow only 4 digits total (2 for month, 2 for year)",,,
+PM-F-032,"Verify maximum character limits - CVV","1. Navigate to Add Payment Method screen
+2. Enter a Visa card number
+3. Try to enter more than 3 digits in CVV field","System should allow only 3 digits for Visa cards",,,
+PM-F-033,"Verify screen rotation preservation","1. Navigate to Add Payment Method screen
+2. Enter partial data in fields
+3. Rotate device
+4. Check if data is preserved","All entered data should be preserved after rotation",,,
+PM-F-034,"Verify progress indicator during save operation","1. Navigate to Add Payment Method screen
+2. Enter valid card details
+3. Tap Save button
+4. Observe UI during processing","Progress indicator should be displayed while card is being tokenized and saved",,,
+PM-F-035,"Verify error message for invalid month (>12)","1. Navigate to Add Payment Method screen
+2. Enter valid card number
+3. Enter 13 as month in expiration date
+4. Enter valid year and CVV
+5. Observe validation","Error message should indicate invalid expiration date",,,
+PM-F-036,"Verify error message for card number with invalid checksum","1. Navigate to Add Payment Method screen
+2. Enter card number with invalid checksum (e.g., 4111 1111 1111 1112)
+3. Fill other fields with valid data
+4. Observe validation","Error message should indicate invalid card number",,,
+PM-F-037,"Verify card entry with copy-paste","1. Copy a valid card number to clipboard
+2. Navigate to Add Payment Method screen
+3. Long-press card number field and paste
+4. Observe field behavior","Pasted card number should be accepted and formatted correctly according to card type",,,
+PM-F-038,"Verify duplicate card detection","1. Add a payment method
+2. Try to add the exact same card again","System should detect duplicate card and show appropriate message",,,
+PM-F-039,"Verify security - CVV not saved","1. Add a payment method with CVV
+2. Check database and secure storage
+3. Re-enter Add Payment Method flow","CVV should never be stored in any form in the database or secure storage",,,
+PM-F-040,"Verify tokenization of card data","1. Use a test environment with logging
+2. Add a payment method
+3. Check tokenization process","1. Raw card details should be tokenized
+2. Only token, first 6 and last 4 digits should be stored
+3. Full card number should not be persisted",,,
+PM-F-041,"Verify error handling for declined card tokens","1. Set up test environment with card numbers that will be declined
+2. Navigate to Add Payment Method screen
+3. Enter details for a card that will be declined
+4. Submit form","1. Appropriate error message should be displayed
+2. Card should not be saved",,,
+PM-F-042,"Verify accessibility - Screen reader compatibility","1. Enable screen reader
+2. Navigate to Add Payment Method screen
+3. Tab through all elements","All elements should be properly announced by screen reader with descriptive text",,,
+PM-F-043,"Verify accessibility - Color contrast","1. Navigate to Add Payment Method screen
+2. Check text/background contrast on all elements","All text elements should have sufficient contrast ratio according to WCAG standards",,,
+PM-F-044,"Verify field focus order","1. Navigate to Add Payment Method screen
+2. Use tab key to navigate through fields","Focus should move in logical order: Card Number -> Expiration Date -> CVV -> Default Checkbox -> Save Button",,,
+PM-F-045,"Verify keyboard type for card number field","1. Navigate to Add Payment Method screen
+2. Tap on card number field
+3. Observe keyboard","Numeric keyboard should be displayed",,,
+PM-F-046,"Verify keyboard type for expiration date field","1. Navigate to Add Payment Method screen
+2. Tap on expiration date field
+3. Observe keyboard","Numeric keyboard should be displayed",,,
+PM-F-047,"Verify keyboard type for CVV field","1. Navigate to Add Payment Method screen
+2. Tap on CVV field
+3. Observe keyboard","Numeric keyboard should be displayed",,,
+PM-F-048,"Verify IME action - Card number field","1. Navigate to Add Payment Method screen
+2. Focus on card number field
+3. Press next on keyboard","Focus should move to expiration date field",,,
+PM-F-049,"Verify IME action - Expiration date field","1. Navigate to Add Payment Method screen
+2. Focus on expiration date field
+3. Press next on keyboard","Focus should move to CVV field",,,
+PM-F-050,"Verify IME action - CVV field","1. Navigate to Add Payment Method screen
+2. Focus on CVV field
+3. Press done on keyboard","Keyboard should be dismissed",,,
+PM-F-051,"Verify touch target size - Back button","1. Navigate to Add Payment Method screen
+2. Measure the touch target area of back button","Touch target should be at least 48x48dp for accessibility",,,
+PM-F-052,"Verify touch target size - Save button","1. Navigate to Add Payment Method screen
+2. Measure the touch target area of save button","Touch target should be at least 48x48dp for accessibility",,,
+PM-F-053,"Verify touch target size - Default checkbox","1. Navigate to Add Payment Method screen
+2. Measure the touch target area of default checkbox","Touch target should be at least 48x48dp for accessibility",,,
+PM-F-054,"Verify card entry auto-focus","1. Navigate to Add Payment Method screen
+2. Observe initial focus state","Card number field should be auto-focused when screen loads",,,
+PM-F-055,"Verify loading state visibility","1. Navigate to Add Payment Method screen
+2. Enter valid card details
+3. Tap Save button
+4. Observe progress indicator","Progress indicator should be visible and centered on screen, blocking other interactions",,,
+PM-F-056,"Verify empty state UI on Payment Methods screen","1. Ensure no payment methods exist
+2. Navigate to Payment Methods screen","Empty state message and 'Add Payment Method' call-to-action should be displayed",,,
+PM-F-057,"Verify concurrency handling for multiple additions","1. Navigate to Add Payment Method screen
+2. Enter valid card details
+3. Quickly tap Save button multiple times","Card should be saved only once without duplicates",,,
+PM-F-058,"Verify handling of network timeout","1. Configure network to have high latency
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Tap Save button","System should handle timeout gracefully with appropriate error message",,,
+PM-F-059,"Verify saved card appears in list","1. Add a new payment method
+2. Observe Payment Methods list screen","Newly added card should appear in the list with correct card type icon and masked number",,,
+PM-F-060,"Verify saved card displays correct card type icon","1. Add different types of cards (Visa, Mastercard, etc.)
+2. Observe Payment Methods list screen","Each card should display the correct card type icon corresponding to its type",,,
+PM-F-061,"Verify font size and readability","1. Navigate to Add Payment Method screen
+2. Check text size of all labels and input fields","Text should be readable with appropriate size according to design guidelines",,,
+PM-F-062,"Verify text truncation handling","1. Navigate to Add Payment Method screen
+2. Observe text fields with very long content","Text should be properly handled without awkward truncation or overflow",,,
+PM-F-063,"Verify error message clarity","1. Navigate to Add Payment Method screen
+2. Trigger various validation errors
+3. Read error messages","Error messages should be clear, concise, and actionable",,,
+PM-F-064,"Verify error state visual indication","1. Navigate to Add Payment Method screen
+2. Enter invalid data in fields
+3. Observe visual indication of errors","Fields with errors should be visually distinct (e.g., red outline or text)",,,
+PM-F-065,"Verify dark mode compatibility","1. Enable system dark mode
+2. Navigate to Add Payment Method screen
+3. Check appearance of all elements","All elements should be properly visible and maintain brand consistency in dark mode",,,
+PM-F-066,"Verify card entry with different input methods","1. Navigate to Add Payment Method screen
+2. Try entering data using:
+   - On-screen keyboard
+   - Hardware keyboard (if available)
+   - Voice input (if available)","All input methods should work correctly for entering card details",,,
+PM-F-067,"Verify handling of special card types (e.g., corporate cards)","1. Navigate to Add Payment Method screen
+2. Enter details for a corporate/business card
+3. Complete the flow","Corporate/business cards should be handled correctly like consumer cards",,,
+PM-F-068,"Verify no data persistence on cancellation","1. Navigate to Add Payment Method screen
+2. Enter card details
+3. Press back button to cancel
+4. Return to Add Payment Method screen","No data from previous attempt should be present",,,
+PM-F-069,"Verify error handling for network fluctuation","1. Navigate to Add Payment Method screen
+2. Enter valid card details
+3. Disable network right before pressing Save
+4. Re-enable network after error
+5. Try again without changing data","1. First attempt should fail with network error
+2. Second attempt should succeed after network is restored",,,
+PM-F-070,"Verify form clear button functionality (if available)","1. Navigate to Add Payment Method screen
+2. Enter data in all fields
+3. Look for and tap clear/reset button (if implemented)","All fields should be cleared and form returned to initial state",,,
+PM-F-071,"Verify UI display on small screen devices","1. Test on smallest supported screen size
+2. Navigate to Add Payment Method screen
+3. Check layout and element visibility","All UI elements should be properly displayed without overflow or clipping",,,
+PM-F-072,"Verify UI display on large screen devices","1. Test on largest supported screen size
+2. Navigate to Add Payment Method screen
+3. Check layout and element spacing","Layout should adapt appropriately to larger screens without excessive spacing",,,
+PM-F-073,"Verify saved card masking","1. Add a payment method
+2. View the card in Payment Methods list","Card number should be properly masked showing only last 4 digits with proper format (•••• •••• •••• 1234)",,,
+PM-F-074,"Verify proper cleanup on payment form exit","1. Navigate to Add Payment Method screen
+2. Enter partial data
+3. Exit screen using back button
+4. Check memory and resources","All resources should be properly released when exiting the screen",,,
+PM-F-075,"Verify hint text visibility","1. Navigate to Add Payment Method screen
+2. Observe input fields before entering any data","Hint text should be clearly visible on all input fields",,,
+PM-F-076,"Verify hint text disappearance on data entry","1. Navigate to Add Payment Method screen
+2. Start typing in any field
+3. Observe hint behavior","Hint text should disappear or move appropriately when user starts entering data",,,
+PM-F-077,"Verify error states persist until corrected","1. Navigate to Add Payment Method screen
+2. Enter invalid data in multiple fields
+3. Correct one field but leave others invalid
+4. Observe error states","Error indicators should remain on fields that are still invalid",,,
+PM-F-078,"Verify keyboard obstruction handling","1. Navigate to Add Payment Method screen on smaller device
+2. Focus on fields toward bottom of screen
+3. Observe screen behavior when keyboard appears","Screen should scroll or adjust to ensure focused field is visible above keyboard",,,
+PM-F-079,"Verify text field cursor visibility","1. Navigate to Add Payment Method screen
+2. Tap into each input field
+3. Observe cursor","Cursor should be clearly visible in all text input fields",,,
+PM-F-080,"Verify disabling UI during processing","1. Navigate to Add Payment Method screen
+2. Enter valid card details
+3. Tap Save button
+4. Try to interact with UI during processing","All input fields and buttons should be disabled during processing",,,
+PM-F-081,"Verify app behavior after long inactivity","1. Navigate to Add Payment Method screen
+2. Enter some data
+3. Leave app inactive for extended period (e.g., 30 minutes)
+4. Return to app","App should either preserve state or handle session timeout gracefully",,,
+PM-F-082,"Verify app behavior with low storage warning","1. Fill device storage until low storage warning
+2. Navigate to Add Payment Method screen
+3. Attempt to add a card","App should handle low storage condition gracefully without crashing",,,
+PM-F-083,"Verify app behavior with low battery","1. Drain device battery to <15%
+2. Navigate to Add Payment Method screen
+3. Attempt to add a card","App should function correctly even in low battery condition",,,
+PM-F-084,"Verify memory usage during card addition flow","1. Monitor app memory usage
+2. Navigate through add payment method flow multiple times","App should not show significant memory leaks or excessive memory usage",,,
+PM-F-085,"Verify handling of incoming calls","1. Navigate to Add Payment Method screen
+2. Enter some card details
+3. Simulate incoming call
+4. Answer and end call
+5. Return to app","App should preserve state and allow continuation after call ends",,,
+PM-F-086,"Verify handling of system notifications","1. Navigate to Add Payment Method screen
+2. Enter some card details
+3. Pull down notification drawer
+4. Return to app","App should preserve state and allow continuation",,,
+PM-F-087,"Verify impact of system font size changes","1. Change system font size to largest setting
+2. Navigate to Add Payment Method screen
+3. Check layout and readability","Layout should accommodate larger font sizes without breaking",,,
+PM-F-088,"Verify behavior with exhausted RAM","1. Open multiple memory-intensive apps
+2. Navigate to Add Payment Method screen
+3. Attempt to add a card","App should function correctly or fail gracefully under memory pressure",,,
+PM-F-089,"Verify behavior with auto-fill services","1. Configure auto-fill service with credit card info
+2. Navigate to Add Payment Method screen
+3. Trigger auto-fill in card number field","Auto-filled data should be properly formatted and validated",,,
+PM-F-090,"Verify behavior with gesture navigation","1. Enable gesture navigation on device
+2. Navigate to Add Payment Method screen
+3. Use back gesture","Back gesture should navigate back to Payment Methods screen",,,
+PM-F-091,"Verify system back button behavior","1. Navigate to Add Payment Method screen
+2. Press system back button","System back button should navigate back to Payment Methods screen",,,
+PM-F-092,"Verify UI with increased touch sensitivity","1. Enable increased touch sensitivity in device settings (if available)
+2. Navigate to Add Payment Method screen
+3. Interact with all elements","All elements should respond correctly to touch with increased sensitivity",,,
+PM-F-093,"Verify MMKV storage security","1. Add a payment method
+2. Use debugging tools to examine MMKV storage
+3. Check how token is stored","Token should be stored securely with appropriate key mechanism",,,
+PM-F-094,"Verify saved payment method persistence after app restart","1. Add a payment method
+2. Force close the app
+3. Relaunch app
+4. Navigate to Payment Methods screen","Added payment method should still be present after restart",,,
+PM-F-095,"Verify saved payment method persistence after device restart","1. Add a payment method
+2. Restart device
+3. Relaunch app
+4. Navigate to Payment Methods screen","Added payment method should still be present after device restart",,,
+PM-F-096,"Verify visual feedback on button press","1. Navigate to Add Payment Method screen
+2. Press Save button
+3. Observe visual feedback","Button should provide visual feedback when pressed",,,
+PM-F-097,"Verify visual feedback on field selection","1. Navigate to Add Payment Method screen
+2. Tap on each input field
+3. Observe visual feedback","Fields should show clear visual indication when focused",,,
+PM-F-098,"Verify visual indication of text fields with default settings","1. Navigate to Add Payment Method screen
+2. Observe all input fields before interaction","Text fields should be clearly distinguishable from surrounding UI",,,
+PM-F-099,"Verify payment method addition analytics","1. Enable analytics logging
+2. Complete payment method addition flow
+3. Check analytics events","Appropriate analytics events should be logged for payment method addition flow",,,
+PM-F-100,"Verify payment database structure after addition","1. Add a new payment method
+2. Examine database structure
+3. Check stored information","Database should contain proper information with firstSixNum, lastFourNum, cardType and isDefault fields correctly populated",,,
+PM-F-101,"Verify user journey when adding first payment method","1. Ensure user has no saved payment methods
+2. Navigate from Account to Payment Methods
+3. Observe the empty state and add a new card
+4. Complete the addition flow","1. Empty state should encourage adding a payment method
+2. After addition, list view should show the newly added card
+3. The card should be automatically set as default",,,
+PM-F-102,"Verify token retrieval for payment processing","1. Add a payment method
+2. Use test environment to attempt token retrieval
+3. Check if token can be retrieved using card identifiers","Token should be retrievable using firstSixNum and lastFourNum when needed for payment processing",,,
+PM-F-103,"Verify error handling on timeout during tokenization","1. Simulate network timeout during tokenization
+2. Navigate to Add Payment Method screen
+3. Enter valid card details
+4. Submit form
+5. Observe behavior when tokenization times out","1. Appropriate timeout error message should be displayed
+2. User should be able to retry the operation",,,
+PM-F-104,"Verify card validation before tokenization attempt","1. Navigate to Add Payment Method screen
+2. Enter invalid card details
+3. Submit form","1. Client-side validation should catch errors before tokenization
+2. Appropriate error messages should be displayed",,,
+PM-F-105,"Verify localization of all text elements","1. Change device language
+2. Navigate to Add Payment Method screen
+3. Check all text elements","All text elements should be properly localized according to selected language",,,

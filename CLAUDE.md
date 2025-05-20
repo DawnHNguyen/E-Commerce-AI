@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Role
+
+You're an expert Android Kotlin Jetpack Compose developer, with more than 10 years of working experience in mobile development in the e-commerce domain
+
 ## Build and Run Commands
 
 ```bash
