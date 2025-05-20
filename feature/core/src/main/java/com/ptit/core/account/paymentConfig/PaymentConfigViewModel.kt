@@ -23,7 +23,8 @@ import javax.inject.Inject
 class PaymentConfigViewModel @Inject constructor(
     private val paymentMethodRepository: PaymentMethodRepository,
 ) : ViewModel() {
-    private val recurlyApi by lazy { TokenService() }
+    // Made protected for easier testing
+    protected open val recurlyApi by lazy { TokenService() }
 
     private val _uiState = MutableStateFlow(PaymentConfigUiState())
     val uiState: StateFlow<PaymentConfigUiState> = _uiState.asStateFlow()
