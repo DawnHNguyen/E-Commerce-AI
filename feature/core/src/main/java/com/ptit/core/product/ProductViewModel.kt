@@ -160,7 +160,6 @@ class ProductViewModel @Inject constructor(
         priceBeforeDiscount: Int,
         quantity: Int,
         imageFiles: List<String>,
-        keepImages: List<String> = emptyList(),
         category: String = "",
     ) {
         viewModelScope.launch {

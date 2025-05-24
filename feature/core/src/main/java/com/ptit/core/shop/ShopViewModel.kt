@@ -2,6 +2,7 @@ package com.ptit.core.shop
 
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.shop.ShopDomainEntity
@@ -50,7 +51,7 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = shopRepository.getMyShop()
-            Log.e("ShopViewModel", "Shop API Response: $response")
+            //Log.e("ShopViewModel", "Shop API Response: $response")
             _shopDetailsState.value = response
 
             if (response is Resource.Success) {
@@ -66,7 +67,7 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = shopRepository.updateShop(updatedShop.name, updatedShop.description, updatedShop.address, updatedShop.phone, updatedShop.avatar)
-            Log.e("ShopViewModel", "Shop update response: $response")
+            //Log.e("ShopViewModel", "Shop update response: $response")
             _updateShopState.value = response
 
             if (response is Resource.Success) {
@@ -82,7 +83,7 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = fileUploadRepository.uploadSingleFile(imageUri)
-            Log.e("ShopViewModel", "Image upload response: $response")
+            //Log.e("ShopViewModel", "Image upload response: $response")
             _uploadImageState.value = response
         }
     }
