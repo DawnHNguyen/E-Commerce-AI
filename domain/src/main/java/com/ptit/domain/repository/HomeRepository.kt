@@ -8,5 +8,5 @@ import kotlinx.coroutines.flow.Flow
 interface HomeRepository {
     fun paginatedRecommendedProduct(): Flow<PagingData<ProductDomainEntity>>
     fun searchProducts(query: String): Flow<PagingData<ProductDomainEntity>>
-    suspend fun getTrendingProducts(amount: Int = 6): Resource<List<ProductDomainEntity>>
+    suspend fun getProducts(amount: Int): Resource<List<ProductDomainEntity>>
 }

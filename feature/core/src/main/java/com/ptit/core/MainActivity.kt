@@ -58,8 +58,8 @@ import com.ptit.core.account.EditProfile
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartScreen
-import com.ptit.core.category.CategoryScreen
-import com.ptit.core.category.ProductsByCategoryScreen
+//import com.ptit.core.category.CategoryScreen
+//import com.ptit.core.category.ProductsByCategoryScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
@@ -164,19 +164,19 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
-                            CategoryScreen(navController = navController)
-                        }
-
-                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
-                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
-                            ProductsByCategoryScreen(
-                                navController = navController,
-                                navigateToProductDetail = { productId ->
-                                    navController.navigate(ProductDetailRoute(productId = productId))
-                                }
-                            )
-                        }
+//                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
+//                            CategoryScreen(navController = navController)
+//                        }
+//
+//                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
+//                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
+//                            ProductsByCategoryScreen(
+//                                navController = navController,
+//                                navigateToProductDetail = { productId ->
+//                                    navController.navigate(ProductDetailRoute(productId = productId))
+//                                }
+//                            )
+//                        }
 
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(

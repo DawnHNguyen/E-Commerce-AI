@@ -37,7 +37,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
             modifier = Modifier.fillMaxWidth()
         ) {
             GlideImage(
-                model = product.image,
+                model = product.images.firstOrNull(),
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
@@ -57,9 +57,9 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Original price with strikethrough
-                if (product.priceBeforeDiscount > 0) {
+                if (product.basePrice > 0) {
                     Text(
-                        text = "${product.priceBeforeDiscount}đ",
+                        text = "${product.basePrice}đ",
                         style = CustomTypography.TextRegular.copy(
                             textDecoration = TextDecoration.LineThrough,
                             fontSize = 12.sp

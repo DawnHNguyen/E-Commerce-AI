@@ -31,6 +31,8 @@ class RegisterViewModel @Inject constructor(
                 isValidEmail = true,
                 isValidPassword = true,
                 isValidConfirmPassword = true,
+                isValidName = true,
+                isValidPhoneNumber = true,
             )
         }
     }
@@ -42,6 +44,8 @@ class RegisterViewModel @Inject constructor(
                 isValidEmail = true,
                 isValidPassword = true,
                 isValidConfirmPassword = true,
+                isValidName = true,
+                isValidPhoneNumber = true,
             )
         }
     }
@@ -53,6 +57,34 @@ class RegisterViewModel @Inject constructor(
                 isValidEmail = true,
                 isValidPassword = true,
                 isValidConfirmPassword = true,
+                isValidName = true,
+                isValidPhoneNumber = true,
+            )
+        }
+    }
+
+    fun onNameChanged(name: String) {
+        _uiModel.update {
+            it.copy(
+                name = name,
+                isValidEmail = true,
+                isValidPassword = true,
+                isValidConfirmPassword = true,
+                isValidName = true,
+                isValidPhoneNumber = true,
+            )
+        }
+    }
+
+    fun onPhoneNumberChanged(phoneNumber: String) {
+        _uiModel.update {
+            it.copy(
+                phoneNumber = phoneNumber,
+                isValidEmail = true,
+                isValidPassword = true,
+                isValidConfirmPassword = true,
+                isValidName = true,
+                isValidPhoneNumber = true,
             )
         }
     }
@@ -85,21 +117,37 @@ class RegisterViewModel @Inject constructor(
         return confirmPassword.isNotBlank() && password == confirmPassword
     }
 
+    private fun validateName(name: String): Boolean {
+        return name.isNotBlank() && name.length >= 2
+    }
+
+    private fun validatePhoneNumber(phoneNumber: String): Boolean {
+        // Validate phone number Vietnam format (10-11 digits, starts with 0)
+        return phoneNumber.isNotBlank() &&
+                phoneNumber.matches(Regex("^0\\d{9,10}$"))
+    }
+
     fun register() {
         if (registerState.value is Resource.Loading) return
         _registerState.value = Resource.loading()
         val email = uiModel.value.email
         val password = uiModel.value.password
         val confirmPassword = uiModel.value.confirmPassword
+        val name = uiModel.value.name
+        val phoneNumber = uiModel.value.phoneNumber
         val isValidEmail = validateEmail(email)
         val isValidPassword = validatePassword(password)
         val isValidConfirmPassword = validateConfirmPassword(password, confirmPassword)
+        val isValidName = validateName(name)
+        val isValidPhoneNumber = validatePhoneNumber(phoneNumber)
 
         _uiModel.update {
             it.copy(
                 isValidEmail = isValidEmail,
                 isValidPassword = isValidPassword,
                 isValidConfirmPassword = isValidConfirmPassword,
+                isValidName = isValidName,
+                isValidPhoneNumber = isValidPhoneNumber,
                 emailErrorType = if (isValidEmail) RegisterUiModel.EmailErrorType.NONE else RegisterUiModel.EmailErrorType.INVALID_EMAIL,
             )
         }
@@ -108,6 +156,9 @@ class RegisterViewModel @Inject constructor(
                 val response = repository.register(
                     email = email,
                     password = password,
+                    name = name,
+                    phoneNumber = phoneNumber,
+                    confirmPassword = confirmPassword,
                 ).onError {
                     if (it.error?.message?.contains("email") == true) {
                         _uiModel.update {

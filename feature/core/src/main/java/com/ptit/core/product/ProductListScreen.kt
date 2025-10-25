@@ -94,8 +94,28 @@ fun ProductListScreen(
     var dialogState by remember { mutableStateOf<ProductDialogState>(ProductDialogState.Hidden) }
 
     LaunchedEffect(Unit) {
-        viewModel.fetchProductList()
+        lifecycleOwner.safeCollectFlow(viewModel.userProfileState) {
+            it
+                .onLoading {
+                    isLoading.value = true
+                }
+                .onError { error ->
+                    isLoading.value = false
+                    Log.e("ProductListScreen", "Error fetching user profile: ${error.message}")
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Không thể tải thông tin người dùng: ${error.message}",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+                .onSuccess {
+                    isLoading.value = false
+                }
+        }
+    }
 
+    LaunchedEffect(Unit) {
         lifecycleOwner.safeCollectFlow(viewModel.productListState) {
             it
                 .onLoading {
@@ -103,7 +123,7 @@ fun ProductListScreen(
                 }
                 .onError { error ->
                     isLoading.value = false
-                    Log.e("ProductListScreen", "Error: ${error.message}")
+                    Log.e("ProductListScreen", "Error fetching products: ${error.message}")
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             message = "Không thể tải sản phẩm: ${error.message}",
@@ -117,11 +137,7 @@ fun ProductListScreen(
         }
     }
 
-    // Add this inside the ProductListScreen composable
     LaunchedEffect(Unit) {
-        // Existing fetchProductList() call...
-
-        // Add monitoring for delete operations
         lifecycleOwner.safeCollectFlow(viewModel.deleteProductState) { state ->
             state
                 .onLoading {
@@ -135,7 +151,6 @@ fun ProductListScreen(
                             duration = SnackbarDuration.Short
                         )
                     }
-
                 }
                 .onSuccess { _ ->
                     isLoading.value = false
@@ -145,6 +160,8 @@ fun ProductListScreen(
                             duration = SnackbarDuration.Short
                         )
                     }
+                    // Refresh product list after successful delete
+                    viewModel.fetchUserIdAndProducts()
                 }
         }
     }
@@ -171,7 +188,7 @@ fun ProductListScreen(
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(productList, key = { it.id }) { product ->
                         ProductItem(
@@ -182,7 +199,6 @@ fun ProductListScreen(
                     }
 
                     item {
-                        // Extra space at bottom for FAB
                         Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
@@ -228,7 +244,7 @@ fun ProductListScreen(
                     onConfirm = {
                         dialogState = ProductDialogState.Hidden
                         scope.launch {
-                            delay(150) // Wait briefly to ensure dialog has closed
+                            delay(150)
                             viewModel.deleteProduct(currentDialog.product.id)
                         }
                     },
@@ -344,8 +360,7 @@ fun ProductItem(
     onDeleteClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -366,7 +381,7 @@ fun ProductItem(
                     )
             ) {
                 GlideImage(
-                    model = product.image,
+                    model = product.images.firstOrNull(),
                     contentDescription = "Product Image",
                     modifier = Modifier
                         .size(80.dp)
@@ -382,7 +397,6 @@ fun ProductItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                // Product name row
                 Text(
                     text = product.name,
                     style = CustomTypography.TextSemiBold,
@@ -393,9 +407,7 @@ fun ProductItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Product details row
                 Row {
-                    // Price
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Giá",
@@ -404,23 +416,7 @@ fun ProductItem(
                             color = colorResource(id = R.color.colorSystem_normal_text)
                         )
                         Text(
-                            text = "${product.price} đ",
-                            style = CustomTypography.TextBold,
-                            fontSize = 15.sp,
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-                    }
-
-                    // Quantity
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Số lượng",
-                            style = CustomTypography.TextRegular,
-                            fontSize = 12.sp,
-                            color = colorResource(id = R.color.colorSystem_normal_text)
-                        )
-                        Text(
-                            text = "${product.quantity}",
+                            text = "${product.basePrice} đ",
                             style = CustomTypography.TextBold,
                             fontSize = 15.sp,
                             color = colorResource(id = R.color.colorSystem_heading_button)
@@ -430,12 +426,10 @@ fun ProductItem(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    // Edit button
                     Button(
                         onClick = onEditClick,
                         colors = ButtonDefaults.buttonColors(
@@ -460,7 +454,6 @@ fun ProductItem(
 
                     Spacer(modifier = Modifier.size(8.dp))
 
-                    // Delete button
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(

@@ -71,7 +71,7 @@ internal fun ProductItem(
     ) {
         MaxSizeColumn {
             GlideImage(
-                model = product.image,
+                model = product.images[0],
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,7 +101,7 @@ internal fun ProductItem(
                 )
 
                 Text(
-                    text = "${product.price}đ",
+                    text = "${product.basePrice}đ",
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(R.color.colorSystem_heading_button),
                         fontSize = 14.sp
@@ -133,9 +133,9 @@ internal fun ProductItem(
             }
         }
 
-        if (product.hasDiscount.value)
+        if (product.hasDiscount)
             Text(
-                text = "-${product.discountPercent.value}%",
+                text = "-${product.discountPercent}%",
                 style = CustomTypography.TextMedium.merge(
                     color = colorResource(R.color.colorSystem_heading_button),
                     fontSize = 12.sp

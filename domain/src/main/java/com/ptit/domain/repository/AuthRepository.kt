@@ -9,8 +9,11 @@ interface AuthRepository {
     ): Resource<Unit>
 
     suspend fun register(
-        password: String,
         email: String,
+        password: String,
+        confirmPassword: String,
+        name: String,
+        phoneNumber: String,
     ): Resource<Unit>
 
     suspend fun logout(): Resource<Unit>

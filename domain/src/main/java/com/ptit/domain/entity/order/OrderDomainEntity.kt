@@ -22,7 +22,7 @@ data class OrderDomainEntity(
     val recurlyTransactionId: String? = null
 ) {
     val subTotal by lazy {
-        purchases.sumOf { it.product.price * it.buyCount }
+        purchases.sumOf { it.product.basePrice * it.buyCount }
     }
 
     val totalPrice by lazy {

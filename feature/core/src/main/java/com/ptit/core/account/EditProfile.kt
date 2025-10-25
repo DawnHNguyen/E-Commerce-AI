@@ -74,11 +74,14 @@ fun EditProfile(
 
     val isShowProgressBar = rememberState { false }
     val isShowAlertDialog = rememberState { false }
+    val selectedAvatarUri = rememberState<String?> { null }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             uri?.let {
-                viewModel.onAvatarChanged(it)
+                selectedAvatarUri.value = it.toString()
+                viewModel.onAvatarChanged(it.toString())
             }
         }
     )
@@ -111,9 +114,9 @@ fun EditProfile(
             .statusBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Header with back button and save button
         MaxWidthRow(
-            modifier = Modifier
-                .padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
@@ -141,7 +144,7 @@ fun EditProfile(
 
             TextButton(
                 onClick = viewModel::updateProfile,
-                enabled = uiModel.value.isChanged && uiModel.value.isValid.value,
+                enabled = uiModel.value.isChanged && uiModel.value.isValid,
                 colors = ButtonDefaults.textButtonColors(
                     disabledContentColor = colorResource(id = R.color.colorSystem_normal_text),
                     contentColor = colorResource(id = R.color.colorSystem_heading_button)
@@ -155,13 +158,13 @@ fun EditProfile(
             }
         }
 
-
+        // Avatar section
         Box(
             contentAlignment = Alignment.BottomEnd
         ) {
             GlideImage(
-                model = uiModel.value.avatar.takeIf { it.path?.isNotEmpty() == true }
-                    ?: "https://i.pinimg.com/564x/19/b8/d6/19b8d6e9b13eef23ec9c746968bb88b1.jpg",
+                model = selectedAvatarUri.value ?: uiModel.value.avatar.takeIf { it.isNotEmpty() }
+                ?: "https://i.pinimg.com/564x/19/b8/d6/19b8d6e9b13eef23ec9c746968bb88b1.jpg",
                 contentDescription = "Ảnh đại diện",
                 modifier = Modifier
                     .size(100.dp)
@@ -178,12 +181,11 @@ fun EditProfile(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 },
-                modifier = Modifier
-                    .offset(x = 8.dp, y = 8.dp)
+                modifier = Modifier.offset(x = 8.dp, y = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Chỉnh sửa hồ sơ",
+                    contentDescription = "Chỉnh sửa ảnh đại diện",
                     tint = colorResource(R.color.colorSystem_heading_button),
                     modifier = Modifier.size(18.dp)
                 )
@@ -192,6 +194,7 @@ fun EditProfile(
 
         Spacer(Modifier.height(12.dp))
 
+        // Name field
         Text(
             text = "Họ và tên",
             style = CustomTypography.TextMedium,
@@ -216,7 +219,7 @@ fun EditProfile(
                     }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear name"
+                            contentDescription = "Xóa tên"
                         )
                     }
                 }
@@ -225,6 +228,7 @@ fun EditProfile(
 
         Spacer(Modifier.height(12.dp))
 
+        // Phone number field
         Text(
             text = "Số điện thoại",
             style = CustomTypography.TextMedium,
@@ -234,8 +238,8 @@ fun EditProfile(
         )
 
         FilledTextField(
-            value = uiModel.value.phone,
-            onValueChange = viewModel::onPhoneChanged,
+            value = uiModel.value.phoneNumber,
+            onValueChange = viewModel::onPhoneNumberChanged,
             hint = "Nhập số điện thoại",
             singleLine = true,
             maxLines = 1,
@@ -245,47 +249,14 @@ fun EditProfile(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
-            trailingContent = if (uiModel.value.phone.isNotBlank()) {
+            trailingContent = if (uiModel.value.phoneNumber.isNotBlank()) {
                 {
                     IconButton(onClick = {
-                        viewModel.onPhoneChanged("")
+                        viewModel.onPhoneNumberChanged("")
                     }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear phone"
-                        )
-                    }
-                }
-            } else null
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "Địa chỉ",
-            style = CustomTypography.TextMedium,
-            fontSize = 16.sp,
-            color = colorResource(id = R.color.colorSystem_heading_button),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        FilledTextField(
-            value = uiModel.value.address,
-            onValueChange = viewModel::onAddressChanged,
-            hint = "Nhập địa chỉ",
-            minLines = 5,
-            maxLines = 5,
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .fillMaxWidth(),
-            trailingContent = if (uiModel.value.address.isNotBlank()) {
-                {
-                    IconButton(onClick = {
-                        viewModel.onAddressChanged("")
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear address"
+                            contentDescription = "Xóa số điện thoại"
                         )
                     }
                 }
@@ -293,7 +264,8 @@ fun EditProfile(
         )
     }
 
-    if (isShowAlertDialog.value)
+    // Confirmation dialog
+    if (isShowAlertDialog.value) {
         AlertDialog(
             onDismissRequest = {
                 isShowAlertDialog.value = false
@@ -330,5 +302,5 @@ fun EditProfile(
                 )
             },
         )
-
+    }
 }

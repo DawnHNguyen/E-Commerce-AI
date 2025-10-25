@@ -1,4 +1,4 @@
-package com.ptit.presentation.viewmodel // Giữ package name gốc của file
+package com.ptit.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,20 +26,23 @@ class ProductDetailViewModel @Inject constructor(
     private val _addToCartState = MutableStateFlow<AddToCartState>(AddToCartState.Initial)
     val addToCartState: StateFlow<AddToCartState> = _addToCartState.asStateFlow()
 
-    // Thêm StateFlow cho sản phẩm gợi ý
     private val _similarProductsState = MutableStateFlow<SimilarProductsState>(SimilarProductsState.Initial)
     val similarProductsState: StateFlow<SimilarProductsState> = _similarProductsState.asStateFlow()
+
+    // State để track variant được chọn
+    private val _selectedVariants = MutableStateFlow<Map<String, String>>(emptyMap())
+    val selectedVariants: StateFlow<Map<String, String>> = _selectedVariants.asStateFlow()
 
     fun getProductDetail(productId: String) {
         viewModelScope.launch {
             _productDetailState.value = ProductDetailState.Loading
-            _similarProductsState.value = SimilarProductsState.Loading // Bắt đầu tải sản phẩm tương tự
+            _similarProductsState.value = SimilarProductsState.Loading
 
             when (val result = productRepository.getProductDetail(productId)) {
                 is Resource.Success -> {
                     _productDetailState.value = ProductDetailState.Success(result.data)
-                    // Tải sản phẩm gợi ý sau khi chi tiết sản phẩm được tải thành công
-                    fetchSimilarProducts(productId)
+                    // Reset selected variants khi load product mới
+                    _selectedVariants.value = emptyMap()
                 }
                 is Resource.Error -> {
                     _productDetailState.value = ProductDetailState.Error(result.error.message ?: "Unknown error")
@@ -53,28 +56,37 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
-    // Hàm để tải sản phẩm gợi ý
-    private fun fetchSimilarProducts(productId: String) {
-        viewModelScope.launch {
-            when (val result = productRepository.getSimilarProducts(productId, 6)) {
-                is Resource.Success -> {
-                    _similarProductsState.value = SimilarProductsState.Success(result.data)
-                }
-                is Resource.Error -> {
-                    _similarProductsState.value = SimilarProductsState.Error(result.error.message ?: "Unknown error")
-                }
-                else -> {
-                    _similarProductsState.value = SimilarProductsState.Error("Unexpected error")
-                }
-            }
+    // Cập nhật variant được chọn
+    fun updateSelectedVariant(variantName: String, optionValue: String) {
+        _selectedVariants.value = _selectedVariants.value.toMutableMap().apply {
+            put(variantName, optionValue)
         }
     }
 
-    fun addToCart(productId: String, buyCount: Int = 1) {
+    // Lấy SKU dựa trên variants đã chọn
+    fun getSelectedSKU(product: ProductDomainEntity): com.ptit.domain.entity.product.SKUDomainEntity? {
+        val selectedVars = _selectedVariants.value
+
+        // Kiểm tra đã chọn đủ tất cả variants chưa
+        if (product.variants.size != selectedVars.size) {
+            return null
+        }
+
+        // Tìm SKU matching với các variants đã chọn
+        return product.skus.find { sku ->
+            val skuValues = sku.value.split("-")
+            skuValues.size == selectedVars.size &&
+                    skuValues.zip(product.variants).all { (value, variant) ->
+                        selectedVars[variant.name] == value
+                    }
+        }
+    }
+
+    fun addToCart(skuValue: String, buyCount: Int = 1) {
         viewModelScope.launch {
             _addToCartState.value = AddToCartState.Loading
 
-            when (val result = purchaseRepository.addToCart(productId, buyCount)) {
+            when (val result = purchaseRepository.addToCart(skuValue, buyCount)) {
                 is Resource.Success -> {
                     _addToCartState.value = AddToCartState.Success(result.data)
                 }
@@ -86,6 +98,10 @@ class ProductDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun resetAddToCartState() {
+        _addToCartState.value = AddToCartState.Initial
     }
 }
 

@@ -1,15 +1,11 @@
 package com.ptit.core.account
 
-import android.net.Uri
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.UserRepository
-import com.ptit.domain.usecase.UpdateProfileUseCase
 import com.ptit.domain.utils.Resource
-import com.ptit.domain.utils.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,33 +21,40 @@ data class AccountUiModel(
 
 data class UpdateProfileUiModel(
     val original: UserDomainEntity = UserDomainEntity(),
-    val name: String = original.name,
-    val phone: String = original.phone,
-    val avatar: Uri = original.avatar.toUri(),
-    val address: String = original.address,
+    val name: String = "",
+    val phoneNumber: String = "",
+    val avatar: String = "",
 ) {
-    val isChangedName get() = lazy { name != original.name }
+    val isChangedName by lazy { name != original.name }
+    val isChangedPhoneNumber by lazy { phoneNumber != original.phoneNumber }
+    val isChangedAvatar by lazy { avatar != original.avatar }
 
-    val isChangedPhone get() = lazy { phone != original.phone }
-    val isChangedAvatar get() = lazy { avatar != original.avatar.toUri() }
-    val isChangedAddress get() = lazy { address != original.address }
     val isChanged by lazy {
-        isChangedName.value ||
-                isChangedPhone.value ||
-                isChangedAvatar.value ||
-                isChangedAddress.value
+        isChangedName ||
+                isChangedPhoneNumber ||
+                isChangedAvatar
     }
-    val isValid
-        get() = lazy {
-            name.isNotBlank()
+
+    val isValid by lazy {
+        name.isNotBlank() && phoneNumber.isNotBlank()
+    }
+
+    companion object {
+        fun fromUser(user: UserDomainEntity): UpdateProfileUiModel {
+            return UpdateProfileUiModel(
+                original = user,
+                name = user.name,
+                phoneNumber = user.phoneNumber,
+                avatar = user.avatar
+            )
         }
+    }
 }
 
 @HiltViewModel
 class AccountViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
-    private val updateProfileUseCase: UpdateProfileUseCase,
 ) : ViewModel() {
 
     private val _uiModel = MutableStateFlow(AccountUiModel())
@@ -107,9 +110,7 @@ class AccountViewModel @Inject constructor(
 
     fun onEditProfile() {
         _updateProfileState.value = Resource.idle()
-        _updateProfileUiModel.value = UpdateProfileUiModel(
-            original = uiModel.value.user
-        )
+        _updateProfileUiModel.value = UpdateProfileUiModel.fromUser(uiModel.value.user)
     }
 
     fun onNameChanged(name: String) {
@@ -118,21 +119,15 @@ class AccountViewModel @Inject constructor(
         }
     }
 
-    fun onPhoneChanged(phone: String) {
+    fun onPhoneNumberChanged(phoneNumber: String) {
         _updateProfileUiModel.update {
-            it.copy(phone = phone)
+            it.copy(phoneNumber = phoneNumber)
         }
     }
 
-    fun onAvatarChanged(avatar: Uri) {
+    fun onAvatarChanged(avatar: String) {
         _updateProfileUiModel.update {
             it.copy(avatar = avatar)
-        }
-    }
-
-    fun onAddressChanged(address: String) {
-        _updateProfileUiModel.update {
-            it.copy(address = address)
         }
     }
 
@@ -141,41 +136,17 @@ class AccountViewModel @Inject constructor(
         _updateProfileState.value = Resource.loading()
         val uiModel = updateProfileUiModel.value
 
-        val name = if (uiModel.isChangedName.value) {
-            uiModel.name
-        } else {
-            null
-        }
-
-        val phone = if (uiModel.isChangedPhone.value) {
-            uiModel.phone
-        } else {
-            null
-        }
-
-        val avatar = if (uiModel.isChangedAvatar.value) {
-            uiModel.avatar
-        } else {
-            null
-        }
-
-        val address = if (uiModel.isChangedAddress.value) {
-            uiModel.address
-        } else {
-            null
-        }
-
         viewModelScope.launch(Dispatchers.IO) {
-            _updateProfileState.update {
-                updateProfileUseCase(
-                    name = name,
-                    phone = phone,
-                    avatar = avatar,
-                    address = address,
-                )
-                    .onSuccess {
-                        fetchUserProfile()
-                    }
+            val result = userRepository.updateUserProfile(
+                name = if (uiModel.isChangedName) uiModel.name else null,
+                phoneNumber = if (uiModel.isChangedPhoneNumber) uiModel.phoneNumber else null,
+                avatar = if (uiModel.isChangedAvatar) uiModel.avatar else null,
+            )
+
+            _updateProfileState.value = result
+
+            if (result is Resource.Success) {
+                fetchUserProfile()
             }
         }
     }

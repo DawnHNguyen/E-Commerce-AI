@@ -4,23 +4,14 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,11 +33,7 @@ import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
-import com.ptit.common.presentation.component.CustomPullToRefreshBox
-import com.ptit.common.presentation.component.CustomSearchBar
-import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
-import com.ptit.common.presentation.component.ProductEmptyState
-import com.ptit.common.presentation.component.noRippleClickable
+import com.ptit.common.presentation.component.*
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
 
@@ -67,22 +54,17 @@ fun HomeScreen(
 
     CustomPullToRefreshBox(
         modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0)),
-        isRefreshing = uiState.isLoadingTrending || uiState.isLoadingRecommended,
-        onRefresh = {
-            viewModel.refreshData()
-        }
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refreshData() }
     ) {
-        MaxSizeColumn {
-            // Search Bar
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 🔍 Search Bar (cố định, không cuộn)
             MaxWidthRow(
                 modifier = Modifier
                     .background(color = colorResource(R.color.colorSystem_heading_button))
-                    .padding(
-                        vertical = 8.dp,
-                        horizontal = 20.dp
-                    )
+                    .padding(vertical = 8.dp, horizontal = 20.dp)
                     .statusBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 CustomSearchBar(
                     value = "",
@@ -91,246 +73,88 @@ fun HomeScreen(
                     modifier = Modifier
                         .weight(1f)
                         .noRippleClickable(onClick = navigateToSearch),
-                    enabled = false,
+                    enabled = false
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                item {
-                    TrendingProductsSection(
-                        isLoading = uiState.isLoadingTrending,
-                        products = uiState.trendingProducts,
-                        error = uiState.errorTrending,
-                        onProductClick = navigateToProductDetail,
-                        onRetry = { viewModel.fetchTrendingProducts() }
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    RecommendedProductsSection(
-                        isLoading = uiState.isLoadingRecommended,
-                        products = uiState.recommendedProducts,
-                        error = uiState.errorRecommended,
-                        onProductClick = navigateToProductDetail,
-                        onRetry = { viewModel.fetchHomeRecommendations() }
-                    )
-                }
-            }
+            // 🛍️ Danh sách sản phẩm
+            ProductsSection(
+                isLoading = uiState.isLoading,
+                products = uiState.products,
+                error = uiState.error,
+                onProductClick = navigateToProductDetail,
+                onRetry = { viewModel.fetchProducts() }
+            )
         }
     }
 }
 
 @Composable
-fun TrendingProductsSection(
+fun ProductsSection(
     isLoading: Boolean,
     products: List<ProductDomainEntity>,
     error: String?,
     onProductClick: (String) -> Unit,
     onRetry: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        MaxWidthRow(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            Text(
-                text = "Sản phẩm bán chạy",
-                style = CustomTypography.TextBold,
-                fontSize = 18.sp,
-                color = colorResource(id = R.color.colorSystem_heading_button)
-            )
-        }
-
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp), // Chiều cao tương đối cho item ngang
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            error != null -> {
-                ProductEmptyState(
-                    message = "Lỗi tải sản phẩm bán chạy: $error",
-                    buttonText = "Thử lại",
-                    onActionClick = onRetry
-                )
-            }
-            products.isEmpty() -> {
-                Text(
-                    text = "Hiện chưa có sản phẩm bán chạy nào.",
-                    style = CustomTypography.TextRegular,
-                    modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = colorResource(id = R.color.colorSystem_normal_text)
-                )
-            }
-            else -> {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    items(products, key = { it.id }) { product ->
-                        TrendingProductItem(
-                            product = product,
-                            onClick = { onProductClick(product.id) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
-fun TrendingProductItem(
-    product: ProductDomainEntity,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(160.dp) // Điều chỉnh chiều rộng cho item ngang
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_text_field).copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            GlideImage(
-                model = product.image,
-                contentDescription = product.name,
+    when {
+        isLoading -> {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
-                contentScale = ContentScale.Crop,
-                transition = MyCrossFade
+                    .fillMaxSize()
+                    .padding(vertical = 50.dp),
+                contentAlignment = Alignment.Center
             ) {
-                it.centerCrop()
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = product.name,
-                style = CustomTypography.TextMedium,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                color = colorResource(id = R.color.colorSystem_heading_button)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "${product.price}đ",
-                style = CustomTypography.TextSemiBold,
-                fontSize = 15.sp,
-                color = colorResource(id = R.color.colorSystem_heading_button)
-            )
-            if (product.priceBeforeDiscount > 0 && product.priceBeforeDiscount > product.price) {
-                Text(
-                    text = "${product.priceBeforeDiscount}đ",
-                    style = CustomTypography.TextRegular.copy(
-                        textDecoration = TextDecoration.LineThrough,
-                        fontSize = 12.sp,
-                        color = colorResource(id = R.color.colorSystem_greyscale_500)
-                    )
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Autorenew,
-                    contentDescription = "Refresh icon",
-                    modifier = Modifier.size(16.dp),
-                    tint = colorResource(id = R.color.colorSystem_normal_text)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = product.sold.toString(),
-                    style = CustomTypography.TextRegular,
-                    fontSize = 12.sp,
-                    color = colorResource(id = R.color.colorSystem_normal_text)
-                )
+                CircularProgressIndicator()
             }
         }
-    }
-}
 
+        error != null -> {
+            ProductEmptyState(
+                message = "Lỗi tải sản phẩm: $error",
+                buttonText = "Thử lại",
+                onActionClick = onRetry
+            )
+        }
 
-@Composable
-fun RecommendedProductsSection(
-    isLoading: Boolean,
-    products: List<ProductDomainEntity>,
-    error: String?,
-    onProductClick: (String) -> Unit,
-    onRetry: () -> Unit
-) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "Đề xuất cho bạn",
-            style = CustomTypography.TextBold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(bottom = 12.dp),
-            color = colorResource(id = R.color.colorSystem_heading_button)
-        )
+        products.isEmpty() -> {
+            Text(
+                text = "Hiện chưa có sản phẩm nào.",
+                style = CustomTypography.TextRegular,
+                modifier = Modifier
+                    .padding(vertical = 16.dp)
+                    .fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                color = colorResource(id = R.color.colorSystem_normal_text)
+            )
+        }
 
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 50.dp), // Thêm padding để dễ nhìn hơn
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        else -> {
+            // ✅ Dùng LazyVerticalGrid trực tiếp, không bọc trong LazyColumn
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header nằm trong grid, chiếm 2 cột
+                item(span = { GridItemSpan(2) }) {
+                    Text(
+                        text = "Sản phẩm",
+                        style = CustomTypography.TextBold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
                 }
-            }
-            error != null -> {
-                ProductEmptyState(
-                    message = "Lỗi tải sản phẩm đề xuất: $error",
-                    buttonText = "Thử lại",
-                    onActionClick = onRetry
-                )
-            }
-            products.isEmpty() -> {
-                Text(
-                    text = "Hiện chưa có sản phẩm nào được đề xuất.",
-                    style = CustomTypography.TextRegular,
-                    modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = colorResource(id = R.color.colorSystem_normal_text)
-                )
-            }
-            else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
-                    userScrollEnabled = true,
-                    modifier = Modifier.heightIn(max = (products.size / 2 * 280).dp)
-                ) {
-                    items(products,  key = { it.id }) { product ->
-                        RecommendedProductItem(
-                            product = product,
-                            onClick = { onProductClick(product.id) }
-                        )
-                    }
+
+                // Items sản phẩm
+                items(products, key = { it.id }) { product ->
+                    ProductItem(
+                        product = product,
+                        onClick = { onProductClick(product.id) }
+                    )
                 }
             }
         }
@@ -340,13 +164,13 @@ fun RecommendedProductsSection(
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun RecommendedProductItem(
+fun ProductItem(
     product: ProductDomainEntity,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth() // Item sẽ chiếm toàn bộ chiều rộng của cột trong Grid
+            .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -355,19 +179,19 @@ fun RecommendedProductItem(
         Column {
             Box {
                 GlideImage(
-                    model = product.image,
+                    model = product.images.firstOrNull() ?: "",
                     contentDescription = product.name,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1f), // Giữ ảnh vuông
+                        .aspectRatio(1f),
                     contentScale = ContentScale.Crop,
                     transition = MyCrossFade
                 ) {
                     it.centerCrop()
                 }
-                if (product.hasDiscount.value) {
+                if (product.hasDiscount) {
                     Text(
-                        text = "-${product.discountPercent.value}%",
+                        text = "-${product.discountPercent}%",
                         style = CustomTypography.TextMedium.merge(
                             color = Color.White,
                             fontSize = 10.sp
@@ -383,6 +207,7 @@ fun RecommendedProductItem(
                     )
                 }
             }
+
             Column(
                 modifier = Modifier
                     .padding(12.dp)
@@ -404,14 +229,14 @@ fun RecommendedProductItem(
 
                 Column {
                     Text(
-                        text = "${product.price}đ",
+                        text = "${product.basePrice}đ",
                         style = CustomTypography.TextSemiBold,
                         fontSize = 15.sp,
                         color = colorResource(id = R.color.colorSystem_tint_red)
                     )
-                    if (product.priceBeforeDiscount > 0 && product.priceBeforeDiscount > product.price) {
+                    if (product.hasDiscount && product.virtualPrice != null) {
                         Text(
-                            text = "${product.priceBeforeDiscount}đ",
+                            text = "${product.virtualPrice}đ",
                             style = CustomTypography.TextRegular.copy(
                                 textDecoration = TextDecoration.LineThrough,
                                 fontSize = 12.sp,
@@ -420,7 +245,6 @@ fun RecommendedProductItem(
                         )
                     }
                 }
-
 
                 Spacer(modifier = Modifier.height(6.dp))
 

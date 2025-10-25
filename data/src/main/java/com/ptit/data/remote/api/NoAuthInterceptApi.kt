@@ -1,6 +1,6 @@
 package com.ptit.data.remote.api
 
-import com.ptit.data.remote.dto.auth.LoginAndRegisterResponse
+import com.ptit.data.remote.dto.auth.LoginResponse
 import com.ptit.data.remote.dto.auth.RefreshTokenRequest
 import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
@@ -11,6 +11,6 @@ interface NoAuthInterceptApi {
     @POST("refresh-access-token")
     suspend fun refreshAccessToken(
         @Body refreshTokenRequest: RefreshTokenRequest
-    ): Resource<LoginAndRegisterResponse>
+    ): Resource<LoginResponse>
 
 }

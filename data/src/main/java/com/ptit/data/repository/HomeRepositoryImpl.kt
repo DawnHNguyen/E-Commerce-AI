@@ -43,8 +43,11 @@ class HomeRepositoryImpl @Inject constructor(private val remoteDataSource: Produ
             }
         ).flow
 
-    override suspend fun getTrendingProducts(amount: Int): Resource<List<ProductDomainEntity>> =
-        remoteDataSource.getTrendingProducts(amount = amount).map { it.map { it.toDomainEntity() } }
+    override suspend fun getProducts(amount: Int): Resource<List<ProductDomainEntity>> =
+        remoteDataSource.listProducts(page = 1, limit = amount, sortBy = "createdAt", orderBy = "desc",
+            minPrice = null, maxPrice = null, name = null, categories = null, brandIds = null
+        ).map { listProductResponse ->
+            listProductResponse.data?.map { it.toDomainEntity() } ?: emptyList()   }
 
     companion object {
         private const val RECOMMENDED_PRODUCT_PAGE_SIZE = 20

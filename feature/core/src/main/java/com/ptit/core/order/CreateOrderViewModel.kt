@@ -59,8 +59,9 @@ class CreateOrderViewModel @Inject constructor(
                         _orderState.update { state ->
                             state.copy(
                                 name = TextFieldValue(user.name),
-                                phone = TextFieldValue(user.phone),
-                                address = TextFieldValue(user.shop.address),
+                                phone = TextFieldValue(user.phoneNumber),
+                                //address = TextFieldValue(user.shop.address),
+                                address = TextFieldValue(""), // Giả sử user không có trường địa chỉ
                                 isUserInfoLoaded = true
                             )
                         }

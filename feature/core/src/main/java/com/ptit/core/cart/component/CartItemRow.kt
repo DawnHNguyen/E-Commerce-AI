@@ -51,7 +51,7 @@ fun CartItemRow(
             Spacer(modifier = Modifier.width(8.dp))
 
             GlideImage(
-                model = product.image,
+                model = product.images[0],
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
@@ -74,7 +74,7 @@ fun CartItemRow(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${product.priceBeforeDiscount} đ",
+                    text = "${product.basePrice} đ",
                     style = CustomTypography.TextRegular.copy(
                         color = colorResource(R.color.colorSystem_greyscale_300)
                     ),
@@ -91,11 +91,11 @@ fun CartItemRow(
 
             QuantityControl(
                 quantity = quantity,
-                onIncrease = { 
-		    if (quantity < product.quantity){
-		        onQuantityUpdate(product.id, quantity + 1) 
-		    }
-		},
+                onIncrease = {
+                    if (quantity < 1000){
+                        onQuantityUpdate(product.id, quantity + 1)
+                    }
+		        },
                 onDecrease = {
                     if (quantity > 1) {
                         onQuantityUpdate(product.id, quantity - 1)

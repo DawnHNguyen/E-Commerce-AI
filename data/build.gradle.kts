@@ -24,11 +24,11 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://api-dtd-927645742464.us-central1.run.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://shoppie-api-61607f7565c2.herokuapp.com\"")
         }
 
         release {
-            buildConfigField("String", "BASE_URL", "\"https://api-dtd-927645742464.us-central1.run.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://shoppie-api-61607f7565c2.herokuapp.com\"")
 
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

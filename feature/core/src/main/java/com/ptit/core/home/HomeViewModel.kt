@@ -15,12 +15,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
-    val trendingProducts: List<ProductDomainEntity> = emptyList(),
-    val recommendedProducts: List<ProductDomainEntity> = emptyList(),
-    val isLoadingTrending: Boolean = false,
-    val isLoadingRecommended: Boolean = false,
-    val errorTrending: String? = null,
-    val errorRecommended: String? = null
+    val products: List<ProductDomainEntity> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
 )
 
 @HiltViewModel
@@ -33,46 +30,34 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        fetchTrendingProducts()
-        fetchHomeRecommendations()
+        fetchProducts()
     }
 
-    fun fetchTrendingProducts() {
+    fun fetchProducts() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingTrending = true, errorTrending = null) }
-            when (val result = homeRepository.getTrendingProducts(amount = 3)) {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = productRepository.listProducts(
+                page = 1,
+                limit = 20,
+                sortBy = "createdAt",
+                orderBy = "desc"
+            )) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(isLoadingTrending = false, trendingProducts = result.data) }
+                    _uiState.update { it.copy( isLoading = false, products = result.data) }
                 }
                 is Resource.Error -> {
-                    _uiState.update { it.copy(isLoadingTrending = false, errorTrending = result.error.message) }
+                    _uiState.update { it.copy( isLoading = false, error = result.error.message) }
                 }
-                else -> {
-                    _uiState.update { it.copy(isLoadingTrending = false) }
-                }
-            }
-        }
-    }
 
-    fun fetchHomeRecommendations() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingRecommended = true, errorRecommended = null) }
-            when (val result = productRepository.getHomeRecommendations()) {
-                is Resource.Success -> {
-                    _uiState.update { it.copy(isLoadingRecommended = false, recommendedProducts = result.data) }
-                }
-                is Resource.Error -> {
-                    _uiState.update { it.copy(isLoadingRecommended = false, errorRecommended = result.error.message) }
-                }
                 else -> {
-                    _uiState.update { it.copy(isLoadingRecommended = false) }
+                    // Bỏ qua các trường hợp khác
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }
     }
 
     fun refreshData() {
-        fetchTrendingProducts()
-        fetchHomeRecommendations()
+        fetchProducts()
     }
 }

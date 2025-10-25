@@ -8,8 +8,7 @@ interface UserRepository {
 
     suspend fun updateUserProfile(
         name: String?,
-        phone: String?,
+        phoneNumber: String?,
         avatar: String?,
-        address: String?
     ): Resource<Unit>
 }

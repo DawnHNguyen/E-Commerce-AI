@@ -1,21 +1,9 @@
 package com.ptit.core.product_detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -24,27 +12,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack // Đã sửa
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.ShoppingCart // Đã sửa
-import androidx.compose.material.icons.outlined.StarRate // Đã sửa
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.StarRate
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,20 +33,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeBox
-import com.ptit.common.presentation.MaxSizeColumn
-import com.ptit.common.presentation.MaxWidthRow
-import com.ptit.common.presentation.MyCrossFade
-import com.ptit.common.presentation.component.FilledButton
-import com.ptit.common.presentation.component.FullScreenProgressBar
-import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
-import com.ptit.common.presentation.component.noRippleClickable
+import com.ptit.common.presentation.*
+import com.ptit.common.presentation.component.*
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
-import com.ptit.presentation.viewmodel.AddToCartState
-import com.ptit.presentation.viewmodel.ProductDetailState
-import com.ptit.presentation.viewmodel.ProductDetailViewModel
-import com.ptit.presentation.viewmodel.SimilarProductsState // Import mới
+import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.entity.product.VariantDomainEntity
+import com.ptit.presentation.viewmodel.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -82,66 +48,44 @@ fun ProductDetailScreen(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onProductItemClick: (String) -> Unit // Thêm callback này
+    onProductItemClick: (String) -> Unit
 ) {
     LocalBottomNavigationVisibility.current.value = false
 
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
     val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()
-    val similarProductsState by viewModel.similarProductsState.collectAsStateWithLifecycle() // Lấy state sản phẩm tương tự
+    val similarProductsState by viewModel.similarProductsState.collectAsStateWithLifecycle()
+    val selectedVariants by viewModel.selectedVariants.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // State for bottom sheet visibility
     var showAddToCartBottomSheet by remember { mutableStateOf(false) }
-
 
     LaunchedEffect(key1 = productId) {
         viewModel.getProductDetail(productId)
     }
 
-    // Handle add to cart state changes
     LaunchedEffect(key1 = addToCartState) {
         when (addToCartState) {
             is AddToCartState.Success -> {
                 scope.launch {
                     snackbarHostState.showSnackbar("Đã thêm sản phẩm vào giỏ hàng")
+                    viewModel.resetAddToCartState()
                 }
             }
-
             is AddToCartState.Error -> {
                 scope.launch {
                     snackbarHostState.showSnackbar("Lỗi: ${(addToCartState as AddToCartState.Error).message}")
+                    viewModel.resetAddToCartState()
                 }
             }
             else -> {}
         }
     }
 
-    // Handle add to cart state changes
-    LaunchedEffect(key1 = addToCartState) {
-        when (addToCartState) {
-            is AddToCartState.Success -> {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Đã thêm sản phẩm vào giỏ hàng")
-                }
-            }
-
-            is AddToCartState.Error -> {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Lỗi: ${(addToCartState as AddToCartState.Error).message}")
-                }
-            }
-            // Thêm else để when expression là exhaustive
-            else -> {}
-        }
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         MaxSizeBox(
             modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0))
         ) {
@@ -151,25 +95,33 @@ fun ProductDetailScreen(
                 is ProductDetailState.Success -> {
                     ProductDetailContent(
                         product = state.product,
-                        similarProductsState = similarProductsState, // Truyền state vào
+                        selectedVariants = selectedVariants,
+                        onVariantSelected = { variantName, optionValue ->
+                            viewModel.updateSelectedVariant(variantName, optionValue)
+                        },
+                        selectedSKU = viewModel.getSelectedSKU(state.product),
+                        similarProductsState = similarProductsState,
                         onBackClick = onBackClick,
                         onCartClick = onCartClick,
                         onAddToCartClick = {
-                            // Show bottom sheet instead of immediately adding to cart
                             showAddToCartBottomSheet = true
                         },
                         isAddingToCart = addToCartState is AddToCartState.Loading,
-                        onProductItemClick = onProductItemClick // Truyền callback
+                        onProductItemClick = onProductItemClick
                     )
-                    // Add to cart bottom sheet
-                    if (state.product != null) {
+
+                    if (showAddToCartBottomSheet) {
                         AddToCartBottomSheet(
                             product = state.product,
+                            selectedVariants = selectedVariants,
+                            selectedSKU = viewModel.getSelectedSKU(state.product),
+                            onVariantSelected = { variantName, optionValue ->
+                                viewModel.updateSelectedVariant(variantName, optionValue)
+                            },
                             isShowBottomSheet = showAddToCartBottomSheet,
                             onDismiss = { showAddToCartBottomSheet = false },
-                            onAddToCart = { quantity ->
-                                // Call ViewModel's addToCart with quantity
-                                viewModel.addToCart(state.product.id, quantity)
+                            onAddToCart = { skuValue, quantity ->
+                                viewModel.addToCart(skuValue, quantity)
                             }
                         )
                     }
@@ -182,21 +134,6 @@ fun ProductDetailScreen(
                     ) {
                         Text(
                             text = "Lỗi: ${state.message}",
-                            style = CustomTypography.TextRegular.merge(
-                                color = colorResource(id = R.color.colorSystem_heading_button)
-                            )
-                        )
-                    }
-                }
-                // Thêm else để when expression là exhaustive
-                else -> {
-                    MaxSizeColumn(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Trạng thái không mong muốn",
                             style = CustomTypography.TextRegular.merge(
                                 color = colorResource(id = R.color.colorSystem_heading_button)
                             )
@@ -227,12 +164,15 @@ fun ProductDetailScreen(
 @Composable
 fun ProductDetailContent(
     product: ProductDomainEntity,
-    similarProductsState: SimilarProductsState, // Thêm trạng thái sản phẩm tương tự
+    selectedVariants: Map<String, String>,
+    onVariantSelected: (String, String) -> Unit,
+    selectedSKU: SKUDomainEntity?,
+    similarProductsState: SimilarProductsState,
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     isAddingToCart: Boolean = false,
-    onProductItemClick: (String) -> Unit // Thêm callback khi click vào sản phẩm gợi ý
+    onProductItemClick: (String) -> Unit
 ) {
     MaxSizeColumn(
         modifier = Modifier
@@ -243,12 +183,9 @@ fun ProductDetailContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
-                .background(Color(0xFFE8F5E9)) // Light green background
+                .background(Color(0xFFE8F5E9))
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Top row containing back button, empty space, and cart button
+            Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     modifier = Modifier
                         .statusBarsPadding()
@@ -257,10 +194,7 @@ fun ProductDetailContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Back button
-                    IconButton(
-                        onClick = onBackClick,
-                    ) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Back",
@@ -268,10 +202,7 @@ fun ProductDetailContent(
                         )
                     }
 
-                    // Cart button
-                    IconButton(
-                        onClick = onCartClick,
-                    ) {
+                    IconButton(onClick = onCartClick) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingCart,
                             contentDescription = "Cart",
@@ -280,9 +211,17 @@ fun ProductDetailContent(
                     }
                 }
 
-                // Image carousel - positioned below the top row buttons
-                val pagerState =
-                    rememberPagerState(pageCount = { product.images.size.coerceAtLeast(1) })
+                // Hiển thị ảnh từ SKU đã chọn hoặc ảnh mặc định
+                val displayImages = if (selectedSKU != null && selectedSKU.image.isNotEmpty()) {
+                    listOf(selectedSKU.image)
+                } else {
+                    product.images.ifEmpty {
+                        // Fallback: nếu không có images, tìm ảnh từ SKU đầu tiên hoặc dùng ảnh mặc định
+                        product.skus.firstOrNull()?.image?.let { listOf(it) } ?: emptyList()
+                    }
+                }
+
+                val pagerState = rememberPagerState(pageCount = { displayImages.size.coerceAtLeast(1) })
 
                 HorizontalPager(
                     state = pagerState,
@@ -290,18 +229,12 @@ fun ProductDetailContent(
                         .fillMaxWidth()
                         .height(200.dp)
                 ) { page ->
-                    val imageUrl = if (product.images.isNotEmpty()) {
-                        product.images.getOrElse(page) { product.image }
-                    } else {
-                        product.image
-                    }
-
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         GlideImage(
-                            model = imageUrl,
+                            model = displayImages.getOrNull(page) ?: "",
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxWidth(0.75f)
@@ -311,7 +244,7 @@ fun ProductDetailContent(
                         ) {
                             it.centerCrop()
                         }
-                        // Image indicator (e.g., "1/5")
+
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
@@ -321,7 +254,7 @@ fun ProductDetailContent(
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "${pagerState.currentPage + 1}/${product.images.size.coerceAtLeast(1)}",
+                                text = "${pagerState.currentPage + 1}/${displayImages.size}",
                                 style = CustomTypography.TextRegular.merge(
                                     color = Color.White,
                                     fontSize = 12.sp
@@ -333,13 +266,11 @@ fun ProductDetailContent(
             }
         }
 
-        // Product details
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Product name
             Text(
                 text = product.name,
                 style = CustomTypography.TextSemiBold.merge(
@@ -352,10 +283,7 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Rating and sold count
-            MaxWidthRow(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            MaxWidthRow(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.StarRate,
                     contentDescription = "Rating",
@@ -384,23 +312,25 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Price information
-            MaxWidthRow(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Hiển thị giá từ SKU đã chọn hoặc giá base
+            val displayPrice = selectedSKU?.price ?: product.basePrice
+            val virtualPrice = product.virtualPrice ?: 0
+            val hasDiscount = virtualPrice > displayPrice && virtualPrice > 0
+
+            MaxWidthRow(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${product.price}đ",
+                    text = "${displayPrice}đ",
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(id = R.color.colorSystem_heading_button),
                         fontSize = 18.sp
                     )
                 )
 
-                if (product.hasDiscount.value) {
+                if (hasDiscount) {
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
                     Text(
-                        text = "${product.priceBeforeDiscount}đ",
+                        text = "${virtualPrice}đ",
                         style = CustomTypography.TextRegular.merge(
                             color = Color.Gray,
                             fontSize = 14.sp,
@@ -410,8 +340,9 @@ fun ProductDetailContent(
 
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
+                    val discountPercent = ((virtualPrice - displayPrice) * 100 / virtualPrice)
                     Text(
-                        text = "-${product.discountPercent.value}%",
+                        text = "-${discountPercent}%",
                         style = CustomTypography.TextMedium.merge(
                             color = colorResource(id = R.color.colorSystem_heading_button),
                             fontSize = 12.sp
@@ -421,29 +352,43 @@ fun ProductDetailContent(
                                 color = colorResource(R.color.colorSystem_stroke).copy(alpha = 0.25f),
                                 shape = RoundedCornerShape(8.dp)
                             )
-                            .padding(
-                                vertical = 4.dp,
-                                horizontal = 8.dp
-                            )
+                            .padding(vertical = 4.dp, horizontal = 8.dp)
                     )
                 }
             }
-            // Stock information
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (product.quantity > 0) "Kho: ${product.quantity}" else "Hết hàng",
-                style = CustomTypography.TextRegular.merge(
-                    color = if (product.quantity > 0)
-                        colorResource(id = R.color.colorSystem_normal_text)
-                    else
-                        Color.Red,
-                    fontSize = 14.sp
-                )
-            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Shop information
+            // Hiển thị variants
+            product.variants.forEach { variant ->
+                VariantSelector(
+                    variant = variant,
+                    selectedOption = selectedVariants[variant.name],
+                    onOptionSelected = { option ->
+                        onVariantSelected(variant.name, option)
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Hiển thị stock khi đã chọn đủ variants
+            if (selectedVariants.size == product.variants.size) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (selectedSKU != null && selectedSKU.stock > 0)
+                        "Kho: ${selectedSKU.stock}"
+                    else "Hết hàng",
+                    style = CustomTypography.TextRegular.merge(
+                        color = if (selectedSKU != null && selectedSKU.stock > 0)
+                            colorResource(id = R.color.colorSystem_normal_text)
+                        else Color.Red,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -462,17 +407,15 @@ fun ProductDetailContent(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(
-                        text = product.shop.shop.name,
+                        text = product.shop?.name ?: "Unknown Shop",
                         style = CustomTypography.TextMedium,
                         modifier = Modifier.weight(1f)
                     )
-
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Product description
             Text(
                 text = "Mô tả sản phẩm",
                 style = CustomTypography.TextSemiBold.merge(
@@ -491,18 +434,10 @@ fun ProductDetailContent(
                 )
             )
 
-            // Similar Products Section
-            SimilarProductsSection(
-                similarProductsState = similarProductsState,
-                onProductItemClick = onProductItemClick
-            )
-
-
-            Spacer(modifier = Modifier.height(80.dp)) // Space for buttons
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
-    // Action buttons at bottom
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -513,145 +448,86 @@ fun ProductDetailContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val canAddToCart = selectedVariants.size == product.variants.size &&
+                    selectedSKU != null &&
+                    selectedSKU.stock > 0
+
             FilledButton(
                 modifier = Modifier.weight(1f),
                 text = if (isAddingToCart) "Đang thêm..." else "Thêm vào giỏ hàng",
                 onClick = onAddToCartClick,
-                enabled = !isAddingToCart
+                enabled = !isAddingToCart && canAddToCart
             )
         }
     }
 }
 
-
 @Composable
-fun ColumnScope.SimilarProductsSection(
-    similarProductsState: SimilarProductsState,
-    onProductItemClick: (String) -> Unit
+fun VariantSelector(
+    variant: VariantDomainEntity,
+    selectedOption: String?,
+    onOptionSelected: (String) -> Unit
 ) {
-    Spacer(modifier = Modifier.height(24.dp))
-    Text(
-        text = "Sản phẩm tương tự",
-        style = CustomTypography.TextSemiBold.merge(
-            color = colorResource(id = R.color.colorSystem_heading_button),
-            fontSize = 16.sp
-        )
-    )
-    Spacer(modifier = Modifier.height(12.dp))
-
-    when (similarProductsState) {
-        is SimilarProductsState.Loading -> {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(vertical = 16.dp)
+    Column {
+        Text(
+            text = variant.name,
+            style = CustomTypography.TextMedium.merge(
+                color = colorResource(id = R.color.colorSystem_heading_button),
+                fontSize = 14.sp
             )
-        }
-        is SimilarProductsState.Success -> {
-            if (similarProductsState.products.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(similarProductsState.products, key = { it.id }) { product ->
-                        SimilarProductItem(
-                            product = product,
-                            onClick = { onProductItemClick(product.id) }
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "Không tìm thấy sản phẩm tương tự.",
-                    style = CustomTypography.TextRegular,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(variant.options) { option ->
+                VariantOption(
+                    option = option,
+                    isSelected = option == selectedOption,
+                    onClick = { onOptionSelected(option) }
                 )
             }
         }
-        is SimilarProductsState.Error -> {
-            Text(
-                text = "Lỗi: ${similarProductsState.message}",
-                style = CustomTypography.TextRegular,
-                color = Color.Red,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        }
-
-        SimilarProductsState.Initial -> {
-            // Có thể hiển thị placeholder hoặc không làm gì cả
-        }
-
-         else -> {
-             // Xử lý cho các trường hợp khác không được liệt kê ở trên
-         }
     }
 }
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun SimilarProductItem(product: ProductDomainEntity, onClick: () -> Unit) {
-    Card(
+fun VariantOption(
+    option: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
         modifier = Modifier
-            .width(160.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colorResource(id = R.color.colorSystem_background_level_2)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected)
+                    colorResource(id = R.color.colorSystem_heading_button)
+                else
+                    colorResource(id = R.color.colorSystem_stroke),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .background(
+                if (isSelected)
+                    colorResource(id = R.color.colorSystem_heading_button).copy(alpha = 0.1f)
+                else
+                    Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Column {
-            GlideImage(
-                model = product.image,
-                contentDescription = product.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
-                contentScale = ContentScale.Crop,
-                transition = MyCrossFade
-            ) {
-                it.centerCrop()
-            }
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth()
-                    .height(75.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column { // Gom Text và Spacer vào một Column con để kiểm soát tốt hơn
-                    Text(
-                        text = product.name,
-                        style = CustomTypography.TextMedium,
-                        fontSize = 14.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${product.price}đ",
-                        style = CustomTypography.TextSemiBold,
-                        fontSize = 14.sp,
-                        color = colorResource(id = R.color.colorSystem_tint_red) // Màu giá nổi bật
-                    )
-                }
-
-                if (product.hasDiscount.value) {
-                    Text(
-                        text = "${product.priceBeforeDiscount}đ",
-                        style = CustomTypography.TextRegular.copy(
-                            fontSize = 12.sp,
-                            textDecoration = TextDecoration.LineThrough
-                        ),
-                        color = Color.Gray
-                    )
-                } else {
-                    // Để giữ không gian tương đương khi không có khuyến mãi, bạn có thể thêm một Spacer ở đây
-                    // Ví dụ: Spacer(modifier = Modifier.height(14.sp)) // Chiều cao tương đương Text khuyến mãi
-                    // Hoặc để trống nếu Arrangement.SpaceBetween đã đủ để xử lý
-                }
-            }
-        }
+        Text(
+            text = option,
+            style = CustomTypography.TextMedium.merge(
+                color = if (isSelected)
+                    colorResource(id = R.color.colorSystem_heading_button)
+                else
+                    colorResource(id = R.color.colorSystem_normal_text),
+                fontSize = 14.sp
+            )
+        )
     }
 }
