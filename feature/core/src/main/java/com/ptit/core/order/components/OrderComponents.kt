@@ -17,14 +17,47 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.domain.entity.cart.CartItemDomainEntity
+import com.ptit.domain.entity.order.ProductSKUSnapshotDomainEntity
+
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
-    val product = purchase.product
-    val quantity = purchase.buyCount
+fun SharedCartItemRow(cartItem: CartItemDomainEntity) {
+    val sku = cartItem.sku
+    val product = sku?.product
+    val quantity = cartItem.quantity
 
+    SharedOrderItemRowContent(
+        name = product?.name ?: "Không rõ sản phẩm",
+        image = sku?.image ?: product?.mainImage,
+        basePrice = product?.basePrice ?: 0,
+        price = sku?.price ?: 0,
+        quantity = quantity
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun SharedSnapshotItemRow(snapshot: ProductSKUSnapshotDomainEntity) {
+    SharedOrderItemRowContent(
+        name = snapshot.productName,
+        image = snapshot.image,
+        basePrice = 0,
+        price = snapshot.skuPrice,
+        quantity = snapshot.quantity
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun SharedOrderItemRowContent(
+    name: String,
+    image: String?,
+    basePrice: Int,
+    price: Int,
+    quantity: Int
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -37,8 +70,8 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
             modifier = Modifier.fillMaxWidth()
         ) {
             GlideImage(
-                model = product.images.firstOrNull(),
-                contentDescription = null,
+                model = image,
+                contentDescription = name,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(12.dp))
@@ -48,7 +81,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = product.name,
+                    text = name,
                     style = CustomTypography.TextRegular,
                     color = colorResource(R.color.colorSystem_normal_text),
                     maxLines = 2
@@ -56,10 +89,9 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Original price with strikethrough
-                if (product.basePrice > 0) {
+                if (basePrice > 0) {
                     Text(
-                        text = "${product.basePrice}đ",
+                        text = "${basePrice}đ",
                         style = CustomTypography.TextRegular.copy(
                             textDecoration = TextDecoration.LineThrough,
                             fontSize = 12.sp
@@ -71,7 +103,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = "${purchase.price}đ",
+                    text = "${price}đ",
                     style = CustomTypography.TextSemiBold,
                     color = colorResource(R.color.colorSystem_heading_button)
                 )

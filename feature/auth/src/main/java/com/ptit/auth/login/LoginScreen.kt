@@ -190,7 +190,7 @@ fun LoginScreen(
                 viewModel.login()
             },
             enabled = uiModel.value.isEnableLoginButton.value,
-            text = "Dăng nhập",
+            text = "Đăng nhập",
             modifier = Modifier.fillMaxWidth()
         )
 

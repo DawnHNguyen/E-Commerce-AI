@@ -19,20 +19,22 @@ import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.common.utils.toPriceFormat
+import com.ptit.domain.entity.cart.CartItemDomainEntity
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun CartItemRow(
-    purchase: PurchaseDomainEntity,
+    purchase: CartItemDomainEntity,
     isSelected: Boolean,
     onSelectionChanged: (Boolean) -> Unit,
     checkboxColors: CheckboxColors,
-    onQuantityUpdate: (String, Int) -> Unit,
-    onProductClick: (String) -> Unit = {} // Add parameter for product click navigation
+    onQuantityUpdate: (String, String, Int) -> Unit,
+    onProductClick: (String) -> Unit = {}
 ) {
-    val product = purchase.product
-    val quantity = purchase.buyCount
+    val sku = purchase.sku
+    val product = sku?.product
+    val quantity = purchase.quantity
 
     Box(
         modifier = Modifier
@@ -44,19 +46,19 @@ fun CartItemRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = isSelected,
-                onCheckedChange = { onSelectionChanged(it) },
+                onCheckedChange = onSelectionChanged,
                 colors = checkboxColors
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             GlideImage(
-                model = product.images[0],
-                contentDescription = null,
+                model = sku?.image ?: product?.mainImage.orEmpty(),
+                contentDescription = product?.name.orEmpty(),
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .noRippleClickable { onProductClick(product.id) },
+                    .noRippleClickable { product?.id?.let(onProductClick) },
                 contentScale = ContentScale.Crop
             )
 
@@ -64,7 +66,7 @@ fun CartItemRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = product.name,
+                    text = product?.name ?: "Unknown product",
                     style = CustomTypography.TextRegular.merge(
                         color = colorResource(R.color.colorSystem_normal_text)
                     ),
@@ -73,16 +75,21 @@ fun CartItemRow(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = "${product.basePrice} đ",
-                    style = CustomTypography.TextRegular.copy(
-                        color = colorResource(R.color.colorSystem_greyscale_300)
-                    ),
-                    textDecoration = TextDecoration.LineThrough
-                )
+                val basePrice = product?.virtualPrice ?: 0
+                val currentPrice = sku?.price ?: product?.basePrice ?: 0
+
+                if (basePrice > currentPrice) {
+                    Text(
+                        text = basePrice.toPriceFormat(),
+                        style = CustomTypography.TextRegular.copy(
+                            color = colorResource(R.color.colorSystem_greyscale_300)
+                        ),
+                        textDecoration = TextDecoration.LineThrough
+                    )
+                }
 
                 Text(
-                    text = "${purchase.price}đ",
+                    text = currentPrice.toPriceFormat(),
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(R.color.colorSystem_heading_button)
                     )
@@ -92,14 +99,10 @@ fun CartItemRow(
             QuantityControl(
                 quantity = quantity,
                 onIncrease = {
-                    if (quantity < 1000){
-                        onQuantityUpdate(product.id, quantity + 1)
-                    }
-		        },
+                    if (quantity < 1000) sku?.id?.let { onQuantityUpdate(purchase.id, it, quantity + 1) }
+                },
                 onDecrease = {
-                    if (quantity > 1) {
-                        onQuantityUpdate(product.id, quantity - 1)
-                    }
+                    if (quantity > 1) sku?.id?.let { onQuantityUpdate(purchase.id, it, quantity - 1) }
                 }
             )
         }

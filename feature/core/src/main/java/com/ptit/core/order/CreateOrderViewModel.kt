@@ -3,229 +3,175 @@ package com.ptit.core.order
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.entity.common.UserDomainEntity
+import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
+import com.ptit.domain.entity.order.ReceiverDomainEntity
+import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.OrderRepository
-import com.ptit.domain.repository.PurchaseRepository
 import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class CreateOrderViewModel @Inject constructor(
-    private val purchaseRepository: PurchaseRepository,
+    private val cartRepository: CartRepository,
     private val orderRepository: OrderRepository,
-    private val userRepository: UserRepository // Thêm UserRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    // UI state for Order creation
     private val _orderState = MutableStateFlow(OrderFormState())
     val orderState: StateFlow<OrderFormState> = _orderState.asStateFlow()
 
-    // Events for one-time actions like navigation
     private val _orderEvents = MutableSharedFlow<OrderEvent>()
     val orderEvents: SharedFlow<OrderEvent> = _orderEvents.asSharedFlow()
 
-    // State để theo dõi việc tải thông tin user
     private val _userProfileState = MutableStateFlow<Resource<UserDomainEntity>>(Resource.idle())
     val userProfileState: StateFlow<Resource<UserDomainEntity>> = _userProfileState.asStateFlow()
 
     init {
-        // Lấy thông tin user khi ViewModel được khởi tạo
         loadUserProfile()
     }
 
-    // Function to load user profile
     private fun loadUserProfile() {
         viewModelScope.launch {
             _userProfileState.update { Resource.loading() }
-
             when (val result = userRepository.getUserProfile()) {
                 is Resource.Success -> {
                     _userProfileState.update { Resource.success(result.data) }
-
-                    // Cập nhật thông tin vận chuyển từ user profile
                     result.data?.let { user ->
-                        _orderState.update { state ->
-                            state.copy(
+                        _orderState.update {
+                            it.copy(
                                 name = TextFieldValue(user.name),
                                 phone = TextFieldValue(user.phoneNumber),
-                                //address = TextFieldValue(user.shop.address),
-                                address = TextFieldValue(""), // Giả sử user không có trường địa chỉ
+                                address = TextFieldValue(""),
                                 isUserInfoLoaded = true
                             )
                         }
                     }
                 }
+
                 is Resource.Error -> {
                     _userProfileState.update { Resource.error(result.error) }
-                    _orderEvents.emit(OrderEvent.ShowError("Tải thông tin user thất bại: ${result.error.message}"))
+                    _orderEvents.emit(OrderEvent.ShowError("Không tải được thông tin người dùng"))
                 }
+
                 else -> {}
             }
         }
     }
 
-    // Function to set selected item IDs and load them
+    /**
+     * 🛒 Lấy các cartItemDetail (theo shop)
+     */
     fun setSelectedItemIds(itemIds: List<String>) {
         if (itemIds.isEmpty()) {
-            _orderEvents.tryEmit(OrderEvent.ShowError("Không sản phẩm nào được chọn"))
+            viewModelScope.launch {
+                _orderEvents.emit(OrderEvent.ShowError("Chưa chọn sản phẩm nào"))
+            }
             return
         }
 
         viewModelScope.launch {
             _orderState.update { it.copy(isLoading = true, error = null) }
 
-            // Load each purchase item by ID
-            val purchases = mutableListOf<PurchaseDomainEntity>()
+            val selectedShopGroups = mutableListOf<CartItemDetailDomainEntity>()
             var hasError = false
 
             for (id in itemIds) {
-                when (val result = purchaseRepository.getPurchaseById(id)) {
-                    is Resource.Success -> {
-                        result.data?.let { purchases.add(it) }
-                    }
+                when (val result = cartRepository.getCartItemById(id)) {
+                    is Resource.Success -> result.data?.let { selectedShopGroups.add(it) }
                     is Resource.Error -> {
                         hasError = true
-                        _orderEvents.emit(OrderEvent.ShowError("Load sản phẩm thất bại: ${result.error.message}"))
+                        _orderEvents.emit(OrderEvent.ShowError("Không tải được sản phẩm ID: $id"))
                     }
                     else -> {}
                 }
             }
 
-            if (hasError && purchases.isEmpty()) {
-                _orderState.update { it.copy(
+            _orderState.update {
+                it.copy(
                     isLoading = false,
-                    error = "Load sản phẩm thất bại",
-                )}
-            } else {
-                _orderState.update { it.copy(
-                    isLoading = false,
-                    selectedItems = purchases
-                )}
+                    selectedShops = selectedShopGroups,
+                    error = if (hasError) "Một số sản phẩm không tải được" else null
+                )
             }
         }
     }
 
-    // Form field update functions
-    fun updateName(value: TextFieldValue) {
-        _orderState.update { it.copy(name = value, nameEdited = true) }
-    }
+    fun updateName(value: TextFieldValue) = _orderState.update { it.copy(name = value) }
+    fun updatePhone(value: TextFieldValue) = _orderState.update { it.copy(phone = value) }
+    fun updateAddress(value: TextFieldValue) = _orderState.update { it.copy(address = value) }
+    fun updateNote(value: TextFieldValue) = _orderState.update { it.copy(note = value) }
 
-    fun updatePhone(value: TextFieldValue) {
-        _orderState.update { it.copy(phone = value, phoneEdited = true) }
-    }
-
-    fun updateAddress(value: TextFieldValue) {
-        _orderState.update { it.copy(address = value, addressEdited = true) }
-    }
-
-    fun updateNote(value: TextFieldValue) {
-        _orderState.update { it.copy(note = value) }
-    }
-
-    // Toggle field editing state
-    fun toggleNameEditing() {
-        _orderState.update { it.copy(isNameEditing = !it.isNameEditing) }
-    }
-
-    fun togglePhoneEditing() {
-        _orderState.update { it.copy(isPhoneEditing = !it.isPhoneEditing) }
-    }
-
-    fun toggleAddressEditing() {
-        _orderState.update { it.copy(isAddressEditing = !it.isAddressEditing) }
-    }
-
-    // Create order function
+    /**
+     * 🧾 Tạo đơn hàng theo từng shop
+     */
     fun createOrder() {
-        val currentState = _orderState.value
+        val state = _orderState.value
 
-        if (currentState.selectedItems.isEmpty()) {
-            viewModelScope.launch {
-                _orderEvents.emit(OrderEvent.ShowError("Không sản phẩm nào được chọn để thanh toán"))
-            }
+        if (state.selectedShops.isEmpty()) {
+            viewModelScope.launch { _orderEvents.emit(OrderEvent.ShowError("Không có sản phẩm nào được chọn")) }
             return
         }
 
-        if (currentState.name.text.isBlank() ||
-            currentState.phone.text.isBlank() ||
-            currentState.address.text.isBlank()) {
-            viewModelScope.launch {
-                _orderEvents.emit(OrderEvent.ShowError("Vui lòng điền đầy đủ thông tin"))
-            }
+        if (state.name.text.isBlank() || state.phone.text.isBlank() || state.address.text.isBlank()) {
+            viewModelScope.launch { _orderEvents.emit(OrderEvent.ShowError("Vui lòng nhập đủ thông tin giao hàng")) }
             return
+        }
+
+        val receiver = ReceiverDomainEntity(
+            name = state.name.text,
+            phone = state.phone.text,
+            address = state.address.text
+        )
+
+        // ✅ Mỗi CartItemDetailDomainEntity tương ứng với 1 shopId → 1 request
+        val orderRequests = state.selectedShops.mapNotNull { detail ->
+            val shopId = detail.shopId ?: return@mapNotNull null
+            CreateOrderRequestDomainEntity(
+                shopId = shopId,
+                receiver = receiver,
+                cartItemIds = detail.cartItems.map { it.id }
+            )
         }
 
         viewModelScope.launch {
             _orderState.update { it.copy(isLoading = true) }
 
-            // Extract item IDs
-            val purchaseIds = currentState.selectedItems.map { it.id }
-
-            // Create order request
-            when (val result = orderRepository.createOrder(
-                purchaseIds = purchaseIds,
-                fullName = currentState.name.text,
-                phone = currentState.phone.text,
-                address = currentState.address.text,
-                note = currentState.note.text,
-                totalAmount = currentState.selectedItems.sumOf { it.price * it.buyCount },
-                shippingFee = 30000
-            )) {
+            when (val result = orderRepository.createOrder(orderRequests)) {
                 is Resource.Success -> {
                     _orderState.update { it.copy(isLoading = false) }
-                    result.data?.let { order ->
-                        _orderEvents.emit(OrderEvent.OrderCreated(order))
-                    }
+                    result.data?.let { _orderEvents.emit(OrderEvent.OrderCreated(it)) }
                 }
+
                 is Resource.Error -> {
-                    _orderState.update { it.copy(
-                        isLoading = false,
-                        error = result.error.error?.message
-                    )}
-                    _orderEvents.emit(OrderEvent.ShowError(
-                        result.error.error?.message?: "Tạo đơn hàng thất bại"
-                    ))
+                    _orderState.update { it.copy(isLoading = false, error = result.error.message) }
+                    _orderEvents.emit(OrderEvent.ShowError(result.error.message ?: "Tạo đơn hàng thất bại"))
                 }
+
                 else -> {}
             }
         }
     }
 
-    // State for the order form
     data class OrderFormState(
         val isLoading: Boolean = false,
         val error: String? = null,
-        val selectedItems: List<PurchaseDomainEntity> = emptyList(),
+        val selectedShops: List<CartItemDetailDomainEntity> = emptyList(), // ✅ Mỗi shop là 1 group
         val name: TextFieldValue = TextFieldValue(""),
         val phone: TextFieldValue = TextFieldValue(""),
         val address: TextFieldValue = TextFieldValue(""),
         val note: TextFieldValue = TextFieldValue(""),
-
-        // Thêm các trạng thái để quản lý việc chỉnh sửa
-        val isNameEditing: Boolean = false,
-        val isPhoneEditing: Boolean = false,
-        val isAddressEditing: Boolean = false,
-        val nameEdited: Boolean = false,
-        val phoneEdited: Boolean = false,
-        val addressEdited: Boolean = false,
         val isUserInfoLoaded: Boolean = false
     )
-}
 
-// Events emitted by the ViewModel
-sealed class OrderEvent {
-    data class ShowError(val message: String) : OrderEvent()
-    data class OrderCreated(val orderResponse: CreateOrderResponseDomainEntity) : OrderEvent()
+    sealed class OrderEvent {
+        data class ShowError(val message: String) : OrderEvent()
+        data class OrderCreated(val response: CreateOrderResponseDomainEntity) : OrderEvent()
+    }
 }

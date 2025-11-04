@@ -2,10 +2,10 @@ package com.ptit.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
+import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.ProductRepository
-import com.ptit.domain.repository.PurchaseRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductDetailViewModel @Inject constructor(
     private val productRepository: ProductRepository,
-    private val purchaseRepository: PurchaseRepository
+    private val cartRepository: CartRepository
 ) : ViewModel() {
 
     private val _productDetailState = MutableStateFlow<ProductDetailState>(ProductDetailState.Initial)
@@ -64,21 +64,10 @@ class ProductDetailViewModel @Inject constructor(
     }
 
     // Lấy SKU dựa trên variants đã chọn
-    fun getSelectedSKU(product: ProductDomainEntity): com.ptit.domain.entity.product.SKUDomainEntity? {
-        val selectedVars = _selectedVariants.value
-
-        // Kiểm tra đã chọn đủ tất cả variants chưa
-        if (product.variants.size != selectedVars.size) {
-            return null
-        }
-
-        // Tìm SKU matching với các variants đã chọn
-        return product.skus.find { sku ->
-            val skuValues = sku.value.split("-")
-            skuValues.size == selectedVars.size &&
-                    skuValues.zip(product.variants).all { (value, variant) ->
-                        selectedVars[variant.name] == value
-                    }
+    fun getSelectedSKU(product: ProductDomainEntity): SKUDomainEntity? {
+        val selectedValues = selectedVariants.value.values
+        return product.skus.firstOrNull { sku ->
+            selectedValues.contains(sku.value)
         }
     }
 
@@ -86,7 +75,7 @@ class ProductDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _addToCartState.value = AddToCartState.Loading
 
-            when (val result = purchaseRepository.addToCart(skuValue, buyCount)) {
+            when (val result = cartRepository.addToCart(skuValue, buyCount)) {
                 is Resource.Success -> {
                     _addToCartState.value = AddToCartState.Success(result.data)
                 }
@@ -115,7 +104,7 @@ sealed class ProductDetailState {
 sealed class AddToCartState {
     object Initial : AddToCartState()
     object Loading : AddToCartState()
-    data class Success(val purchase: PurchaseDomainEntity) : AddToCartState()
+    data class Success(val purchase: Unit) : AddToCartState()
     data class Error(val message: String) : AddToCartState()
 }
 

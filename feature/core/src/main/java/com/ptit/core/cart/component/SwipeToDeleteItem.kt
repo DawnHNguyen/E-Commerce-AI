@@ -20,17 +20,17 @@ import com.ptit.common.presentation.component.SwipeRevealContainer
 import com.ptit.common.presentation.component.noRippleClickable
 import com.ptit.common.presentation.component.rememberSwipeRevealState
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.domain.entity.cart.CartItemDomainEntity
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeToDeleteCartItem(
-    purchase: PurchaseDomainEntity,
+    purchase: CartItemDomainEntity,
     isSelected: Boolean,
     onSelectionChanged: (Boolean) -> Unit,
     checkboxColors: CheckboxColors,
-    onQuantityUpdate: (String, Int) -> Unit,
+    onQuantityUpdate: (String, String, Int) -> Unit,
     onDeleteRequest: () -> Unit,
     onProductClick: (String) -> Unit = {}
 ) {
@@ -61,7 +61,6 @@ fun SwipeToDeleteCartItem(
                         .padding(vertical = 8.dp, horizontal = 12.dp)
                         .noRippleClickable {
                             onDeleteRequest()
-                            // Reset state after delete action
                             coroutineScope.launch {
                                 state.animateTo(0)
                             }

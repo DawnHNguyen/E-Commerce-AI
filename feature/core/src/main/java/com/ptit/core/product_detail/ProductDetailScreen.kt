@@ -1,5 +1,6 @@
 package com.ptit.core.product_detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,10 +38,11 @@ import com.ptit.common.R
 import com.ptit.common.presentation.*
 import com.ptit.common.presentation.component.*
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
 import com.ptit.domain.entity.product.ProductDomainEntity
-import com.ptit.domain.entity.product.SKUDomainEntity
 import com.ptit.domain.entity.product.VariantDomainEntity
 import com.ptit.presentation.viewmodel.*
+
 import kotlinx.coroutines.launch
 
 @Composable
@@ -55,7 +58,6 @@ fun ProductDetailScreen(
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
     val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()
-    val similarProductsState by viewModel.similarProductsState.collectAsStateWithLifecycle()
     val selectedVariants by viewModel.selectedVariants.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -63,11 +65,11 @@ fun ProductDetailScreen(
 
     var showAddToCartBottomSheet by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = productId) {
+    LaunchedEffect(productId) {
         viewModel.getProductDetail(productId)
     }
 
-    LaunchedEffect(key1 = addToCartState) {
+    LaunchedEffect(addToCartState) {
         when (addToCartState) {
             is AddToCartState.Success -> {
                 scope.launch {
@@ -100,12 +102,9 @@ fun ProductDetailScreen(
                             viewModel.updateSelectedVariant(variantName, optionValue)
                         },
                         selectedSKU = viewModel.getSelectedSKU(state.product),
-                        similarProductsState = similarProductsState,
                         onBackClick = onBackClick,
                         onCartClick = onCartClick,
-                        onAddToCartClick = {
-                            showAddToCartBottomSheet = true
-                        },
+                        onAddToCartClick = { showAddToCartBottomSheet = true },
                         isAddingToCart = addToCartState is AddToCartState.Loading,
                         onProductItemClick = onProductItemClick
                     )
@@ -120,8 +119,11 @@ fun ProductDetailScreen(
                             },
                             isShowBottomSheet = showAddToCartBottomSheet,
                             onDismiss = { showAddToCartBottomSheet = false },
-                            onAddToCart = { skuValue, quantity ->
-                                viewModel.addToCart(skuValue, quantity)
+                            onAddToCart = { _, quantity ->
+                                val selectedSKU = viewModel.getSelectedSKU(state.product)
+                                selectedSKU?.let {
+                                    viewModel.addToCart(it.id, quantity)  // ✅ gửi sku.id
+                                }
                             }
                         )
                     }
@@ -166,8 +168,8 @@ fun ProductDetailContent(
     product: ProductDomainEntity,
     selectedVariants: Map<String, String>,
     onVariantSelected: (String, String) -> Unit,
-    selectedSKU: SKUDomainEntity?,
-    similarProductsState: SimilarProductsState,
+    selectedSKU: com.ptit.domain.entity.product.SKUDomainEntity?,
+
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
@@ -179,6 +181,7 @@ fun ProductDetailContent(
             .verticalScroll(rememberScrollState())
             .background(colorResource(id = R.color.colorSystem_background_level_0))
     ) {
+        // 🖼️ Ảnh sản phẩm
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -211,12 +214,10 @@ fun ProductDetailContent(
                     }
                 }
 
-                // Hiển thị ảnh từ SKU đã chọn hoặc ảnh mặc định
                 val displayImages = if (selectedSKU != null && selectedSKU.image.isNotEmpty()) {
                     listOf(selectedSKU.image)
                 } else {
                     product.images.ifEmpty {
-                        // Fallback: nếu không có images, tìm ảnh từ SKU đầu tiên hoặc dùng ảnh mặc định
                         product.skus.firstOrNull()?.image?.let { listOf(it) } ?: emptyList()
                     }
                 }
@@ -266,11 +267,8 @@ fun ProductDetailContent(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        // 🧾 Thông tin sản phẩm
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
                 text = product.name,
                 style = CustomTypography.TextSemiBold.merge(
@@ -290,7 +288,6 @@ fun ProductDetailContent(
                     tint = colorResource(id = R.color.colorSystem_tint_yellow),
                     modifier = Modifier.padding(end = 4.dp)
                 )
-
                 Text(
                     text = product.rating.toString(),
                     style = CustomTypography.TextRegular.merge(
@@ -298,9 +295,7 @@ fun ProductDetailContent(
                         fontSize = 14.sp
                     )
                 )
-
                 Spacer(modifier = Modifier.weight(0.1f))
-
                 Text(
                     text = "Đã bán: ${product.sold}",
                     style = CustomTypography.TextRegular.merge(
@@ -312,14 +307,13 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Hiển thị giá từ SKU đã chọn hoặc giá base
             val displayPrice = selectedSKU?.price ?: product.basePrice
             val virtualPrice = product.virtualPrice ?: 0
             val hasDiscount = virtualPrice > displayPrice && virtualPrice > 0
 
             MaxWidthRow(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${displayPrice}đ",
+                    text = displayPrice.toPriceFormat(),
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(id = R.color.colorSystem_heading_button),
                         fontSize = 18.sp
@@ -327,19 +321,16 @@ fun ProductDetailContent(
                 )
 
                 if (hasDiscount) {
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "${virtualPrice}đ",
+                        text = virtualPrice.toPriceFormat(),
                         style = CustomTypography.TextRegular.merge(
                             color = Color.Gray,
                             fontSize = 14.sp,
                             textDecoration = TextDecoration.LineThrough
                         )
                     )
-
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-
+                    Spacer(modifier = Modifier.width(8.dp))
                     val discountPercent = ((virtualPrice - displayPrice) * 100 / virtualPrice)
                     Text(
                         text = "-${discountPercent}%",
@@ -359,19 +350,16 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Hiển thị variants
+            // 🧩 Variants
             product.variants.forEach { variant ->
                 VariantSelector(
                     variant = variant,
                     selectedOption = selectedVariants[variant.name],
-                    onOptionSelected = { option ->
-                        onVariantSelected(variant.name, option)
-                    }
+                    onOptionSelected = { option -> onVariantSelected(variant.name, option) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Hiển thị stock khi đã chọn đủ variants
             if (selectedVariants.size == product.variants.size) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -389,55 +377,175 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = colorResource(id = R.color.colorSystem_background_level_2)
-                )
-            ) {
-                MaxWidthRow(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Shop",
-                        tint = colorResource(id = R.color.colorSystem_heading_button),
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    Text(
-                        text = product.shop?.name ?: "Unknown Shop",
-                        style = CustomTypography.TextMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            /// 🏬 Thông tin Shop (Chi tiết như Shopee)
             Text(
-                text = "Mô tả sản phẩm",
+                text = "Thông tin Shop",
                 style = CustomTypography.TextSemiBold.merge(
                     color = colorResource(id = R.color.colorSystem_heading_button),
                     fontSize = 16.sp
                 )
             )
-
             Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = colorResource(id = R.color.colorSystem_background_level_2)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // 🏠 Tên shop
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Shop",
+                            tint = colorResource(id = R.color.colorSystem_heading_button),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = product.shop?.name ?: "Cool Crew",
+                            style = CustomTypography.TextSemiBold.merge(
+                                color = colorResource(id = R.color.colorSystem_heading_button),
+                                fontSize = 16.sp
+                            )
+                        )
+                    }
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 📊 Thông tin shop
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ShopInfoItem(label = "3.7k", value = "Đánh giá")
+                        ShopInfoItem(label = "86", value = "Sản phẩm")
+                        ShopInfoItem(label = "5,500", value = "Người theo dõi")
+                        ShopInfoItem(label = "100%", value = "Tỉ lệ phản hồi")
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 🔘 Nút hành động
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Chat ngay (màu xanh lá)
+                        OutlinedButton(
+                            onClick = { /* TODO: mở chat */ },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = colorResource(id = R.color.colorSystem_heading_button)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Chat ngay",
+                                style = CustomTypography.TextMedium.merge(
+                                    color = colorResource(id = R.color.colorSystem_heading_button)
+                                )
+                            )
+                        }
+
+                        // Xem shop
+                        Button(
+                            onClick = { /* TODO: mở shop */ },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colorResource(id = R.color.colorSystem_heading_button),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Xem Shop", style = CustomTypography.TextMedium)
+                        }
+                    }
+                }
+            }
+
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ✅ Phần mới — Chi tiết sản phẩm
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = product.description,
-                style = CustomTypography.TextRegular.merge(
-                    color = colorResource(id = R.color.colorSystem_normal_text),
-                    lineHeight = 20.sp
+                text = "Chi tiết sản phẩm",
+                style = CustomTypography.TextSemiBold.merge(
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    fontSize = 16.sp
                 )
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = colorResource(id = R.color.colorSystem_background_level_2),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(12.dp)
+            ) {
+                DetailRow(label = "Danh mục", value = product.category?.name ?: "Chưa có")
+                DetailRow(label = "Thương hiệu", value = product.brand?.name ?: "Chưa có")
+                DetailRow(label = "Dòng sản phẩm", value = product.name)
+            }
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ⭐ Đánh giá sản phẩm
+            Text(
+                text = "Đánh giá sản phẩm",
+                style = CustomTypography.TextSemiBold.merge(
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    fontSize = 16.sp
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "0.0 trên 5",
+                        style = CustomTypography.TextSemiBold.merge(
+                            color = colorResource(id = R.color.colorSystem_heading_button),
+                            fontSize = 18.sp
+                        )
+                    )
+                    Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                        repeat(5) {
+                            Icon(
+                                imageVector = Icons.Outlined.StarRate,
+                                contentDescription = null,
+                                tint = colorResource(id = R.color.colorSystem_stroke)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Chưa có đánh giá nào",
+                        style = CustomTypography.TextRegular.merge(
+                            color = colorResource(id = R.color.colorSystem_normal_text),
+                            fontSize = 14.sp
+                        )
+                    )
+                }
+            }
+
         }
     }
 
+
+    // 🛒 Nút thêm giỏ hàng
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -449,8 +557,7 @@ fun ProductDetailContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val canAddToCart = selectedVariants.size == product.variants.size &&
-                    selectedSKU != null &&
-                    selectedSKU.stock > 0
+                    selectedSKU != null && selectedSKU.stock > 0
 
             FilledButton(
                 modifier = Modifier.weight(1f),
@@ -459,6 +566,32 @@ fun ProductDetailContent(
                 enabled = !isAddingToCart && canAddToCart
             )
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = CustomTypography.TextMedium.merge(
+                color = colorResource(id = R.color.colorSystem_normal_text),
+                fontSize = 14.sp
+            ),
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = CustomTypography.TextRegular.merge(
+                color = colorResource(id = R.color.colorSystem_heading_button),
+                fontSize = 14.sp
+            ),
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Start
+        )
     }
 }
 
@@ -476,12 +609,8 @@ fun VariantSelector(
                 fontSize = 14.sp
             )
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(variant.options) { option ->
                 VariantOption(
                     option = option,
@@ -531,3 +660,24 @@ fun VariantOption(
         )
     }
 }
+
+@Composable
+fun ShopInfoItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = CustomTypography.TextSemiBold.merge(
+                color = colorResource(id = R.color.colorSystem_heading_button),
+                fontSize = 14.sp
+            )
+        )
+        Text(
+            text = value,
+            style = CustomTypography.TextRegular.merge(
+                color = colorResource(id = R.color.colorSystem_normal_text),
+                fontSize = 12.sp
+            )
+        )
+    }
+}
+

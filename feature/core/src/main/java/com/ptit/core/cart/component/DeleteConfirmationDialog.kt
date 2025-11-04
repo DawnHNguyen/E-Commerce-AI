@@ -58,9 +58,7 @@ fun DeleteConfirmationDialog(
         dismissButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Red
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
@@ -99,7 +97,6 @@ fun HandleDialogs(
                 onDismiss = onDismiss
             )
         }
-        DialogState.Hidden -> { /* No dialog to show */ }
-        else -> {}
+        DialogState.Hidden -> {}
     }
 }

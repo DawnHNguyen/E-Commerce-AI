@@ -8,10 +8,15 @@ import okhttp3.Response
 class HeaderAuthorizationInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val mmkv = MMKV.defaultMMKV()
-        val jwt = mmkv.decodeString(SecureStorageKey.ACCESS_TOKEN, "nothing")
+        val jwt = mmkv.decodeString(SecureStorageKey.ACCESS_TOKEN, null)
 
-        val request = chain.request().newBuilder()
-        request.addHeader("Authorization", "Bearer $jwt")
-        return chain.proceed(request.build())
+        val requestBuilder = chain.request().newBuilder()
+        if (!jwt.isNullOrBlank()) {
+            requestBuilder.addHeader("Authorization", "Bearer $jwt")
+        } else {
+            println("⚠️ No access token found, skip Authorization header")
+        }
+
+        return chain.proceed(requestBuilder.build())
     }
 }

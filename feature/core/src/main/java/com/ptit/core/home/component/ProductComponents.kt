@@ -36,6 +36,7 @@ import com.ptit.common.presentation.MaxWidthColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 
@@ -101,7 +102,7 @@ internal fun ProductItem(
                 )
 
                 Text(
-                    text = "${product.basePrice}đ",
+                    text = product.basePrice.toPriceFormat(),
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(R.color.colorSystem_heading_button),
                         fontSize = 14.sp

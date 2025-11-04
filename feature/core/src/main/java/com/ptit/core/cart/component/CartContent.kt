@@ -13,30 +13,28 @@ import androidx.compose.ui.unit.dp
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.CustomPullToRefreshBox
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.domain.entity.cart.CartItemDomainEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartContent(
-    purchases: List<PurchaseDomainEntity>,
+    purchases: List<CartItemDomainEntity>,
     onRefresh: () -> Unit,
     isLoading: Boolean,
     onBack: () -> Unit,
-    onUpdateQuantity: (String, Int) -> Unit,
-    onDeleteSingleItem: (PurchaseDomainEntity) -> Unit,
+    onUpdateQuantity: (String, String, Int) -> Unit,
+    onDeleteSingleItem: (CartItemDomainEntity) -> Unit,
     onDeleteMultipleItems: (Set<String>) -> Unit,
-    onCheckout: (Set<String>) -> Unit, // Modified to pass IDs only
+    onCheckout: (Set<String>) -> Unit,
     onProductClick: (String) -> Unit = {}
 ) {
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var isAllSelected by remember(purchases) { mutableStateOf(false) }
 
-    // Calculate total price based on selected items
     val totalPrice = purchases
         .filter { selectedItemIds.contains(it.id) }
-        .sumOf { it.price * it.buyCount }
+        .sumOf { it.sku?.price?.times(it.quantity) ?: 0 }
 
-    // Custom checkbox colors
     val customCheckboxColors = CheckboxDefaults.colors(
         checkedColor = colorResource(R.color.colorSystem_heading_button),
         uncheckedColor = colorResource(R.color.colorSystem_greyscale_300),
@@ -51,53 +49,44 @@ fun CartContent(
         MaxSizeColumn(
             modifier = Modifier.background(colorResource(R.color.colorSystem_background_level_0))
         ) {
-            // Top app bar
             CartTopBar(onBack = onBack)
 
             if (purchases.isEmpty()) {
                 EmptyCartMessage()
             } else {
-                // Cart items list
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    items(purchases, key = { it.id }) { purchase ->
+                    items(purchases, key = { it.id }) { item ->
                         SwipeToDeleteCartItem(
-                            purchase = purchase,
-                            isSelected = selectedItemIds.contains(purchase.id),
+                            purchase = item,
+                            isSelected = selectedItemIds.contains(item.id),
                             onSelectionChanged = { isSelected ->
-                                selectedItemIds = if (isSelected) {
-                                    selectedItemIds + purchase.id
-                                } else {
-                                    selectedItemIds - purchase.id
-                                }
+                                selectedItemIds = if (isSelected)
+                                    selectedItemIds + item.id
+                                else selectedItemIds - item.id
                             },
                             checkboxColors = customCheckboxColors,
                             onQuantityUpdate = onUpdateQuantity,
-                            onDeleteRequest = { onDeleteSingleItem(purchase) },
+                            onDeleteRequest = { onDeleteSingleItem(item) },
                             onProductClick = onProductClick
                         )
                     }
                 }
             }
 
-            // Bottom payment bar
             CartBottomBar(
                 totalPrice = totalPrice,
                 isAllSelected = isAllSelected,
                 onSelectAllChanged = { checked ->
                     isAllSelected = checked
-                    selectedItemIds = if (checked) {
-                        purchases.map { it.id }.toSet()
-                    } else {
-                        emptySet()
-                    }
+                    selectedItemIds = if (checked) purchases.map { it.id }.toSet() else emptySet()
                 },
                 hasSelectedItems = selectedItemIds.isNotEmpty(),
                 onDeleteSelected = { onDeleteMultipleItems(selectedItemIds) },
-                onCheckout = { onCheckout(selectedItemIds) }, // Pass just the IDs
+                onCheckout = { onCheckout(selectedItemIds) },
                 checkboxColors = customCheckboxColors
             )
         }

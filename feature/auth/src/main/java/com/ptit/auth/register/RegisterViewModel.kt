@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.utils.BadRequestException
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.map
 import com.ptit.domain.utils.onError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -18,9 +19,11 @@ import javax.inject.Inject
 class RegisterViewModel @Inject constructor(
     private val repository: AuthRepository,
 ) : ViewModel() {
+
     private val _uiModel = MutableStateFlow(RegisterUiModel())
     val uiModel = _uiModel.asStateFlow()
 
+    // Resource<Unit> cho state đơn giản
     private val _registerState = MutableStateFlow<Resource<Unit>>(Resource.idle())
     val registerState = _registerState.asStateFlow()
 
@@ -91,17 +94,13 @@ class RegisterViewModel @Inject constructor(
 
     fun toggleShowPassword() {
         _uiModel.update {
-            it.copy(
-                isShowPassword = it.isShowPassword.not(),
-            )
+            it.copy(isShowPassword = !it.isShowPassword)
         }
     }
 
     fun toggleShowConfirmPassword() {
         _uiModel.update {
-            it.copy(
-                isShowConfirmPassword = it.isShowConfirmPassword.not(),
-            )
+            it.copy(isShowConfirmPassword = !it.isShowConfirmPassword)
         }
     }
 
@@ -122,19 +121,20 @@ class RegisterViewModel @Inject constructor(
     }
 
     private fun validatePhoneNumber(phoneNumber: String): Boolean {
-        // Validate phone number Vietnam format (10-11 digits, starts with 0)
-        return phoneNumber.isNotBlank() &&
-                phoneNumber.matches(Regex("^0\\d{9,10}$"))
+        // Việt Nam: bắt đầu bằng 0, 10-11 chữ số
+        return phoneNumber.isNotBlank() && phoneNumber.matches(Regex("^0\\d{9,10}$"))
     }
 
     fun register() {
         if (registerState.value is Resource.Loading) return
         _registerState.value = Resource.loading()
+
         val email = uiModel.value.email
         val password = uiModel.value.password
         val confirmPassword = uiModel.value.confirmPassword
         val name = uiModel.value.name
         val phoneNumber = uiModel.value.phoneNumber
+
         val isValidEmail = validateEmail(email)
         val isValidPassword = validatePassword(password)
         val isValidConfirmPassword = validateConfirmPassword(password, confirmPassword)
@@ -148,27 +148,34 @@ class RegisterViewModel @Inject constructor(
                 isValidConfirmPassword = isValidConfirmPassword,
                 isValidName = isValidName,
                 isValidPhoneNumber = isValidPhoneNumber,
-                emailErrorType = if (isValidEmail) RegisterUiModel.EmailErrorType.NONE else RegisterUiModel.EmailErrorType.INVALID_EMAIL,
+                emailErrorType = if (isValidEmail) RegisterUiModel.EmailErrorType.NONE
+                else RegisterUiModel.EmailErrorType.INVALID_EMAIL,
             )
         }
+
         if (uiModel.value.isValid.value) {
             viewModelScope.launch(Dispatchers.IO) {
                 val response = repository.register(
                     email = email,
                     password = password,
+                    confirmPassword = confirmPassword,
                     name = name,
                     phoneNumber = phoneNumber,
-                    confirmPassword = confirmPassword,
-                ).onError {
-                    if (it.error?.message?.contains("email") == true) {
-                        _uiModel.update {
-                            it.copy(
-                                isValidEmail = false,
-                                emailErrorType = RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS,
-                            )
+                )
+                    .onError { exception ->
+                        // ⚠️ exception là CustomException, không có field error
+                        val msg = exception.message ?: ""
+                        if ("email" in msg) {
+                            _uiModel.update {
+                                it.copy(
+                                    isValidEmail = false,
+                                    emailErrorType = RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS,
+                                )
+                            }
                         }
                     }
-                }
+                    // Map từ RegisterUser → Unit
+                    .map { Unit }
 
                 _registerState.update { response }
             }

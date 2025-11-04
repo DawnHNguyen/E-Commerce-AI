@@ -3,11 +3,9 @@ package com.ptit.core.order
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,9 +24,8 @@ import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.core.order.components.SharedOrderItemRow
+import com.ptit.core.order.components.SharedCartItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
-import com.ptit.domain.entity.order.OrderDomainEntity
 import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
 
@@ -41,50 +38,46 @@ fun CreateOrderScreen(
     onOrderCreated: (String) -> Unit
 ) {
     LocalBottomNavigationVisibility.current.value = false
-    // Initialize the viewModel with the selected item IDs
-    LaunchedEffect(selectedItemIds) {
-        println("CreateOrderScreen received ${selectedItemIds.size} item IDs: $selectedItemIds")
-        viewModel.setSelectedItemIds(selectedItemIds)
-    }
 
     val orderState by viewModel.orderState.collectAsState()
     val userProfileState by viewModel.userProfileState.collectAsState()
-    val selectedItems = orderState.selectedItems
-
-    // Calculate pricing info
-    val subtotal = selectedItems.sumOf { it.price * it.buyCount }
-    val shippingFee = 30000
-    val totalPrice = subtotal + shippingFee
-
-    // Show success or error messages
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // 🔹 Khi nhận danh sách cartItemIds từ CartScreen hoặc BuyNow flow
+    LaunchedEffect(selectedItemIds) {
+        viewModel.setSelectedItemIds(selectedItemIds)
+    }
+
+    // 🔹 Lắng nghe sự kiện (hiển thị toast/snackbar)
     LaunchedEffect(Unit) {
         viewModel.orderEvents.collectLatest { event ->
             when (event) {
-                is OrderEvent.ShowError -> {
-                    println("Error event: ${event.message}")
+                is CreateOrderViewModel.OrderEvent.ShowError -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-                is OrderEvent.OrderCreated -> {
-                    println("Order created: ${event.orderResponse.orderId}")
+                is CreateOrderViewModel.OrderEvent.OrderCreated -> {
+                    val firstOrderId = event.response.orders.firstOrNull()?.id ?: ""
                     snackbarHostState.showSnackbar("Đặt hàng thành công!")
-                    onOrderCreated(event.orderResponse.orderId)
+                    onOrderCreated(firstOrderId)
                 }
             }
         }
     }
 
-    // Show loading indicator when loading user profile or order items
+    // 🔹 Hiển thị loading overlay
     if (orderState.isLoading || userProfileState is Resource.Loading) {
         FullScreenProgressBar()
         return
     }
 
+    // 🔹 Hiển thị lỗi toàn cục
     if (orderState.error != null) {
-        // Show error message
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Error: ${orderState.error}", color = MaterialTheme.colorScheme.error)
+            Text(
+                "Lỗi: ${orderState.error}",
+                color = MaterialTheme.colorScheme.error,
+                style = CustomTypography.TextMedium
+            )
         }
     }
 
@@ -112,20 +105,20 @@ fun CreateOrderScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorResource(id = R.color.colorSystem_heading_button),
-                    titleContentColor = colorResource(id = R.color.colorSystem_greyscale_0_white)
+                    containerColor = colorResource(R.color.colorSystem_heading_button),
+                    titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white)
                 )
             )
         }
     ) { paddingValues ->
         MaxSizeColumn(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(paddingValues)
                 .background(colorResource(R.color.colorSystem_background_level_0))
         ) {
-            // Debug indicator for empty items
-            if (selectedItems.isEmpty()) {
+            val selectedShops = orderState.selectedShops
+
+            if (selectedShops.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,13 +130,12 @@ fun CreateOrderScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        "Loading items... IDs received: ${selectedItemIds.size}",
+                        "Chưa có sản phẩm nào. IDs nhận: ${selectedItemIds.joinToString()}",
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
 
-            // Content
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -151,7 +143,9 @@ fun CreateOrderScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Shipping Information
+                // ---------------------------
+                // 🧍‍♀️ Thông tin người nhận
+                // ---------------------------
                 item {
                     ShippingInformationSection(
                         name = orderState.name,
@@ -160,31 +154,22 @@ fun CreateOrderScreen(
                         onNameChange = viewModel::updateName,
                         onPhoneChange = viewModel::updatePhone,
                         onAddressChange = viewModel::updateAddress,
-                        isNameEditing = orderState.isNameEditing,
-                        isPhoneEditing = orderState.isPhoneEditing,
-                        isAddressEditing = orderState.isAddressEditing,
-                        toggleNameEditing = viewModel::toggleNameEditing,
-                        togglePhoneEditing = viewModel::togglePhoneEditing,
-                        toggleAddressEditing = viewModel::toggleAddressEditing,
                         isUserInfoLoaded = orderState.isUserInfoLoaded
                     )
                 }
 
-                // Order Details
-                item {
-                    Text(
-                        text = "Chi tiết đơn hàng",
-                        style = CustomTypography.TextBold,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
+                // ---------------------------
+                // 🏪 Danh sách sản phẩm theo từng shop
+                // ---------------------------
+                selectedShops.forEach { shop ->
+                    item {
+                        ShopOrderSection(shop.shopName ?: "Cửa hàng", shop.cartItems)
+                    }
                 }
 
-                // Order Items
-                items(selectedItems) { purchase ->
-                    SharedOrderItemRow(purchase = purchase)
-                }
-
-                // Note Section
+                // ---------------------------
+                // 📝 Ghi chú
+                // ---------------------------
                 item {
                     OrderNoteSection(
                         note = orderState.note,
@@ -192,18 +177,29 @@ fun CreateOrderScreen(
                     )
                 }
 
-                // Total amount
+                // ---------------------------
+                // 💰 Tổng tiền
+                // ---------------------------
+                val subtotal = selectedShops.sumOf { shop ->
+                    shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
+                }
+                val shippingFee = 30000
+                val total = subtotal + shippingFee
+
                 item {
-                    SharedTotalAmountSection(subtotal = subtotal, shippingFee = shippingFee, totalPrice = totalPrice)
+                    SharedTotalAmountSection(
+                        subtotal = subtotal,
+                        shippingFee = shippingFee,
+                        totalPrice = total
+                    )
                 }
 
-                // Spacer at the bottom for better layout
-                item {
-                    Spacer(modifier = Modifier.height(60.dp))
-                }
+                item { Spacer(modifier = Modifier.height(60.dp)) }
             }
 
-            // Bottom Bar with Place Order Button
+            // ---------------------------
+            // 🧾 Nút “Đặt hàng”
+            // ---------------------------
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,13 +210,41 @@ fun CreateOrderScreen(
                     text = "Đặt hàng",
                     onClick = { viewModel.createOrder() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !orderState.isLoading && selectedItems.isNotEmpty()
+                    enabled = !orderState.isLoading && orderState.selectedShops.isNotEmpty()
                 )
             }
         }
     }
 }
 
+/**
+ * 🏪 Hiển thị danh sách sản phẩm trong 1 shop
+ */
+@Composable
+fun ShopOrderSection(shopName: String, cartItems: List<com.ptit.domain.entity.cart.CartItemDomainEntity>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(colorResource(R.color.colorSystem_background_level_2))
+            .padding(12.dp)
+    ) {
+        Text(
+            text = shopName,
+            style = CustomTypography.TextSemiBold,
+            color = colorResource(R.color.colorSystem_heading_button)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        cartItems.forEach { item ->
+            SharedCartItemRow(cartItem = item)
+        }
+    }
+}
+
+/**
+ * 📦 Thông tin vận chuyển (người nhận)
+ */
 @Composable
 fun ShippingInformationSection(
     name: TextFieldValue,
@@ -229,12 +253,6 @@ fun ShippingInformationSection(
     onNameChange: (TextFieldValue) -> Unit,
     onPhoneChange: (TextFieldValue) -> Unit,
     onAddressChange: (TextFieldValue) -> Unit,
-    isNameEditing: Boolean,
-    isPhoneEditing: Boolean,
-    isAddressEditing: Boolean,
-    toggleNameEditing: () -> Unit,
-    togglePhoneEditing: () -> Unit,
-    toggleAddressEditing: () -> Unit,
     isUserInfoLoaded: Boolean
 ) {
     Column(
@@ -243,7 +261,7 @@ fun ShippingInformationSection(
             .clip(RoundedCornerShape(16.dp))
             .background(colorResource(R.color.colorSystem_background_level_2))
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Thông tin vận chuyển",
@@ -251,137 +269,26 @@ fun ShippingInformationSection(
             color = colorResource(R.color.colorSystem_heading_button)
         )
 
-        // Họ tên
-        if (isNameEditing || !isUserInfoLoaded || name.text.isEmpty()) {
-            FilledTextField(
-                value = name,
-                hint = "Họ tên đầy đủ",
-                onValueChange = onNameChange,
-                modifier = Modifier.fillMaxWidth(),
-                trailingContent = {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Họ tên",
-                        style = CustomTypography.TextRegular,
-                        fontSize = 12.sp,
-                        color = colorResource(R.color.colorSystem_normal_text)
-                    )
-                    Text(
-                        text = name.text,
-                        style = CustomTypography.TextMedium,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-                IconButton(onClick = toggleNameEditing) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            }
-        }
+        FilledTextField(
+            value = name,
+            hint = "Họ tên đầy đủ",
+            onValueChange = onNameChange,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        // Số điện thoại
-        if (isPhoneEditing || !isUserInfoLoaded || phone.text.isEmpty()) {
-            FilledTextField(
-                value = phone,
-                hint = "Số điện thoại",
-                onValueChange = onPhoneChange,
-                modifier = Modifier.fillMaxWidth(),
-                trailingContent = {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Số điện thoại",
-                        style = CustomTypography.TextRegular,
-                        fontSize = 12.sp,
-                        color = colorResource(R.color.colorSystem_normal_text)
-                    )
-                    Text(
-                        text = phone.text,
-                        style = CustomTypography.TextMedium,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-                IconButton(onClick = togglePhoneEditing) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            }
-        }
+        FilledTextField(
+            value = phone,
+            hint = "Số điện thoại",
+            onValueChange = onPhoneChange,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        // Địa chỉ
-        if (isAddressEditing || !isUserInfoLoaded || address.text.isEmpty()) {
-            FilledTextField(
-                value = address,
-                hint = "Địa chỉ",
-                onValueChange = onAddressChange,
-                modifier = Modifier.fillMaxWidth(),
-                trailingContent = {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Địa chỉ",
-                        style = CustomTypography.TextRegular,
-                        fontSize = 12.sp,
-                        color = colorResource(R.color.colorSystem_normal_text)
-                    )
-                    Text(
-                        text = address.text,
-                        style = CustomTypography.TextMedium,
-                        color = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-                IconButton(onClick = toggleAddressEditing) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = colorResource(R.color.colorSystem_heading_button)
-                    )
-                }
-            }
-        }
+        FilledTextField(
+            value = address,
+            hint = "Địa chỉ giao hàng",
+            onValueChange = onAddressChange,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Text(
             text = "Phí vận chuyển: 30.000 đ",
@@ -392,6 +299,9 @@ fun ShippingInformationSection(
     }
 }
 
+/**
+ * 📝 Ghi chú đơn hàng
+ */
 @Composable
 fun OrderNoteSection(
     note: TextFieldValue,
@@ -406,7 +316,7 @@ fun OrderNoteSection(
     ) {
         FilledTextField(
             value = note,
-            hint = "Ghi chú cho shop",
+            hint = "Ghi chú cho shop (nếu có)",
             onValueChange = onNoteChange,
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,

@@ -4,6 +4,7 @@ import com.ptit.data.remote.dto.auth.LoginRequest
 import com.ptit.data.remote.dto.auth.LoginResponse
 import com.ptit.data.remote.dto.auth.RefreshTokenRequest
 import com.ptit.data.remote.dto.auth.RegisterRequest
+import com.ptit.data.remote.dto.auth.RegisterResponse
 import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -17,7 +18,7 @@ interface AuthApi {
     @POST("/auth/register")
     suspend fun register(
         @Body registerRequest: RegisterRequest,
-    ): Resource<LoginResponse>
+    ): Resource<RegisterResponse>
 
     @POST("/auth/logout")
     suspend fun logout(

@@ -30,11 +30,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.component.*
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
 import com.ptit.domain.entity.product.ProductDomainEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -229,14 +229,14 @@ fun ProductItem(
 
                 Column {
                     Text(
-                        text = "${product.basePrice}đ",
+                        text = product.basePrice.toPriceFormat(),
                         style = CustomTypography.TextSemiBold,
                         fontSize = 15.sp,
                         color = colorResource(id = R.color.colorSystem_tint_red)
                     )
                     if (product.hasDiscount && product.virtualPrice != null) {
                         Text(
-                            text = "${product.virtualPrice}đ",
+                            text = product.virtualPrice!!.toPriceFormat(),
                             style = CustomTypography.TextRegular.copy(
                                 textDecoration = TextDecoration.LineThrough,
                                 fontSize = 12.sp,

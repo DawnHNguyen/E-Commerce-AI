@@ -1,26 +1,24 @@
 package com.ptit.domain.repository
 
+import com.ptit.domain.entity.order.CancelOrderResponseDomainEntity
+import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
+import com.ptit.domain.entity.order.GetOrderListDomainEntity
 import com.ptit.domain.entity.order.OrderDomainEntity
 import com.ptit.domain.utils.Resource
 
 interface OrderRepository {
-    suspend fun createOrder(
-        purchaseIds: List<String>,
-        fullName: String,
-        phone: String,
-        address: String,
-        note: String = "",
-        totalAmount: Int,
-        shippingFee: Int
-    ): Resource<CreateOrderResponseDomainEntity>
-
-    suspend fun getOrders(): Resource<List<OrderDomainEntity>>
+    suspend fun getOrders(
+        page: Int? = 1,
+        limit: Int? = 10,
+        status: String? = null
+    ): Resource<GetOrderListDomainEntity>
 
     suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity>
 
-    suspend fun payOrder(
-        orderId: String,
-        tokenId: String
-    ): Resource<Unit>
+    suspend fun createOrder(
+        requests: List<CreateOrderRequestDomainEntity>
+    ): Resource<CreateOrderResponseDomainEntity>
+
+    suspend fun cancelOrder(orderId: String): Resource<CancelOrderResponseDomainEntity>
 }
