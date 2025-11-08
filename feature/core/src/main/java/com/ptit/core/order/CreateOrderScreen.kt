@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,8 +24,13 @@ import com.ptit.common.presentation.component.FilledTextField
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
+import com.ptit.core.order.components.CustomerInformationSection
 import com.ptit.core.order.components.SharedCartItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
+import com.ptit.core.order.components.ShippingAddressSection
+import com.ptit.core.order.components.VoucherBottomSheet
+import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
 
@@ -33,6 +38,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun CreateOrderScreen(
     selectedItemIds: List<String>,
+    groupedCartItems: List<CartItemDetailDomainEntity>,
     viewModel: CreateOrderViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onOrderCreated: (String) -> Unit
@@ -42,10 +48,13 @@ fun CreateOrderScreen(
     val orderState by viewModel.orderState.collectAsState()
     val userProfileState by viewModel.userProfileState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val addressState by viewModel.addressState.collectAsState()
+    var showVoucherBottomSheet by remember { mutableStateOf(false) }
 
     // 🔹 Khi nhận danh sách cartItemIds từ CartScreen hoặc BuyNow flow
-    LaunchedEffect(selectedItemIds) {
-        viewModel.setSelectedItemIds(selectedItemIds)
+    LaunchedEffect(selectedItemIds, groupedCartItems) { // 🔴 SỬA: Thêm groupedCartItems vào key
+        // 🔴 SỬA: Gọi hàm mới, lọc dữ liệu local
+        viewModel.setSelectedItems(selectedItemIds, groupedCartItems)
     }
 
     // 🔹 Lắng nghe sự kiện (hiển thị toast/snackbar)
@@ -91,14 +100,14 @@ fun CreateOrderScreen(
                             "Tạo đơn hàng",
                             style = CustomTypography.TextBold.copy(fontSize = 20.sp),
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.align(Alignment.Center)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = colorResource(R.color.colorSystem_greyscale_0_white)
                         )
@@ -144,20 +153,59 @@ fun CreateOrderScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // ---------------------------
-                // 🧍‍♀️ Thông tin người nhận
+                // 0. 🏷️ HÀNG VOUCHER
                 // ---------------------------
                 item {
-                    ShippingInformationSection(
+                    VoucherSelectorRow(
+                        onClick = { showVoucherBottomSheet = true }
+                    )
+                }
+                // ---------------------------
+                // 1. 🧍‍♀️ Thông tin khách hàng (Customer Information)
+                // ---------------------------
+                item {
+                    // 🔴 THAY THẾ: Sử dụng component CustomerInformationSection mới
+                    CustomerInformationSection(
                         name = orderState.name,
-                        phone = orderState.phone,
-                        address = orderState.address,
-                        onNameChange = viewModel::updateName,
-                        onPhoneChange = viewModel::updatePhone,
-                        onAddressChange = viewModel::updateAddress,
-                        isUserInfoLoaded = orderState.isUserInfoLoaded
+                        email = orderState.email,
+                        phone = orderState.phone
                     )
                 }
 
+                // ---------------------------
+                // 2. 📦 Thông tin nhận hàng (Shipping Address - GHN)
+                // ---------------------------
+                item {
+                    // 🔴 THAY THẾ: Sử dụng component ShippingAddressSection mới
+                    ShippingAddressSection(
+                        // Thông tin người nhận
+                        receiverName = orderState.name,
+                        receiverPhone = orderState.phone,
+                        onNameChange = viewModel::updateName,
+                        onPhoneChange = viewModel::updatePhone,
+
+                        // Dữ liệu GHN
+                        provinces = addressState.provinces,
+                        districts = addressState.districts,
+                        wards = addressState.wards,
+                        selectedProvince = addressState.selectedProvince,
+                        selectedDistrict = addressState.selectedDistrict,
+                        selectedWard = addressState.selectedWard,
+
+                        // 🔴 THÊM: Loading states (Dựa trên ViewModel đã sửa)
+                        provincesLoading = addressState.provincesLoading,
+                        districtsLoading = addressState.districtsLoading,
+                        wardsLoading = addressState.wardsLoading,
+
+                        onSelectProvince = viewModel::selectProvince,
+                        onSelectDistrict = viewModel::selectDistrict,
+                        onSelectWard = viewModel::selectWard,
+
+                        // Địa chỉ cụ thể
+                        detailAddress = orderState.address,
+                        onDetailAddressChange = viewModel::updateAddress
+                    )
+                }
                 // ---------------------------
                 // 🏪 Danh sách sản phẩm theo từng shop
                 // ---------------------------
@@ -188,14 +236,27 @@ fun CreateOrderScreen(
 
                 item {
                     SharedTotalAmountSection(
-                        subtotal = subtotal,
-                        shippingFee = shippingFee,
-                        totalPrice = total
+                        subtotal = subtotal.toPriceFormat(),
+                        shippingFee = shippingFee.toPriceFormat(),
+                        totalPrice = total.toPriceFormat()
                     )
                 }
 
                 item { Spacer(modifier = Modifier.height(60.dp)) }
             }
+            VoucherBottomSheet(
+                isVisible = showVoucherBottomSheet,
+                onDismiss = { showVoucherBottomSheet = false },
+                onConfirm = {
+                    // TODO: Xử lý logic xác nhận voucher và áp dụng giảm giá
+                    showVoucherBottomSheet = false
+                },
+                // Giả lập trạng thái tải thành công để hiển thị UI list
+                isVoucherListLoaded = true,
+                onVoucherCodeApply = { code ->
+                    // TODO: Gửi mã code lên ViewModel để kiểm tra và áp dụng
+                }
+            )
 
             // ---------------------------
             // 🧾 Nút “Đặt hàng”
@@ -210,11 +271,12 @@ fun CreateOrderScreen(
                     text = "Đặt hàng",
                     onClick = { viewModel.createOrder() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !orderState.isLoading && orderState.selectedShops.isNotEmpty()
+                    enabled = orderState.selectedShops.isNotEmpty()
                 )
             }
         }
     }
+
 }
 
 /**
@@ -239,63 +301,6 @@ fun ShopOrderSection(shopName: String, cartItems: List<com.ptit.domain.entity.ca
         cartItems.forEach { item ->
             SharedCartItemRow(cartItem = item)
         }
-    }
-}
-
-/**
- * 📦 Thông tin vận chuyển (người nhận)
- */
-@Composable
-fun ShippingInformationSection(
-    name: TextFieldValue,
-    phone: TextFieldValue,
-    address: TextFieldValue,
-    onNameChange: (TextFieldValue) -> Unit,
-    onPhoneChange: (TextFieldValue) -> Unit,
-    onAddressChange: (TextFieldValue) -> Unit,
-    isUserInfoLoaded: Boolean
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colorResource(R.color.colorSystem_background_level_2))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "Thông tin vận chuyển",
-            style = CustomTypography.TextBold,
-            color = colorResource(R.color.colorSystem_heading_button)
-        )
-
-        FilledTextField(
-            value = name,
-            hint = "Họ tên đầy đủ",
-            onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        FilledTextField(
-            value = phone,
-            hint = "Số điện thoại",
-            onValueChange = onPhoneChange,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        FilledTextField(
-            value = address,
-            hint = "Địa chỉ giao hàng",
-            onValueChange = onAddressChange,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Text(
-            text = "Phí vận chuyển: 30.000 đ",
-            style = CustomTypography.TextRegular,
-            color = colorResource(R.color.colorSystem_normal_text),
-            modifier = Modifier.align(Alignment.End)
-        )
     }
 }
 

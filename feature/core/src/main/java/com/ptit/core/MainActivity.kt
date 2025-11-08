@@ -57,6 +57,7 @@ import com.ptit.core.account.AccountScreen
 import com.ptit.core.account.EditProfile
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
+import com.ptit.core.cart.CartDataTransfer
 import com.ptit.core.cart.CartScreen
 //import com.ptit.core.category.CategoryScreen
 //import com.ptit.core.category.ProductsByCategoryScreen
@@ -181,7 +182,12 @@ class MainActivity : FragmentActivity() {
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
                                 onBack = navController::navigateUp,
-                                onCheckout = { selectedItemIds ->
+                                // 🔴 SỬA: Chữ ký phải khớp với định nghĩa mới
+                                onCheckout = { selectedItemIds, groupedItems ->
+                                    // 1. LƯU dữ liệu vào Singleton trước khi chuyển hướng
+                                    CartDataTransfer.groupedItems = groupedItems
+
+                                    // 2. CHUYỂN HƯỚNG chỉ với selectedItemIds
                                     navController.navigate(CreateOrderRoute(selectedItemIds = selectedItemIds))
                                 },
                                 onProductClick = { productId ->
@@ -192,10 +198,17 @@ class MainActivity : FragmentActivity() {
 
                         composable<CreateOrderRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<CreateOrderRoute>()
+
+                            // 🔴 SỬA LỖI DÒNG 198: Lấy dữ liệu từ Singleton
+                            val groupedItems = CartDataTransfer.groupedItems ?: emptyList()
+
                             CreateOrderScreen(
                                 selectedItemIds = args.selectedItemIds,
+                                groupedCartItems = groupedItems, // 🔴 Cung cấp giá trị từ Singleton
                                 onBack = navController::navigateUp,
                                 onOrderCreated = { orderId ->
+                                    // 3. XÓA dữ liệu sau khi hoàn tất đặt hàng/chuyển hướng
+                                    CartDataTransfer.clear()
                                     navController.navigate(OrderDetailRoute(orderId = orderId)) {
                                         popUpTo(BottomNavigationScreen.CartScreen) { inclusive = true }
                                     }

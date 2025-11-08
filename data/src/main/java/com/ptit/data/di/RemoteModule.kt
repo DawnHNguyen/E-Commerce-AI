@@ -179,4 +179,9 @@ object RemoteModule {
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.api.FileUploadApi = retrofit.create(com.ptit.data.api.FileUploadApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideShippingApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.ShippingApi = retrofit.create(com.ptit.data.remote.api.ShippingApi::class.java)
 }

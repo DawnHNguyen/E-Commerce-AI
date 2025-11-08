@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
@@ -28,7 +29,7 @@ import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
-import com.ptit.core.order.components.SharedSnapshotItemRow
+import com.ptit.core.order.components.SharedOrderItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
 import com.ptit.core.purchase.PurchaseBottomSheet
 import com.ptit.domain.utils.Resource
@@ -48,12 +49,13 @@ fun OrderDetailScreen(
     backToCart: () -> Unit,
 ) {
     LocalBottomNavigationVisibility.current.value = false
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+
     val viewModel: OrderDetailViewModel = hiltViewModel()
 
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
-    val cancelOrderState by viewModel.cancelOrderState.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
     val isShowPurchaseConfirmBottomSheet = rememberState { false }
@@ -63,25 +65,43 @@ fun OrderDetailScreen(
 
         lifecycleOwner.safeCollectFlow(viewModel.orderState) {
             it
-                .onLoading { isShowProgressBar.value = true }
-                .onSuccess { isShowProgressBar.value = false }
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
+                .onSuccess {
+                    isShowProgressBar.value = false
+                }
                 .onError {
                     isShowProgressBar.value = false
-                    Toast.makeText(context, "Lỗi khi tải đơn hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Có lỗi xảy ra trong quá trình tải đơn hàng",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
         }
 
-        lifecycleOwner.safeCollectFlow(viewModel.cancelOrderState) {
+        lifecycleOwner.safeCollectFlow(viewModel.payOrderState) {
             it
-                .onLoading { isShowProgressBar.value = true }
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
                 .onSuccess {
                     isShowProgressBar.value = false
-                    Toast.makeText(context, "Huỷ đơn hàng thành công", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    Toast.makeText(
+                        context,
+                        "Thanh toán thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    backToCart()
                 }
                 .onError {
                     isShowProgressBar.value = false
-                    Toast.makeText(context, "Huỷ đơn hàng thất bại", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Có lỗi xảy ra trong quá trình thanh toán",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
         }
     }
@@ -92,7 +112,7 @@ fun OrderDetailScreen(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Chi tiết đơn hàng",
+                            "Đơn hàng",
                             style = CustomTypography.TextBold.copy(fontSize = 20.sp),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.Center)
@@ -117,13 +137,13 @@ fun OrderDetailScreen(
     ) { paddingValues ->
         if (orderState is Resource.Success) {
             val order = remember(orderState) { (orderState as Resource.Success).data }
-
             MaxSizeColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .background(colorResource(R.color.colorSystem_background_level_0))
             ) {
+                // Content
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
@@ -131,17 +151,16 @@ fun OrderDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 🧾 Receiver info
-                    order.receiver?.let {
-                        item {
-                            OrderInfoSection(
-                                name = it.name,
-                                phone = it.phone,
-                                address = it.address
-                            )
-                        }
+                    // Shipping Information
+                    item {
+                        OrderInfoSection(
+                            name = order.fullName,
+                            phone = order.phone,
+                            address = order.address
+                        )
                     }
 
+                    // Order Details
                     item {
                         Text(
                             text = "Chi tiết đơn hàng",
@@ -150,62 +169,72 @@ fun OrderDetailScreen(
                         )
                     }
 
-                    items(order.items) { item ->
-                        SharedSnapshotItemRow(snapshot = item)
+                    // Order Items
+                    items(order.purchases) { purchase ->
+                        SharedOrderItemRow(purchase = purchase)
                     }
 
+                    // Note Section
+                    if (order.note.isNotBlank()) {
+                        item {
+                            OrderNoteDisplay(note = order.note)
+                        }
+                    }
+
+                    // Total amount
                     item {
-                        SharedTotalAmountSection(
-                            subtotal = order.totalAmount,
-                            shippingFee = 0,
-                            totalPrice = order.totalAmount
-                        )
+                        SharedTotalAmountSection(subtotal = order.subTotal, shippingFee = order.shippingFee, totalPrice = order.totalPrice)
                     }
 
-                    item { OrderStatusSection(status = order.status) }
-
+                    // Order status
+                    item {
+                        OrderStatusSection(status = order.status)
+                    }
                     item {
                         OrderTimestampsSection(
                             createdAt = order.createdAt,
-                            updatedAt = order.updatedAt ?: ""
+                            updatedAt = order.updatedAt
                         )
                     }
 
-                    item { Spacer(modifier = Modifier.height(60.dp)) }
+                    // Spacer at the bottom for better layout
+                    item {
+                        Spacer(modifier = Modifier.height(60.dp))
+                    }
                 }
 
-                // ⚙️ Bottom Actions
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colorResource(R.color.colorSystem_greyscale_0_white))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    FilledButton(
-                        text = "Thanh toán (Tạm khoá)",
-                        onClick = { isShowPurchaseConfirmBottomSheet.value = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false
-                    )
-
-                    FilledButton(
-                        text = "Huỷ đơn hàng",
-                        onClick = { viewModel.cancelOrder(orderId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isShowProgressBar.value
-                    )
+                // Bottom Bar with Payment Button
+                if (order.status == "Pending" || order.status == "Processing") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colorResource(R.color.colorSystem_greyscale_0_white))
+                            .padding(16.dp)
+                    ) {
+                        FilledButton(
+                            text = "Thanh toán",
+                            onClick = {
+                                isShowPurchaseConfirmBottomSheet.value = true
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }
     }
 
-    // Vẫn render BottomSheet nhưng vô hiệu hóa
     PurchaseBottomSheet(
         isVisible = isShowPurchaseConfirmBottomSheet.value,
         onDismiss = { isShowPurchaseConfirmBottomSheet.value = false },
-        onAddPaymentMethod = { /* Disabled */ },
-        onConfirmedPurchase = { /* Disabled */ }
+        onAddPaymentMethod = navigateToPaymentMethod,
+        onConfirmedPurchase = { token ->
+            isShowPurchaseConfirmBottomSheet.value = false
+            viewModel.payOrder(
+                orderId = orderId,
+                token = token
+            )
+        }
     )
 
     if (isShowProgressBar.value)

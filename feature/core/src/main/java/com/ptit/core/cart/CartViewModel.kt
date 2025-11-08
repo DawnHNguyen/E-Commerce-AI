@@ -2,6 +2,7 @@ package com.ptit.core.cart
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.entity.cart.CartItemDomainEntity
 import com.ptit.domain.entity.cart.DeleteCartRequestDomainEntity
 import com.ptit.domain.repository.CartRepository
@@ -41,7 +42,7 @@ class CartViewModel @Inject constructor(
 
             when (val result = cartRepository.getCart(page, limit)) {
                 is Resource.Success -> _cartState.value =
-                    CartState.Success(result.data.data.flatMap { it.cartItems })
+                    CartState.Success(result.data.data)
                 is Resource.Error -> _cartState.value =
                     CartState.Error(result.error.message ?: "Unknown error")
                 else -> _cartState.value =
@@ -102,11 +103,14 @@ class CartViewModel @Inject constructor(
             }
         }
     }
+    fun getFlatCartItems(groupedItems: List<CartItemDetailDomainEntity>): List<CartItemDomainEntity> {
+        return groupedItems.flatMap { it.cartItems }
+    }
 
     // Giữ nguyên cấu trúc state cũ để UI không phải thay đổi
     sealed class CartState {
         object Loading : CartState()
-        data class Success(val items: List<CartItemDomainEntity>) : CartState()
+        data class Success(val groupedItems: List<CartItemDetailDomainEntity>) : CartState()
         data class Error(val message: String) : CartState()
     }
 

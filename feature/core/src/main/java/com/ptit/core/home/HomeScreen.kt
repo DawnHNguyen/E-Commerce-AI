@@ -243,7 +243,7 @@ fun ProductItem(
                                 color = colorResource(id = R.color.colorSystem_greyscale_500)
                             )
                         )
-                    }
+                     }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))

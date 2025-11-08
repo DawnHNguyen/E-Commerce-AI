@@ -12,13 +12,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.core.cart.components.*
+import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun CartScreen(
     onBack: () -> Unit,
-    onCheckout: (List<String>) -> Unit,
+    onCheckout: (List<String>, List<CartItemDetailDomainEntity>) -> Unit,
     onProductClick: (String) -> Unit = {}
 ) {
     // ✅ Hiển thị bottom navigation
@@ -52,9 +53,12 @@ fun CartScreen(
             }
 
             is CartViewModel.CartState.Success -> {
+                val flatItems = remember(state.groupedItems) {
+                    viewModel.getFlatCartItems(state.groupedItems)
+                }
                 CartContent(
                     // ✅ Danh sách sản phẩm trong giỏ
-                    purchases = state.items, // state.items là List<CartItemDomainEntity>
+                    purchases = flatItems, // state.items là List<CartItemDomainEntity>
 
                     // ✅ Làm mới danh sách
                     onRefresh = { viewModel.getCart() },
@@ -83,7 +87,7 @@ fun CartScreen(
 
                     // ✅ Thanh toán danh sách sản phẩm đã chọn
                     onCheckout = { selectedIds ->
-                        onCheckout(selectedIds.toList())
+                        onCheckout(selectedIds.toList(), state.groupedItems)
                     },
 
                     // ✅ Xem chi tiết sản phẩm
