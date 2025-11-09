@@ -9,6 +9,7 @@ import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -28,10 +29,9 @@ interface OrderApi {
 
     @POST("orders")
     suspend fun createOrder(
-        @Body createOrderRequest: List<CreateOrderRequestDto>
+        @Body createOrderRequest: CreateOrderRequestDto
     ): Resource<CreateOrderResponseDto>
-
-    @POST("orders/{orderId}/cancel")
+    @PUT("orders/{orderId}")
     suspend fun cancelOrder(
         @Path("orderId") orderId: String
     ): Resource<CancelOrderResponseDto>

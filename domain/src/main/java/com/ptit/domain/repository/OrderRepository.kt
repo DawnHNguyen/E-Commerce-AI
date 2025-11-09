@@ -17,7 +17,7 @@ interface OrderRepository {
     suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity>
 
     suspend fun createOrder(
-        requests: List<CreateOrderRequestDomainEntity>
+        request: CreateOrderRequestDomainEntity
     ): Resource<CreateOrderResponseDomainEntity>
 
     suspend fun cancelOrder(orderId: String): Resource<CancelOrderResponseDomainEntity>

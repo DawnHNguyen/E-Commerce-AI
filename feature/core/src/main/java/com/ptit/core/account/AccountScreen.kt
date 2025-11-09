@@ -298,17 +298,17 @@ private fun SettingsMenuCard(
             modifier = Modifier.padding(8.dp)
         ) {
             // My Orders
-//            MenuItem(
-//                icon = Icons.Outlined.ShoppingBag,
-//                title = "Đơn hàng của tôi",
-//                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
-//                onClick = onOrdersClick
-//            )
-//
-//            HorizontalDivider(
-//                modifier = Modifier.padding(horizontal = 16.dp),
-//                color = colorResource(id = R.color.colorSystem_text_button)
-//            )
+            MenuItem(
+                icon = Icons.Outlined.ShoppingBag,
+                title = "Đơn hàng của tôi",
+                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
+                onClick = onOrdersClick
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = colorResource(id = R.color.colorSystem_text_button)
+            )
 
             // My Shop or Create Shop
             MenuItem(

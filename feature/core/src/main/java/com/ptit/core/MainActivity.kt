@@ -65,6 +65,7 @@ import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
+import com.ptit.core.order.history.OrderHistoryScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
@@ -78,6 +79,7 @@ import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
+import com.ptit.navigation.destination.OrderHistoryRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
@@ -145,6 +147,7 @@ class MainActivity : FragmentActivity() {
                             fadeIn(animationSpec = tween(0))
                         }
                     ) {
+                        // ... (Các composable khác: HomeScreen, SearchScreen, CartScreen...)
                         composable<BottomNavigationScreen.HomeScreen> {
                             HomeScreen(
                                 navigateToSearch = {
@@ -165,29 +168,11 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-//                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
-//                            CategoryScreen(navController = navController)
-//                        }
-//
-//                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
-//                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
-//                            ProductsByCategoryScreen(
-//                                navController = navController,
-//                                navigateToProductDetail = { productId ->
-//                                    navController.navigate(ProductDetailRoute(productId = productId))
-//                                }
-//                            )
-//                        }
-
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
                                 onBack = navController::navigateUp,
-                                // 🔴 SỬA: Chữ ký phải khớp với định nghĩa mới
                                 onCheckout = { selectedItemIds, groupedItems ->
-                                    // 1. LƯU dữ liệu vào Singleton trước khi chuyển hướng
                                     CartDataTransfer.groupedItems = groupedItems
-
-                                    // 2. CHUYỂN HƯỚNG chỉ với selectedItemIds
                                     navController.navigate(CreateOrderRoute(selectedItemIds = selectedItemIds))
                                 },
                                 onProductClick = { productId ->
@@ -196,19 +181,18 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // 🔴 SỬA composable<CreateOrderRoute>
                         composable<CreateOrderRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<CreateOrderRoute>()
-
-                            // 🔴 SỬA LỖI DÒNG 198: Lấy dữ liệu từ Singleton
                             val groupedItems = CartDataTransfer.groupedItems ?: emptyList()
 
                             CreateOrderScreen(
                                 selectedItemIds = args.selectedItemIds,
-                                groupedCartItems = groupedItems, // 🔴 Cung cấp giá trị từ Singleton
+                                groupedCartItems = groupedItems,
                                 onBack = navController::navigateUp,
                                 onOrderCreated = { orderId ->
-                                    // 3. XÓA dữ liệu sau khi hoàn tất đặt hàng/chuyển hướng
                                     CartDataTransfer.clear()
+                                    // Sửa lại điều hướng sang OrderDetail theo logic cũ của bạn
                                     navController.navigate(OrderDetailRoute(orderId = orderId)) {
                                         popUpTo(BottomNavigationScreen.CartScreen) { inclusive = true }
                                     }
@@ -216,11 +200,23 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // (OrderHistoryRoute giữ nguyên)
+                        composable<OrderHistoryRoute> {
+                            OrderHistoryScreen(
+                                onBack = navController::navigateUp,
+                                onNavigateToDetail = { orderId ->
+                                    navController.navigate(OrderDetailRoute(orderId = orderId))
+                                }
+                            )
+                        }
+
+                        // 🔴 SỬA composable<OrderDetailRoute>
                         composable<OrderDetailRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<OrderDetailRoute>()
                             OrderDetailScreen(
                                 orderId = args.orderId,
                                 onBack = navController::navigateUp,
+                                // 🔴 SỬA: Bỏ comment dòng này để hết lỗi biên dịch
                                 navigateToPaymentMethod = {
                                     navController.navigate(ListPaymentMethodRoute)
                                 },
@@ -230,6 +226,7 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // 🔴 SỬA navigation<BottomNavigationScreen.ProfileScreen>
                         navigation<BottomNavigationScreen.ProfileScreen>(
                             startDestination = ProfileRoute,
                         ) {
@@ -242,8 +239,9 @@ class MainActivity : FragmentActivity() {
                                     onLogoutSuccess = {
                                         Navigator.navigateToAuthActivity(this@MainActivity)
                                     },
+                                    // 🔴 SỬA: Điều hướng đến OrderHistoryRoute
                                     onNavigateToOrders = {
-                                        // TODO: Implement navigation to Orders
+                                        navController.navigate(OrderHistoryRoute)
                                     },
                                     onNavigateToEditProfile = {
                                         navController.navigate(EditProfileRoute)
@@ -262,7 +260,7 @@ class MainActivity : FragmentActivity() {
                                     },
                                 )
                             }
-
+                            // ... (Các composable con của Profile giữ nguyên)
                             composable<EditProfileRoute> {
                                 val accountGraphBackStackEntry = remember(it) {
                                     navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
@@ -274,6 +272,7 @@ class MainActivity : FragmentActivity() {
                             }
                         }
 
+                        // ... (Các composable khác giữ nguyên)
                         composable<ListPaymentMethodRoute> {
                             PaymentMethodScreen(
                                 onNavigateBack = navController::navigateUp,
@@ -358,6 +357,7 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    // ... (BottomNavigationBar giữ nguyên)
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun BottomNavigationBar(

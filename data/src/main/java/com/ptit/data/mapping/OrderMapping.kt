@@ -1,17 +1,23 @@
 package com.ptit.data.mapping
 
 import com.ptit.data.remote.dto.order.CancelOrderResponseDto
+import com.ptit.data.remote.dto.order.CreateOrderRequestDto
 import com.ptit.data.remote.dto.order.CreateOrderResponseDto
 import com.ptit.data.remote.dto.order.GetOrderListResponseDto
 import com.ptit.data.remote.dto.order.OrderDto
 import com.ptit.data.remote.dto.order.ProductSKUSnapshotDto
 import com.ptit.data.remote.dto.order.ReceiverDto
+import com.ptit.data.remote.dto.order.ShippingInfoDto
+import com.ptit.data.remote.dto.order.ShopOrderRequestDto
 import com.ptit.domain.entity.order.CancelOrderResponseDomainEntity
+import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
 import com.ptit.domain.entity.order.GetOrderListDomainEntity
 import com.ptit.domain.entity.order.OrderDomainEntity
 import com.ptit.domain.entity.order.ProductSKUSnapshotDomainEntity
 import com.ptit.domain.entity.order.ReceiverDomainEntity
+import com.ptit.domain.entity.order.ShippingInfoDomainEntity
+import com.ptit.domain.entity.order.ShopOrderRequestDomainEntity
 
 fun ProductSKUSnapshotDto.toDomainEntity() = ProductSKUSnapshotDomainEntity(
     id = id,
@@ -26,10 +32,14 @@ fun ProductSKUSnapshotDto.toDomainEntity() = ProductSKUSnapshotDomainEntity(
     createdAt = createdAt
 )
 
+// 🔴 SỬA: Thêm các trường GHN
 fun ReceiverDto.toDomainEntity() = ReceiverDomainEntity(
     name = name,
     phone = phone,
-    address = address
+    address = address,
+    provinceId = provinceId,
+    districtId = districtId,
+    wardCode = wardCode
 )
 
 fun OrderDto.toDomainEntity() = OrderDomainEntity(
@@ -40,9 +50,70 @@ fun OrderDto.toDomainEntity() = OrderDomainEntity(
     totalAmount = totalAmount,
     paymentMethod = paymentMethod ?: "",
     receiver = receiver?.toDomainEntity(),
-    items = items.map { it.toDomainEntity() },
+    items = items?.map { it.toDomainEntity() } ?: emptyList(),
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    orderCode = orderCode, // Mới
+    totalItemCost = totalItemCost ?: totalAmount,
+    totalShippingFee = totalShippingFee ?: 0,
+    totalVoucherDiscount = totalVoucherDiscount ?: 0,
+    totalPayment = totalPayment ?: totalAmount
+)
+
+// ---------------------------------------------------
+// 🔴 MỚI: MAPPERS TỪ DOMAIN -> DTO (Cho Request)
+// ---------------------------------------------------
+
+fun ReceiverDomainEntity.toDto() = ReceiverDto(
+    name = name,
+    phone = phone,
+    address = address,
+    provinceId = provinceId,
+    districtId = districtId,
+    wardCode = wardCode
+)
+
+fun ShippingInfoDomainEntity.toDto() = ShippingInfoDto(
+    serviceId = serviceId,
+    serviceTypeId = serviceTypeId,
+    configFeeId = configFeeId,
+    extraCostId = extraCostId,
+    weight = weight,
+    length = length,
+    width = width,
+    height = height,
+    shippingFee = shippingFee,
+    paymentTypeId = paymentTypeId,
+    note = note,
+    requiredNote = requiredNote,
+    coupon = coupon,
+    pickShift = pickShift
+)
+
+fun ShopOrderRequestDomainEntity.toDto() = ShopOrderRequestDto(
+    shopId = shopId,
+    receiver = receiver.toDto(),
+    cartItemIds = cartItemIds,
+    discountCodes = discountCodes,
+    shippingInfo = shippingInfo?.toDto(),
+    isCod = isCod
+)
+
+fun CreateOrderRequestDomainEntity.toDto() = CreateOrderRequestDto(
+    shops = shops.map { it.toDto() },
+    platformDiscountCodes = platformDiscountCodes
+)
+
+// 🔴 SỬA: Mapper cho response mới
+fun CreateOrderResponseDto.toDomainEntity() = CreateOrderResponseDomainEntity(
+    // Xử lý data lồng bên trong
+    orders = this.data?.orders?.map { it.toDomainEntity() } ?: emptyList(),
+    paymentId = this.data?.paymentId ?: 0 // Sửa kiểu
+)
+
+fun CancelOrderResponseDto.toDomainEntity() = CancelOrderResponseDomainEntity(
+    id = id,
+    status = status
 )
 
 fun GetOrderListResponseDto.toDomainEntity() = GetOrderListDomainEntity(
@@ -51,14 +122,4 @@ fun GetOrderListResponseDto.toDomainEntity() = GetOrderListDomainEntity(
     page = page,
     limit = limit,
     totalPages = totalPages
-)
-
-fun CreateOrderResponseDto.toDomainEntity() = CreateOrderResponseDomainEntity(
-    orders = orders.map { it.toDomainEntity() },
-    paymentId = paymentId
-)
-
-fun CancelOrderResponseDto.toDomainEntity() = CancelOrderResponseDomainEntity(
-    id = id,
-    status = status
 )

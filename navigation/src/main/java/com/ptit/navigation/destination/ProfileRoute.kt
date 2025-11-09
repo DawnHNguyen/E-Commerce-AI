@@ -25,3 +25,6 @@ data object EditProfileRoute
 
 @Serializable
 data object ProfileRoute
+
+@Serializable
+data object OrderHistoryRoute

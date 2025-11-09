@@ -9,6 +9,8 @@
 
     <color name="colorSystem_tint_red">#FF3B30</color>
     <color name="colorSystem_tint_yellow">#FFEB3B</color>
+    <color name="colorSystem_tint_green">#34C759</color>
+    <color name="colorSystem_tint_blue">#007AFF</color>
 
     <color name="colorSystem_greyscale_0_white">#FFFFFF</color>
     <color name="colorSystem_greyscale_100">#F3F4F8</color>

@@ -11,7 +11,7 @@ class OrderRemoteDataSource @Inject constructor(private val api: OrderApi) {
 
     suspend fun getOrderById(orderId: String) = api.getOrderById(orderId)
 
-    suspend fun createOrder(requests: List<CreateOrderRequestDto>) = api.createOrder(requests)
+    suspend fun createOrder(request: CreateOrderRequestDto) = api.createOrder(request)
 
     suspend fun cancelOrder(orderId: String) = api.cancelOrder(orderId)
 }

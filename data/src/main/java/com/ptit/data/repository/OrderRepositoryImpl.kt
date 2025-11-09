@@ -1,6 +1,7 @@
 package com.ptit.data.repository
 
 import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.OrderRemoteDataSource
 import com.ptit.data.remote.dto.order.CreateOrderRequestDto
 import com.ptit.data.remote.dto.order.ReceiverDto
@@ -29,19 +30,10 @@ class OrderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createOrder(
-        requests: List<CreateOrderRequestDomainEntity>
+        request: CreateOrderRequestDomainEntity
     ): Resource<CreateOrderResponseDomainEntity> {
-        val dtoList = requests.map {
-            CreateOrderRequestDto(
-                shopId = it.shopId,
-                receiver = ReceiverDto(
-                    name = it.receiver.name,
-                    phone = it.receiver.phone,
-                    address = it.receiver.address
-                ),
-                cartItemIds = it.cartItemIds
-            )
-        }
+        // Sử dụng mapper toDto() mới
+        val dtoList = request.toDto()
         return remoteDataSource.createOrder(dtoList).map { it.toDomainEntity() }
     }
 
