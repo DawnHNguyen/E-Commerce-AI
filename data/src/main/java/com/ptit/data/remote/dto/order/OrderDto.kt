@@ -60,15 +60,15 @@ data class CreateOrderRequestDto(
 
 // 🧾 Đơn hàng
 data class OrderDto(
-    @SerializedName("id") val id: String,
-    @SerializedName("userId") val userId: String,
+    @SerializedName("id") val id: String?,
+    @SerializedName("userId") val userId: String?,
     @SerializedName("shopId") val shopId: String?,
-    @SerializedName("status") val status: String,
-    @SerializedName("totalAmount") val totalAmount: Int,
+    @SerializedName("status") val status: String?,
+    @SerializedName("totalAmount") val totalAmount: Int?,
     @SerializedName("paymentMethod") val paymentMethod: String?,
     @SerializedName("receiver") val receiver: ReceiverDto?,
     @SerializedName("items") val items: List<ProductSKUSnapshotDto>?,
-    @SerializedName("createdAt") val createdAt: String,
+    @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?,
     @SerializedName("orderCode") val orderCode: String?,
 
@@ -88,16 +88,10 @@ data class GetOrderListResponseDto(
 )
 
 
-// ✅ Response tạo đơn hàng (Cập nhật)
-data class CreateOrderResponseDto(
-    // 🔴 MỚI: Thêm cấu trúc envelope { message, data }
-    @SerializedName("message") val message: String?,
-    @SerializedName("data") val data: CreateOrderDataDto?
-)
 data class CreateOrderDataDto(
-    @SerializedName("orders") val orders: List<OrderDto>,
+    @SerializedName("orders") val orders: List<OrderDto>?,
     // 🔴 SỬA: paymentId là Int (number), không phải String
-    @SerializedName("paymentId") val paymentId: Int
+    @SerializedName("paymentId") val paymentId: Int?
 )
 
 // ❌ Response khi hủy đơn hàng

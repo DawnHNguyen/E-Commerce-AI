@@ -3,8 +3,6 @@ package com.ptit.data.repository
 import com.ptit.data.mapping.toDomainEntity
 import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.OrderRemoteDataSource
-import com.ptit.data.remote.dto.order.CreateOrderRequestDto
-import com.ptit.data.remote.dto.order.ReceiverDto
 import com.ptit.domain.entity.order.CancelOrderResponseDomainEntity
 import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity

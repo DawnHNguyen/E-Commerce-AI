@@ -1,8 +1,8 @@
 package com.ptit.data.remote.api
 
 import com.ptit.data.remote.dto.order.CancelOrderResponseDto
+import com.ptit.data.remote.dto.order.CreateOrderDataDto
 import com.ptit.data.remote.dto.order.CreateOrderRequestDto
-import com.ptit.data.remote.dto.order.CreateOrderResponseDto
 import com.ptit.data.remote.dto.order.GetOrderListResponseDto
 import com.ptit.data.remote.dto.order.OrderDto
 import com.ptit.domain.utils.Resource
@@ -30,7 +30,8 @@ interface OrderApi {
     @POST("orders")
     suspend fun createOrder(
         @Body createOrderRequest: CreateOrderRequestDto
-    ): Resource<CreateOrderResponseDto>
+    ): Resource<CreateOrderDataDto>
+
     @PUT("orders/{orderId}")
     suspend fun cancelOrder(
         @Path("orderId") orderId: String

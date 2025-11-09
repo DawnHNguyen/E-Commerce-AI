@@ -1,8 +1,8 @@
 package com.ptit.data.mapping
 
 import com.ptit.data.remote.dto.order.CancelOrderResponseDto
+import com.ptit.data.remote.dto.order.CreateOrderDataDto
 import com.ptit.data.remote.dto.order.CreateOrderRequestDto
-import com.ptit.data.remote.dto.order.CreateOrderResponseDto
 import com.ptit.data.remote.dto.order.GetOrderListResponseDto
 import com.ptit.data.remote.dto.order.OrderDto
 import com.ptit.data.remote.dto.order.ProductSKUSnapshotDto
@@ -43,21 +43,21 @@ fun ReceiverDto.toDomainEntity() = ReceiverDomainEntity(
 )
 
 fun OrderDto.toDomainEntity() = OrderDomainEntity(
-    id = id,
-    userId = userId,
+    id = id ?: "",
+    userId = userId ?: "",
     shopId = shopId ?: "",
-    status = status,
-    totalAmount = totalAmount,
+    status = status ?: "",
+    totalAmount = totalAmount ?: 0,
     paymentMethod = paymentMethod ?: "",
     receiver = receiver?.toDomainEntity(),
     items = items?.map { it.toDomainEntity() } ?: emptyList(),
-    createdAt = createdAt,
+    createdAt = createdAt ?: "",
     updatedAt = updatedAt,
     orderCode = orderCode, // Mới
-    totalItemCost = totalItemCost ?: totalAmount,
+    totalItemCost = totalItemCost ?: totalAmount ?: 0,
     totalShippingFee = totalShippingFee ?: 0,
     totalVoucherDiscount = totalVoucherDiscount ?: 0,
-    totalPayment = totalPayment ?: totalAmount
+    totalPayment = totalPayment ?: totalAmount ?: 0
 )
 
 // ---------------------------------------------------
@@ -105,10 +105,10 @@ fun CreateOrderRequestDomainEntity.toDto() = CreateOrderRequestDto(
 )
 
 // 🔴 SỬA: Mapper cho response mới
-fun CreateOrderResponseDto.toDomainEntity() = CreateOrderResponseDomainEntity(
+fun CreateOrderDataDto.toDomainEntity() = CreateOrderResponseDomainEntity(
     // Xử lý data lồng bên trong
-    orders = this.data?.orders?.map { it.toDomainEntity() } ?: emptyList(),
-    paymentId = this.data?.paymentId ?: 0 // Sửa kiểu
+    orders = this.orders?.map { it.toDomainEntity() } ?: emptyList(),
+    paymentId = this.paymentId ?: 0 // Sửa kiểu
 )
 
 fun CancelOrderResponseDto.toDomainEntity() = CancelOrderResponseDomainEntity(
