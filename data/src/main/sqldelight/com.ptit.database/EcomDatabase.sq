@@ -30,3 +30,70 @@ updatePaymentMethodAsDefault:
 UPDATE tblPaymentMethod 
 SET isDefault = 1
 WHERE firstSixNum = :firstSixNum AND lastFourNum = :lastFourNum;
+
+-- Chat tables
+CREATE TABLE IF NOT EXISTS tblChatSession (
+    id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL DEFAULT 'Cuộc trò chuyện mới',
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tblChatMessage (
+    id TEXT PRIMARY KEY NOT NULL,
+    sessionId TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    tags TEXT NOT NULL,
+    isPending INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (sessionId) REFERENCES tblChatSession(id) ON DELETE CASCADE
+);
+
+-- Chat queries
+insertChatSession:
+INSERT OR REPLACE INTO tblChatSession (id, title, createdAt, updatedAt)
+VALUES (:id, :title, :createdAt, :updatedAt);
+
+getAllChatSessions:
+SELECT
+    s.id,
+    s.title,
+    s.createdAt,
+    s.updatedAt,
+    COALESCE((SELECT content FROM tblChatMessage WHERE sessionId = s.id ORDER BY timestamp DESC LIMIT 1), '') AS lastMessage
+FROM tblChatSession s
+ORDER BY s.updatedAt DESC;
+
+deleteChatSession:
+DELETE FROM tblChatSession WHERE id = :sessionId;
+
+updateSessionTimestamp:
+UPDATE tblChatSession SET updatedAt = :updatedAt WHERE id = :sessionId;
+
+insertChatMessage:
+INSERT OR REPLACE INTO tblChatMessage (id, sessionId, role, content, timestamp, tags, isPending)
+VALUES (:id, :sessionId, :role, :content, :timestamp, :tags, :isPending);
+
+getAllChatMessages:
+SELECT * FROM tblChatMessage
+WHERE sessionId = :sessionId
+ORDER BY timestamp ASC;
+
+getAllChatMessagesFlow:
+SELECT * FROM tblChatMessage
+WHERE sessionId = :sessionId
+ORDER BY timestamp ASC;
+
+updateMessagePendingStatus:
+UPDATE tblChatMessage
+SET isPending = :isPending
+WHERE id = :messageId;
+
+deleteChatHistory:
+DELETE FROM tblChatMessage WHERE sessionId = :sessionId;
+
+getLatestChatSession:
+SELECT * FROM tblChatSession
+ORDER BY updatedAt DESC
+LIMIT 1;
