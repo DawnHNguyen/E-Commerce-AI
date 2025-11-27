@@ -36,6 +36,7 @@ import com.ptit.common.presentation.MaxWidthColumn
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.MyCrossFade
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 
@@ -71,7 +72,7 @@ internal fun ProductItem(
     ) {
         MaxSizeColumn {
             GlideImage(
-                model = product.image,
+                model = product.images[0],
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,7 +102,7 @@ internal fun ProductItem(
                 )
 
                 Text(
-                    text = "${product.price}đ",
+                    text = product.basePrice.toPriceFormat(),
                     style = CustomTypography.TextSemiBold.merge(
                         color = colorResource(R.color.colorSystem_heading_button),
                         fontSize = 14.sp
@@ -133,9 +134,9 @@ internal fun ProductItem(
             }
         }
 
-        if (product.hasDiscount.value)
+        if (product.hasDiscount)
             Text(
-                text = "-${product.discountPercent.value}%",
+                text = "-${product.discountPercent}%",
                 style = CustomTypography.TextMedium.merge(
                     color = colorResource(R.color.colorSystem_heading_button),
                     fontSize = 12.sp

@@ -13,13 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.MaxSizeColumn
@@ -29,8 +29,10 @@ import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
-import com.ptit.core.order.components.SharedOrderItemRow
+import com.ptit.common.utils.toPriceFormat
+import com.ptit.core.order.components.SharedSnapshotItemRow
 import com.ptit.core.order.components.SharedTotalAmountSection
+// 🔴 MỚI: Thêm lại import
 import com.ptit.core.purchase.PurchaseBottomSheet
 import com.ptit.domain.utils.Resource
 import com.ptit.domain.utils.onError
@@ -45,19 +47,20 @@ import java.util.TimeZone
 fun OrderDetailScreen(
     orderId: String,
     onBack: () -> Unit,
+    // 🔴 MỚI: Thêm lại
     navigateToPaymentMethod: () -> Unit,
     backToCart: () -> Unit,
 ) {
     LocalBottomNavigationVisibility.current.value = false
-
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val context = LocalContext.current
-
     val viewModel: OrderDetailViewModel = hiltViewModel()
 
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
+    val cancelOrderState by viewModel.cancelOrderState.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
+    // 🔴 MỚI: Thêm lại state
     val isShowPurchaseConfirmBottomSheet = rememberState { false }
 
     LaunchedEffect(Unit) {
@@ -65,43 +68,25 @@ fun OrderDetailScreen(
 
         lifecycleOwner.safeCollectFlow(viewModel.orderState) {
             it
-                .onLoading {
-                    isShowProgressBar.value = true
-                }
-                .onSuccess {
-                    isShowProgressBar.value = false
-                }
+                .onLoading { isShowProgressBar.value = true }
+                .onSuccess { isShowProgressBar.value = false }
                 .onError {
                     isShowProgressBar.value = false
-                    Toast.makeText(
-                        context,
-                        "Có lỗi xảy ra trong quá trình tải đơn hàng",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Lỗi khi tải đơn hàng", Toast.LENGTH_SHORT).show()
                 }
         }
 
-        lifecycleOwner.safeCollectFlow(viewModel.payOrderState) {
+        lifecycleOwner.safeCollectFlow(viewModel.cancelOrderState) {
             it
-                .onLoading {
-                    isShowProgressBar.value = true
-                }
+                .onLoading { isShowProgressBar.value = true }
                 .onSuccess {
                     isShowProgressBar.value = false
-                    Toast.makeText(
-                        context,
-                        "Thanh toán thành công",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    backToCart()
+                    Toast.makeText(context, "Huỷ đơn hàng thành công", Toast.LENGTH_SHORT).show()
+                    onBack()
                 }
                 .onError {
                     isShowProgressBar.value = false
-                    Toast.makeText(
-                        context,
-                        "Có lỗi xảy ra trong quá trình thanh toán",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Huỷ đơn hàng thất bại", Toast.LENGTH_SHORT).show()
                 }
         }
     }
@@ -112,7 +97,7 @@ fun OrderDetailScreen(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Đơn hàng",
+                            "Chi tiết đơn hàng",
                             style = CustomTypography.TextBold.copy(fontSize = 20.sp),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.Center)
@@ -137,13 +122,21 @@ fun OrderDetailScreen(
     ) { paddingValues ->
         if (orderState is Resource.Success) {
             val order = remember(orderState) { (orderState as Resource.Success).data }
+
+            // 🔴 MỚI: Logic hiển thị nút theo yêu cầu mới
+            val isPayable = remember(order.status) {
+                order.status == "PENDING_PAYMENT"
+            }
+            val isCancellable = remember(order.status) {
+                order.status == "PENDING_PAYMENT" || order.status == "PENDING_PACKAGING"
+            }
+
             MaxSizeColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .background(colorResource(R.color.colorSystem_background_level_0))
             ) {
-                // Content
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
@@ -151,16 +144,17 @@ fun OrderDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Shipping Information
-                    item {
-                        OrderInfoSection(
-                            name = order.fullName,
-                            phone = order.phone,
-                            address = order.address
-                        )
+                    // ... (Các item giữ nguyên) ...
+                    order.receiver?.let {
+                        item {
+                            OrderInfoSection(
+                                name = it.name,
+                                phone = it.phone,
+                                address = it.address
+                            )
+                        }
                     }
 
-                    // Order Details
                     item {
                         Text(
                             text = "Chi tiết đơn hàng",
@@ -169,54 +163,88 @@ fun OrderDetailScreen(
                         )
                     }
 
-                    // Order Items
-                    items(order.purchases) { purchase ->
-                        SharedOrderItemRow(purchase = purchase)
-                    }
+                    val itemsList = order.items ?: emptyList()
 
-                    // Note Section
-                    if (order.note.isNotBlank()) {
+                    if (itemsList.isEmpty()) {
                         item {
-                            OrderNoteDisplay(note = order.note)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Không có thông tin sản phẩm",
+                                    style = CustomTypography.TextRegular,
+                                    color = colorResource(R.color.colorSystem_greyscale_400)
+                                )
+                            }
+                        }
+                    } else {
+                        items(itemsList) { item ->
+                            SharedSnapshotItemRow(snapshot = item)
                         }
                     }
 
-                    // Total amount
-                    item {
-                        SharedTotalAmountSection(subtotal = order.subTotal, shippingFee = order.shippingFee, totalPrice = order.totalPrice)
+                    if (order.totalVoucherDiscount > 0) {
+                        item {
+                            DiscountInfoRow(
+                                label = "Giảm giá Voucher:",
+                                value = order.totalVoucherDiscount
+                            )
+                        }
                     }
 
-                    // Order status
                     item {
-                        OrderStatusSection(status = order.status)
-                    }
-                    item {
-                        OrderTimestampsSection(
-                            createdAt = order.createdAt,
-                            updatedAt = order.updatedAt
+                        SharedTotalAmountSection(
+                            subtotal = order.totalItemCost.toPriceFormat(),
+                            shippingFee = order.totalShippingFee.toPriceFormat(),
+                            totalPrice = order.totalPayment.toPriceFormat()
                         )
                     }
 
-                    // Spacer at the bottom for better layout
+                    item { OrderStatusSection(status = order.status) }
+
                     item {
-                        Spacer(modifier = Modifier.height(60.dp))
+                        OrderTimestampsSection(
+                            createdAt = order.createdAt,
+                            updatedAt = order.updatedAt ?: ""
+                        )
                     }
+
+                    item { Spacer(modifier = Modifier.height(60.dp)) }
                 }
 
-                // Bottom Bar with Payment Button
-                if (order.status == "Pending" || order.status == "Processing") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colorResource(R.color.colorSystem_greyscale_0_white))
-                            .padding(16.dp)
-                    ) {
+                // ⚙️ Bottom Actions (Đã sửa logic)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colorResource(R.color.colorSystem_greyscale_0_white))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 🔴 SỬA: Chỉ hiển thị nút Thanh toán khi `isPayable`
+                    if (isPayable) {
                         FilledButton(
                             text = "Thanh toán",
-                            onClick = {
-                                isShowPurchaseConfirmBottomSheet.value = true
-                            },
+                            onClick = { isShowPurchaseConfirmBottomSheet.value = true },
                             modifier = Modifier.fillMaxWidth(),
+                            enabled = !isShowProgressBar.value
+                        )
+                    }
+
+                    // 🔴 SỬA: Chỉ hiển thị nút Huỷ khi `isCancellable`
+                    if (isCancellable) {
+                        FilledButton(
+                            text = "Huỷ đơn hàng",
+                            onClick = { viewModel.cancelOrder(orderId) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isShowProgressBar.value,
+                            // 🔴 TÙY CHỌN: Đổi màu nút Hủy nếu muốn
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = colorResource(R.color.colorSystem_greyscale_300),
+//                                contentColor = colorResource(R.color.colorSystem_greyscale_700)
+//                            )
                         )
                     }
                 }
@@ -224,16 +252,18 @@ fun OrderDetailScreen(
         }
     }
 
+    // 🔴 MỚI: Thêm lại PurchaseBottomSheet
     PurchaseBottomSheet(
         isVisible = isShowPurchaseConfirmBottomSheet.value,
         onDismiss = { isShowPurchaseConfirmBottomSheet.value = false },
-        onAddPaymentMethod = navigateToPaymentMethod,
-        onConfirmedPurchase = { token ->
+        onAddPaymentMethod = {
+            navigateToPaymentMethod()
+        },
+        onConfirmedPurchase = {
+            // Đây là luồng thanh toán cũ (chỉ hiển thị Toast)
+            // TODO: Cần gọi API thanh toán thật ở đây
+            Toast.makeText(context, "Đang xử lý thanh toán...", Toast.LENGTH_SHORT).show()
             isShowPurchaseConfirmBottomSheet.value = false
-            viewModel.payOrder(
-                orderId = orderId,
-                token = token
-            )
         }
     )
 
@@ -241,6 +271,7 @@ fun OrderDetailScreen(
         FullScreenProgressBar()
 }
 
+// ... (Các Composable bên dưới không đổi) ...
 @Composable
 fun OrderInfoSection(
     name: String,
@@ -260,8 +291,6 @@ fun OrderInfoSection(
             style = CustomTypography.TextBold,
             color = colorResource(R.color.colorSystem_heading_button)
         )
-
-        // Read-only information display
         InfoRow(label = "Họ tên:", value = name)
         InfoRow(label = "Số điện thoại:", value = phone)
         InfoRow(label = "Địa chỉ:", value = address)
@@ -279,9 +308,31 @@ fun InfoRow(label: String, value: String) {
             style = CustomTypography.TextRegular,
             color = colorResource(R.color.colorSystem_normal_text)
         )
-
         Text(
             text = value,
+            style = CustomTypography.TextSemiBold,
+            color = colorResource(R.color.colorSystem_heading_button)
+        )
+    }
+}
+
+@Composable
+fun DiscountInfoRow(label: String, value: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(colorResource(R.color.colorSystem_background_level_2))
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = CustomTypography.TextRegular,
+            color = colorResource(R.color.colorSystem_normal_text)
+        )
+        Text(
+            text = "-${value.toPriceFormat()}",
             style = CustomTypography.TextSemiBold,
             color = colorResource(R.color.colorSystem_heading_button)
         )
@@ -302,9 +353,7 @@ fun OrderNoteDisplay(note: String) {
             style = CustomTypography.TextSemiBold,
             color = colorResource(R.color.colorSystem_heading_button)
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = note,
             style = CustomTypography.TextRegular,
@@ -313,12 +362,53 @@ fun OrderNoteDisplay(note: String) {
     }
 }
 
+
 @Composable
 fun OrderStatusSection(status: String) {
-    val statusColor = when (status) {
-        "Paid" -> colorResource(R.color.colorSystem_heading_button)
-        "Pending" -> colorResource(R.color.colorSystem_tint_yellow)
-        else -> colorResource(R.color.colorSystem_normal_text)
+    val statusText: String
+    val statusColor: Color
+
+    when (status) {
+        "PENDING_PAYMENT" -> {
+            statusText = "Chờ thanh toán"
+            statusColor = colorResource(R.color.colorSystem_tint_yellow)
+        }
+        "PENDING_PACKAGING" -> {
+            statusText = "Đang chuẩn bị hàng"
+            statusColor = colorResource(R.color.colorSystem_tint_blue)
+        }
+        "PICKUPED" -> {
+            statusText = "Đã lấy hàng"
+            statusColor = colorResource(R.color.colorSystem_tint_blue)
+        }
+        "PENDING_DELIVERY" -> {
+            statusText = "Đang giao hàng"
+            statusColor = colorResource(R.color.colorSystem_tint_blue)
+        }
+        "DELIVERED" -> {
+            statusText = "Đã giao thành công"
+            statusColor = colorResource(R.color.colorSystem_tint_green)
+        }
+        "CANCELLED" -> {
+            statusText = "Đã huỷ"
+            statusColor = colorResource(R.color.colorSystem_tint_red)
+        }
+        "RETURNED" -> {
+            statusText = "Đã hoàn trả"
+            statusColor = colorResource(R.color.colorSystem_tint_red)
+        }
+        "PENDING" -> {
+            statusText = "Chờ xác nhận"
+            statusColor = colorResource(R.color.colorSystem_tint_yellow)
+        }
+        "PAID" -> {
+            statusText = "Đã thanh toán"
+            statusColor = colorResource(R.color.colorSystem_heading_button)
+        }
+        else -> {
+            statusText = status
+            statusColor = colorResource(R.color.colorSystem_normal_text)
+        }
     }
 
     Row(
@@ -334,7 +424,7 @@ fun OrderStatusSection(status: String) {
         )
 
         Text(
-            text = status,
+            text = statusText,
             style = CustomTypography.TextSemiBold,
             color = statusColor
         )
@@ -354,7 +444,6 @@ fun OrderTimestampsSection(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Format the timestamps from ISO format to a more readable format
         val formattedCreatedAt = formatTimestamp(createdAt)
         val formattedUpdatedAt = formatTimestamp(updatedAt)
 
@@ -367,7 +456,6 @@ fun OrderTimestampsSection(
                 style = CustomTypography.TextRegular,
                 color = colorResource(R.color.colorSystem_normal_text)
             )
-
             Text(
                 text = formattedCreatedAt,
                 style = CustomTypography.TextMedium,
@@ -384,7 +472,6 @@ fun OrderTimestampsSection(
                 style = CustomTypography.TextRegular,
                 color = colorResource(R.color.colorSystem_normal_text)
             )
-
             Text(
                 text = formattedUpdatedAt,
                 style = CustomTypography.TextMedium,
@@ -394,23 +481,15 @@ fun OrderTimestampsSection(
     }
 }
 
-/**
- * Formats ISO 8601 timestamp to a more readable format
- * Input: "2025-05-04T14:26:12.234Z"
- * Output: "04/05/2025 14:26"
- */
 private fun formatTimestamp(timestamp: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-
         val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        outputFormat.timeZone = TimeZone.getDefault() // Convert to local timezone
-
+        outputFormat.timeZone = TimeZone.getDefault()
         val date = inputFormat.parse(timestamp)
         date?.let { outputFormat.format(it) } ?: timestamp
     } catch (e: Exception) {
-        // Fallback in case of parsing error
         timestamp
     }
 }

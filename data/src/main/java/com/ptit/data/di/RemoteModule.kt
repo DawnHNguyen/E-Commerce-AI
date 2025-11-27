@@ -3,10 +3,10 @@ package com.ptit.data.di
 import com.google.gson.Gson
 import com.ptit.data.BuildConfig
 import com.ptit.data.remote.api.AuthApi
+import com.ptit.data.remote.api.CartApi
 import com.ptit.data.remote.api.NoAuthInterceptApi
 import com.ptit.data.remote.api.OrderApi
 import com.ptit.data.remote.api.ProductApi
-import com.ptit.data.remote.api.PurchaseApi
 import com.ptit.data.remote.api.UserService
 import com.ptit.data.remote.api.RecommendApi
 import javax.inject.Named
@@ -150,9 +150,9 @@ object RemoteModule {
 
     @Provides
     @Singleton
-    fun providePurchaseApi(
+    fun provideCartApi(
         @AuthInterceptorRemoteService retrofit: Retrofit,
-    ): PurchaseApi = retrofit.create(PurchaseApi::class.java)
+    ): CartApi = retrofit.create(CartApi::class.java)
     
     @Provides
     @Singleton
@@ -179,4 +179,9 @@ object RemoteModule {
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.api.FileUploadApi = retrofit.create(com.ptit.data.api.FileUploadApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideShippingApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.ShippingApi = retrofit.create(com.ptit.data.remote.api.ShippingApi::class.java)
 }

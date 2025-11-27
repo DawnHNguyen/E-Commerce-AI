@@ -15,6 +15,7 @@ import com.ptit.common.R
 import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.utils.toPriceFormat
 
 @Composable
 fun CartBottomBar(
@@ -65,7 +66,7 @@ fun CartBottomBar(
                     )
 
                     Text(
-                        text = "$totalPrice đ",
+                        text = totalPrice.toPriceFormat(),
                         style = CustomTypography.TextSemiBold.merge(
                             color = colorResource(R.color.colorSystem_heading_button)
                         ),

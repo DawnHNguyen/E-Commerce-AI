@@ -8,8 +8,10 @@ import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.repository.FileUploadRepository
 import com.ptit.domain.repository.ProductRepository
+import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductViewModel @Inject constructor(
     private val productRepository: ProductRepository,
-    private val fileUploadRepository: FileUploadRepository
+    private val fileUploadRepository: FileUploadRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _categoryListState = MutableStateFlow<Resource<List<CategoryDomainEntity>>>(Resource.Idle)
@@ -47,12 +50,39 @@ class ProductViewModel @Inject constructor(
     private val _deleteProductState = MutableStateFlow<Resource<Unit>>(Resource.Idle)
     val deleteProductState: StateFlow<Resource<Unit>> = _deleteProductState
 
+
+    private val _userProfileState = MutableStateFlow<Resource<Unit>>(Resource.Idle)
+    val userProfileState: StateFlow<Resource<Unit>> = _userProfileState
+
+    // Fetch user profile and get user ID
+    fun fetchUserIdAndProducts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _userProfileState.value = Resource.loading()
+
+            when (val result = userRepository.getUserProfile()) {
+                is Resource.Success -> {
+                    val userId = result.data.id
+                    // Fetch products after getting user ID
+                    fetchProductList(createdById = userId)
+                }
+                is Resource.Error -> {
+
+                }
+                is Resource.Loading -> {
+                    _userProfileState.value = Resource.loading()
+                }
+                is Resource.Idle -> {
+                    _userProfileState.value = Resource.Idle
+                }
+            }
+        }
+    }
     // Fetch list of products
-    fun fetchProductList() {
+    fun fetchProductList(createdById: String, isPublic: Boolean? = null) {
         viewModelScope.launch {
             _productListState.value = Resource.loading()
 
-            when (val result = productRepository.getProductsByShop()) {
+            when (val result = productRepository.getProductsByShop(createdById, isPublic)) {
                 is Resource.Success -> {
                     _productListState.value = result
                     _productList.value = result.data
@@ -101,94 +131,9 @@ class ProductViewModel @Inject constructor(
     }
 
     // Create a new product
-    fun createProduct(
-        name: String,
-        description: String,
-        price: Int,
-        priceBeforeDiscount: Int,
-        quantity: Int,
-        imageFiles: List<String>,
-        category: String = "",
-    ) {
-        viewModelScope.launch {
-            Log.d("ProductViewModel", "Creating product with name: $name, category: $category")
-            Log.d("ProductViewModel", "Images: ${imageFiles.joinToString()}")
 
-            _saveProductState.value = Resource.loading()
-
-            try {
-                Log.d("ProductViewModel", "Calling productRepository.createProduct")
-                val result = productRepository.createProduct(
-                    name = name,
-                    description = description,
-                    price = price,
-                    priceBeforeDiscount = priceBeforeDiscount,
-                    quantity = quantity,
-                    images = imageFiles,
-                    image = imageFiles.firstOrNull() ?: "",
-                    category = category
-                )
-
-                Log.d("ProductViewModel", "createProduct result: $result")
-
-                when (result) {
-                    is Resource.Success -> {
-                        Log.d("ProductViewModel", "Product created successfully: ${result.data}")
-                        _saveProductState.value = result
-                        // Refresh product list
-                        fetchProductList()
-                    }
-                    is Resource.Error -> {
-                        Log.e("ProductViewModel", "Error creating product: ${result}")
-                        _saveProductState.value = result
-                    }
-                    else -> {
-                        Log.d("ProductViewModel", "Other result state: $result")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ProductViewModel", "Exception in createProduct", e)
-            }
-        }
-    }
     // Update an existing product
-    fun updateProduct(
-        productId: String,
-        name: String,
-        description: String,
-        price: Int,
-        priceBeforeDiscount: Int,
-        quantity: Int,
-        imageFiles: List<String>,
-        keepImages: List<String> = emptyList(),
-        category: String = "",
-    ) {
-        viewModelScope.launch {
-            _saveProductState.value = Resource.loading()
 
-            when (val result = productRepository.updateProduct(
-                productId = productId,
-                name = name,
-                description = description,
-                price = price,
-                priceBeforeDiscount = priceBeforeDiscount,
-                quantity = quantity,
-                images = imageFiles,
-                image = imageFiles.firstOrNull() ?: "",
-                category = category
-            )) {
-                is Resource.Success -> {
-                    _saveProductState.value = result
-                    // Refresh product list
-                    fetchProductList()
-                }
-                is Resource.Error -> {
-                    _saveProductState.value = result
-                }
-                else -> { /* Handle other cases if needed */ }
-            }
-        }
-    }
 
 
     fun uploadProductImages(imageUris: List<Uri>) {
@@ -211,11 +156,11 @@ class ProductViewModel @Inject constructor(
                 when (result) {
                     is Resource.Success -> {
                         _deleteProductState.value = Resource.Success(Unit)
-                        fetchProductList()
+                        //fetchProductList()
                     }
                     is Resource.Error -> {
                         _deleteProductState.value = Resource.Success(Unit)
-                        fetchProductList()
+                        //fetchProductList()
                     }
                     is Resource.Loading -> {
                         _deleteProductState.value = Resource.loading()

@@ -144,7 +144,7 @@ class PaymentConfigViewModel @Inject constructor(
 
             // Session data
             sdkVersion = com.recurly.androidsdk.data.model.RecurlySessionData.versionName,
-            publicKey = "fra-YEvkB0OKEp3y0bDYldcPoT", // Should come from configuration
+            publicKey = "fra-uMg6ISdoTAIWS6Zpp5MHNH", // Should come from configuration
             deviceId = com.recurly.androidsdk.data.model.RecurlySessionData.deviceId,
             sessionId = UUID.randomUUID().toString()
         )

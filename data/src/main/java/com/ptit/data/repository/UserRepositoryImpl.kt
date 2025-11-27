@@ -15,19 +15,27 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserProfile(): Resource<UserDomainEntity> =
         remoteDataSource.getUserProfile().map { it.toDomainEntity() }
 
-    override suspend fun updateUserProfile(name: String?, phone: String?, avatar: String?, address: String?): Resource<Unit> {
+    override suspend fun updateUserProfile(
+        name: String?,
+        phoneNumber: String?,
+        avatar: String?,
+    ): Resource<Unit> {
         val request = UserDto(
-            createdAt = null,
-            email = null,
             id = null,
-            shop = null,
-            updatedAt = null,
-            watchList = null,
+            email = null,
             name = name,
-            phone = phone,
+            phoneNumber = phoneNumber,
             avatar = avatar,
-            address = address
+            status = null,
+            roleId = null,
+            createdById = null,
+            updatedById = null,
+            deletedById = null,
+            deletedAt = null,
+            createdAt = null,
+            updatedAt = null,
+            role = null,
         )
-        return remoteDataSource.updateUserProfile(request).map {  }
+        return remoteDataSource.updateUserProfile(request).map { }
     }
 }

@@ -97,13 +97,50 @@ fun RegisterScreen(
     ) {
         // Title
         Text(
-            text = "Sign up",
+            text = "Đăng ký",
             color = primaryColor,
             style = CustomTypography.TextBold,
             fontSize = 24.sp,
         )
 
         Spacer(modifier = Modifier.height(64.dp))
+
+        Column {
+            Text(
+                text = "Tên khách hàng",
+                color = primaryColor,
+                style = CustomTypography.TextMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            FilledTextField(
+                value = uiModel.value.name,
+                onValueChange = viewModel::onNameChanged,
+                modifier = Modifier.fillMaxWidth(),
+                hint = "Nhập tên của bạn",
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Text
+                ),
+                singleLine = true,
+                isError = !uiModel.value.isValidName,
+                errorMessage = "Tên không được ít hơn 2 ký tự ",
+                trailingContent = {
+                    if (uiModel.value.name.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.onNameChanged("")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear name"
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
+        Spacer(Modifier.height(11.dp))
 
         // Username field
         Column {
@@ -126,8 +163,8 @@ fun RegisterScreen(
                 singleLine = true,
                 isError = !uiModel.value.isValidEmail,
                 errorMessage = when(uiModel.value.emailErrorType){
-                    RegisterUiModel.EmailErrorType.INVALID_EMAIL -> "Invalid email"
-                    RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS -> "Email already exists"
+                    RegisterUiModel.EmailErrorType.INVALID_EMAIL -> "Email không hợp lệ"
+                    RegisterUiModel.EmailErrorType.EMAIL_ALREADY_EXISTS -> "Email đã tồn tại"
                     else -> ""
                 },
                 trailingContent = {
@@ -147,10 +184,48 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(11.dp))
 
+        // Phone Number field
+        Column {
+            Text(
+                text = "Số điện thoại",
+                color = primaryColor,
+                style = CustomTypography.TextMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            FilledTextField(
+                value = uiModel.value.phoneNumber,
+                onValueChange = viewModel::onPhoneNumberChanged,
+                modifier = Modifier.fillMaxWidth(),
+                hint = "Nhập số điện thoại của bạn",
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Phone
+                ),
+                singleLine = true,
+                isError = !uiModel.value.isValidPhoneNumber,
+                errorMessage = "Số điện thoại không hợp lệ",
+                trailingContent = {
+                    if (uiModel.value.phoneNumber.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.onPhoneNumberChanged("")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear phone number"
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
+        Spacer(Modifier.height(11.dp))
+
         // Password field
         Column {
             Text(
-                text = "Password",
+                text = "Mật khẩu",
                 color = primaryColor,
                 style = CustomTypography.TextMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -160,7 +235,7 @@ fun RegisterScreen(
                 value = uiModel.value.password,
                 onValueChange = viewModel::onPasswordChanged,
                 modifier = Modifier.fillMaxWidth(),
-                hint = "Enter your password",
+                hint = "Nhập mật khẩu của bạn",
                 visualTransformation = if (uiModel.value.isShowPassword) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -179,7 +254,7 @@ fun RegisterScreen(
                         )
                     }
                 },
-                errorMessage = "Password must be at least 6 characters",
+                errorMessage = "Mật khẩu phải có ít nhất 6 ký tự",
             )
         }
 
@@ -187,7 +262,7 @@ fun RegisterScreen(
 
         Column {
             Text(
-                text = "Confirm Password",
+                text = "Xác nhận mật khẩu",
                 color = primaryColor,
                 style = CustomTypography.TextMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -197,7 +272,7 @@ fun RegisterScreen(
                 value = uiModel.value.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChanged,
                 modifier = Modifier.fillMaxWidth(),
-                hint = "Confirm your password",
+                hint = "Xác nhận mật khẩu của bạn",
                 visualTransformation = if (uiModel.value.isShowConfirmPassword) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -216,7 +291,7 @@ fun RegisterScreen(
                         )
                     }
                 },
-                errorMessage = "Password not match",
+                errorMessage = "Mật khẩu xác nhận không khớp",
             )
         }
 
@@ -229,13 +304,13 @@ fun RegisterScreen(
                 viewModel.register()
             },
             enabled = uiModel.value.isEnableRegisterButton.value,
-            text = "Sign up",
+            text = "Đăng ký",
             modifier = Modifier.fillMaxWidth()
         )
 
         // Or divider
         Text(
-            text = "Or",
+            text = "Hoặc",
             color = colorResource(R.color.colorSystem_normal_text),
             style = CustomTypography.TextRegular,
             modifier = Modifier.padding(vertical = 16.dp)
@@ -249,7 +324,7 @@ fun RegisterScreen(
                 .fillMaxWidth()
         ) {
             Text(
-                text = "Already have an account?",
+                text = "Bạn đã có tài khoản",
                 color = colorResource(R.color.colorSystem_normal_text),
                 style = CustomTypography.TextRegular
             )
@@ -259,7 +334,7 @@ fun RegisterScreen(
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
-                    text = "Sign in",
+                    text = "Đăng nhập ngay",
                     color = primaryColor,
                     style = CustomTypography.TextMedium
                 )

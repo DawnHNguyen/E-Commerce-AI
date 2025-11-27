@@ -7,9 +7,9 @@ import retrofit2.http.GET
 import retrofit2.http.PUT
 
 interface UserService {
-    @GET("user")
+    @GET("profile")
     suspend fun getUserProfile(): Resource<UserDto>
 
-    @PUT("user")
+    @PUT("profile")
     suspend fun updateUserProfile(@Body userDto: UserDto): Resource<UserDto>
 }

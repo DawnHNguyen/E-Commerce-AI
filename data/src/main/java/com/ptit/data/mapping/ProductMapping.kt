@@ -1,31 +1,63 @@
 package com.ptit.data.mapping
 
+import com.ptit.data.remote.dto.home.ListProductResponse
+import com.ptit.data.remote.dto.product.BrandDto
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.ProductDto
+import com.ptit.data.remote.dto.product.SKUDto
+import com.ptit.data.remote.dto.product.VariantDto
 import com.ptit.domain.entity.common.UserDomainEntity
+import com.ptit.domain.entity.home.ListProductDomainEntity
+import com.ptit.domain.entity.product.BrandDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
+import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.entity.product.VariantDomainEntity
 
 fun ProductDto.toDomainEntity() = ProductDomainEntity(
-    id = id ?: "",
-    name = name ?: "",
-    price = price ?: 0,
-    category = category?.toDomainEntity() ?: CategoryDomainEntity(),
-    image = image ?: "",
-    rating = rating ?: 0f,
-    sold = sold ?: 0,
-    createdAt = createdAt ?: "",
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    basePrice = basePrice ?: 0,
+    virtualPrice = virtualPrice,
     images = images ?: emptyList(),
-    priceBeforeDiscount = priceBeforeDiscount ?: 0,
-    quantity = quantity ?: 0,
-    shop = shop?.toDomainEntity() ?: UserDomainEntity(),
-    updatedAt = updatedAt ?: "",
+    variants = variants?.map { it.toDomainEntity() } ?: emptyList(),
+    skus = skus?.map { it.toDomainEntity() } ?: emptyList(),
+    category = category?.toDomainEntity(),
+    brand = brand?.toDomainEntity(),
+    createdById = createdById.orEmpty(),
+    shop = null, // Map từ UserDto nếu có
+    isPublic = isPublic ?: false,
+    publishedAt = publishedAt,
+    createdAt = createdAt.orEmpty(),
+    updatedAt = updatedAt.orEmpty(),
+    sold = sold ?: 0,
+    rating = rating ?: 0f,
     view = view ?: 0,
-    description = description ?: "",
-
-    )
+)
 
 fun CategoryDto.toDomainEntity() = CategoryDomainEntity(
     id = id ?: "",
     name = name ?: "",
+)
+
+fun VariantDto.toDomainEntity() = VariantDomainEntity(
+    name = name,
+    options = options
+)
+
+fun SKUDto.toDomainEntity() = SKUDomainEntity(
+    id = id.orEmpty(),
+    value = value,
+    price = price,
+    stock = stock,
+    image = image
+)
+
+fun BrandDto.toDomainEntity() = BrandDomainEntity(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+)
+
+fun ListProductResponse.toDomainEntity() = ListProductDomainEntity(
+    products = data?.map { it.toDomainEntity() } ?: emptyList()  // ✅ Đổi từ products thành data
 )

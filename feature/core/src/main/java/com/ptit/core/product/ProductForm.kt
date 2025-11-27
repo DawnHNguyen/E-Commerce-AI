@@ -107,9 +107,9 @@ fun ProductForm(
                     // Populate form with existing product data
                     name = it.name
                     description = it.description
-                    price = it.price.toString()
-                    priceBeforeDiscount = it.priceBeforeDiscount.toString()
-                    quantity = it.quantity.toString()
+                    price = (it.basePrice *(1 - product.discountPercent)).toString()
+                    priceBeforeDiscount = it.basePrice.toString()
+                    //quantity = it.quantity.toString()
                     categoryId = it.category?.id ?: ""
                     uploadedImageUrls = it.images
                 }
@@ -500,33 +500,33 @@ fun ProductForm(
                         }
                         else -> {
                             // First upload images if not already uploaded
-                            if (selectedImageUris.isNotEmpty() && uploadedImageUrls.isEmpty()) {
-                                // Upload images first
-                                viewModel.uploadProductImages(selectedImageUris)
-                            } else if (uploadedImageUrls.isNotEmpty()) {
-                                if (isEditMode && productId != null) {
-                                    viewModel.updateProduct(
-                                        productId = productId,
-                                        name = name,
-                                        description = description,
-                                        price = price.toIntOrNull() ?: 0,
-                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
-                                        quantity = quantity.toIntOrNull() ?: 0,
-                                        imageFiles = uploadedImageUrls,
-                                        category = categoryId
-                                    )
-                                } else {
-                                    viewModel.createProduct(
-                                        name = name,
-                                        description = description,
-                                        price = price.toIntOrNull() ?: 0,
-                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
-                                        quantity = quantity.toIntOrNull() ?: 0,
-                                        imageFiles = uploadedImageUrls,
-                                        category = categoryId
-                                    )
-                                }
-                            }
+//                            if (selectedImageUris.isNotEmpty() && uploadedImageUrls.isEmpty()) {
+//                                // Upload images first
+//                                viewModel.uploadProductImages(selectedImageUris)
+//                            } else if (uploadedImageUrls.isNotEmpty()) {
+//                                if (isEditMode && productId != null) {
+//                                    viewModel.updateProduct(
+//                                        productId = productId,
+//                                        name = name,
+//                                        description = description,
+//                                        price = price.toIntOrNull() ?: 0,
+//                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
+//                                        quantity = quantity.toIntOrNull() ?: 0,
+//                                        imageFiles = uploadedImageUrls,
+//                                        category = categoryId
+//                                    )
+//                                } else {
+//                                    viewModel.createProduct(
+//                                        name = name,
+//                                        description = description,
+//                                        price = price.toIntOrNull() ?: 0,
+//                                        priceBeforeDiscount = priceBeforeDiscount.toIntOrNull() ?: 0,
+//                                        quantity = quantity.toIntOrNull() ?: 0,
+//                                        imageFiles = uploadedImageUrls,
+//                                        category = categoryId
+//                                    )
+//                                }
+//                            }
                         }
                     }
                 },

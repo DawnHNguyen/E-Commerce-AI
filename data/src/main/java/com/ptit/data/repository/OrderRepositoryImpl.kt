@@ -1,8 +1,12 @@
 package com.ptit.data.repository
 
 import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.OrderRemoteDataSource
+import com.ptit.domain.entity.order.CancelOrderResponseDomainEntity
+import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
 import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
+import com.ptit.domain.entity.order.GetOrderListDomainEntity
 import com.ptit.domain.entity.order.OrderDomainEntity
 import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.utils.Resource
@@ -10,43 +14,28 @@ import com.ptit.domain.utils.map
 import javax.inject.Inject
 
 class OrderRepositoryImpl @Inject constructor(
-    private val remoteDataSource: OrderRemoteDataSource,
+    private val remoteDataSource: OrderRemoteDataSource
 ) : OrderRepository {
 
-    override suspend fun createOrder(
-        purchaseIds: List<String>,
-        fullName: String,
-        phone: String,
-        address: String,
-        note: String,
-        totalAmount: Int,
-        shippingFee: Int,
-    ): Resource<CreateOrderResponseDomainEntity> {
-        return remoteDataSource.createOrder(
-            purchaseIds = purchaseIds,
-            fullName = fullName,
-            phone = phone,
-            address = address,
-            shippingFee = shippingFee,
-            totalAmount = totalAmount,
-            note = note
-        ).map { it.toDomainEntity() }
-    }
-
-    override suspend fun getOrders(): Resource<List<OrderDomainEntity>> {
-        return remoteDataSource.getOrders().map { orderDtos ->
-            orderDtos.map { it.toDomainEntity() }
-        }
+    override suspend fun getOrders(
+        page: Int?, limit: Int?, status: String?
+    ): Resource<GetOrderListDomainEntity> {
+        return remoteDataSource.getOrders(page, limit, status).map { it.toDomainEntity() }
     }
 
     override suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity> {
-        return remoteDataSource.getOrderById(orderId).map { orderDetailResponse ->
-            orderDetailResponse.order?.toDomainEntity() ?: OrderDomainEntity()
-        }
+        return remoteDataSource.getOrderById(orderId).map { it.toDomainEntity() }
     }
 
-    override suspend fun payOrder(
-        orderId: String,
-        tokenId: String,
-    ) = remoteDataSource.payOrder(orderId, tokenId)
+    override suspend fun createOrder(
+        request: CreateOrderRequestDomainEntity
+    ): Resource<CreateOrderResponseDomainEntity> {
+        // Sử dụng mapper toDto() mới
+        val dtoList = request.toDto()
+        return remoteDataSource.createOrder(dtoList).map { it.toDomainEntity() }
+    }
+
+    override suspend fun cancelOrder(orderId: String): Resource<CancelOrderResponseDomainEntity> {
+        return remoteDataSource.cancelOrder(orderId).map { it.toDomainEntity() }
+    }
 }

@@ -1,6 +1,8 @@
 package com.ptit.data.remote.datasource
 
 import com.ptit.data.remote.api.ProductApi
+import com.ptit.data.remote.dto.product.CreateProductRequestDto
+import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import javax.inject.Inject
 
 class ProductRemoteDataSource @Inject constructor(private val remoteService: ProductApi) {
@@ -8,86 +10,33 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
         page: Int,
         limit: Int,
         sortBy: String?,
+        orderBy: String?,
         minPrice: Int?,
         maxPrice: Int?,
-        rating: Int?,
         name: String?,
-        category: String?
+        categories: List<String>?,
+        brandIds: List<String>?
     ) = remoteService.listProducts(
         page = page,
         limit = limit,
         sortBy = sortBy,
+        orderBy = orderBy,
         minPrice = minPrice,
         maxPrice = maxPrice,
-        rating = rating,
         name = name,
-        category = category
+        categories = categories,
+        brandIds = brandIds
     )
 
     suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
-    suspend fun getProductsByShop() = remoteService.getProductsByShop()
+    suspend fun getProductsByShop(createdById: String, isPublic: Boolean? = null) = remoteService.getProductsByShop(createdById, isPublic)
     suspend fun getCategories() = remoteService.getCategories()
     suspend fun deleteProduct(productId: String) = remoteService.deleteProduct(productId)
-    suspend fun createProduct(
-        name: String,
-        description: String,
-        price: Int,
-        priceBeforeDiscount: Int,
-        quantity: Int,
-        images: List<String>,
-        image: String,
-        category: String
-    ) = remoteService.createProduct(
-        name,
-        description,
-        price,
-        priceBeforeDiscount,
-        quantity,
-        images,
-        image,
-        category
-    )
+    suspend fun createProduct(request: CreateProductRequestDto) =
+        remoteService.createProduct(request)
 
-    suspend fun updateProduct(
-        productId: String,
-        name: String,
-        description: String,
-        price: Int,
-        priceBeforeDiscount: Int,
-        quantity: Int,
-        images: List<String>,
-        image: String,
-        category: String
-    ) = remoteService.updateProduct(
-        productId,
-        name,
-        description,
-        price,
-        priceBeforeDiscount,
-        quantity,
-        images,
-        image,
-        category
-    )
+    suspend fun updateProduct(productId: String, request: UpdateProductRequestDto) =
+        remoteService.updateProduct(productId, request)
 
-    suspend fun getProductsByCategory(category: String) = remoteService.listProducts(
-        page = 1,
-        limit = 1000,
-        sortBy = null,
-        minPrice = null,
-        maxPrice = null,
-        rating = null,
-        name = null,
-        category = category
-    )
-
-    suspend fun getSimilarProducts(productId: String, amount: Int) =
-        remoteService.getSimilarProducts(productId, amount)
-
-    suspend fun getTrendingProducts(amount: Int) =
-        remoteService.getTrendingProducts(amount = amount)
-
-    suspend fun getHomeRecommendations() =
-        remoteService.getHomeRecommendations()
 
 }

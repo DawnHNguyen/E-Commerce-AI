@@ -17,14 +17,59 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.domain.entity.cart.PurchaseDomainEntity
+import com.ptit.common.utils.toPriceFormat
+import com.ptit.domain.entity.cart.CartItemDomainEntity
+import com.ptit.domain.entity.order.ProductSKUSnapshotDomainEntity
+
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
-    val product = purchase.product
-    val quantity = purchase.buyCount
+fun SharedCartItemRow(cartItem: CartItemDomainEntity) {
+    val sku = cartItem.sku
+    val product = sku?.product
+    val quantity = cartItem.quantity
 
+    SharedOrderItemRowContent(
+        name = product?.name ?: "Không rõ sản phẩm",
+        image = sku?.image ?: product?.mainImage,
+        basePrice = product?.basePrice?.toPriceFormat() ?: 0,
+        price = sku?.price ?: 0,
+        quantity = quantity
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun SharedSnapshotItemRow(snapshot: ProductSKUSnapshotDomainEntity) {
+    SharedOrderItemRowContent(
+        name = snapshot.productName,
+        image = snapshot.image,
+        basePrice = 0,
+        price = snapshot.skuPrice,
+        quantity = snapshot.quantity
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun SharedOrderItemRowContent(
+    name: String,
+    image: String?,
+    basePrice: Any,
+    price: Int,
+    quantity: Int
+) {
+    // Tạo biến giá trị đã định dạng
+    val formattedPrice = price.toPriceFormat()
+
+    // Xử lý basePrice (virtualPrice):
+    val formattedBasePrice = if (basePrice is Int && basePrice > 0) {
+        basePrice.toPriceFormat()
+    } else if (basePrice is String) {
+        basePrice // Nếu nó đã được format từ SharedCartItemRow
+    } else {
+        null // Nếu là 0 hoặc kiểu khác
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -37,8 +82,8 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
             modifier = Modifier.fillMaxWidth()
         ) {
             GlideImage(
-                model = product.image,
-                contentDescription = null,
+                model = image,
+                contentDescription = name,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(12.dp))
@@ -48,7 +93,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = product.name,
+                    text = name,
                     style = CustomTypography.TextRegular,
                     color = colorResource(R.color.colorSystem_normal_text),
                     maxLines = 2
@@ -56,10 +101,9 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Original price with strikethrough
-                if (product.priceBeforeDiscount > 0) {
+                if (basePrice != price && basePrice != 0) {
                     Text(
-                        text = "${product.priceBeforeDiscount}đ",
+                        text = formattedBasePrice.toString(),
                         style = CustomTypography.TextRegular.copy(
                             textDecoration = TextDecoration.LineThrough,
                             fontSize = 12.sp
@@ -71,7 +115,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = "${purchase.price}đ",
+                    text = formattedPrice,
                     style = CustomTypography.TextSemiBold,
                     color = colorResource(R.color.colorSystem_heading_button)
                 )
@@ -89,7 +133,7 @@ fun SharedOrderItemRow(purchase: PurchaseDomainEntity) {
 }
 
 @Composable
-fun SharedTotalAmountSection(subtotal: Int, shippingFee: Int, totalPrice: Int) {
+fun SharedTotalAmountSection(subtotal: String, shippingFee: String, totalPrice: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,7 +151,7 @@ fun SharedTotalAmountSection(subtotal: Int, shippingFee: Int, totalPrice: Int) {
             )
 
             Text(
-                text = "$subtotal đ",
+                text = subtotal,
                 style = CustomTypography.TextRegular,
                 color = colorResource(R.color.colorSystem_normal_text)
             )
@@ -124,7 +168,7 @@ fun SharedTotalAmountSection(subtotal: Int, shippingFee: Int, totalPrice: Int) {
             )
 
             Text(
-                text = "$shippingFee đ",
+                text = shippingFee,
                 style = CustomTypography.TextRegular,
                 color = colorResource(R.color.colorSystem_normal_text)
             )
@@ -146,7 +190,7 @@ fun SharedTotalAmountSection(subtotal: Int, shippingFee: Int, totalPrice: Int) {
             )
 
             Text(
-                text = "$totalPrice đ",
+                text = totalPrice,
                 style = CustomTypography.TextSemiBold,
                 color = colorResource(R.color.colorSystem_heading_button)
             )

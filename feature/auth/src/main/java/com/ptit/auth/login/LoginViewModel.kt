@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.utils.BadRequestException
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.map
 import com.ptit.domain.utils.onError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -18,9 +19,11 @@ import javax.inject.Inject
 class LoginViewModel @Inject constructor(
     private val repository: AuthRepository,
 ) : ViewModel() {
+
     private val _uiModel = MutableStateFlow(LoginUiModel())
     val uiModel = _uiModel.asStateFlow()
 
+    // LoginState chỉ lưu trạng thái Resource<Unit> (đơn giản cho UI)
     private val _loginState = MutableStateFlow<Resource<Unit>>(Resource.idle())
     val loginState = _loginState.asStateFlow()
 
@@ -47,7 +50,7 @@ class LoginViewModel @Inject constructor(
     fun toggleShowPassword() {
         _uiModel.update {
             it.copy(
-                isShowPassword = it.isShowPassword.not(),
+                isShowPassword = !it.isShowPassword,
             )
         }
     }
@@ -61,8 +64,11 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login() {
+        // Ngăn double-click login
         if (loginState.value is Resource.Loading) return
+
         _loginState.value = Resource.loading()
+
         val username = uiModel.value.username
         val password = uiModel.value.password
         val isValidUsername = validateEmail(username)
@@ -74,30 +80,31 @@ class LoginViewModel @Inject constructor(
                 isValidPassword = isValidPassword,
             )
         }
+
         if (uiModel.value.isValid.value) {
             viewModelScope.launch(Dispatchers.IO) {
-                val response = repository.login(
-                    email = username,
-                    password = password,
-                ).onError {
-                    if (it.error?.message?.contains("email") == true) {
-                        _uiModel.update {
-                            it.copy(
-                                isValidUsername = false,
-                            )
-                        }
-                    } else if (it.error?.message?.contains("password") == true) {
-                        _uiModel.update {
-                            it.copy(
-                                isValidPassword = false,
-                            )
+                val response = repository
+                    .login(
+                        email = username,
+                        password = password,
+                    )
+                    // Xử lý lỗi xác thực
+                    .onError { exception ->
+                        val message = exception.message ?: ""
+                        if ("email" in message) {
+                            _uiModel.update { it.copy(isValidUsername = false) }
+                        } else if ("password" in message) {
+                            _uiModel.update { it.copy(isValidPassword = false) }
                         }
                     }
-                }
+                    // Map từ AuthToken -> Unit cho UI (chỉ cần biết login thành công)
+                    .map { Unit }
 
+                // Cập nhật state
                 _loginState.update { response }
             }
         } else {
+            // Nếu form invalid
             _loginState.update {
                 Resource.error(
                     BadRequestException(

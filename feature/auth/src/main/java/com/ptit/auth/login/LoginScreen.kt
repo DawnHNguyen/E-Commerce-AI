@@ -79,7 +79,7 @@ fun LoginScreen(
                     if (it.statusCodeCategory == StatusCodeCategory.SERVER_ERROR)
                         Toast.makeText(
                             context,
-                            "Unexpected error occurred. Please try again later.",
+                            "Đã có lỗi xảy ra, vui lòng thử lại sau",
                             Toast.LENGTH_SHORT
                         ).show()
                 }
@@ -99,7 +99,7 @@ fun LoginScreen(
     ) {
         // Title
         Text(
-            text = "Sign in",
+            text = "Đăng nhập",
             color = primaryColor,
             style = CustomTypography.TextBold,
             fontSize = 24.sp,
@@ -120,14 +120,14 @@ fun LoginScreen(
                 value = uiModel.value.username,
                 onValueChange = viewModel::onUsernameChanged,
                 modifier = Modifier.fillMaxWidth(),
-                hint = "Enter your email",
+                hint = "Nhập email của bạn",
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Email
                 ),
                 singleLine = true,
                 isError = !uiModel.value.isValidUsername,
-                errorMessage = "Account not exist",
+                errorMessage = "Tài khoản không tồn tại",
                 trailingContent = {
                     if (uiModel.value.username.isNotEmpty()) {
                         IconButton(onClick = {
@@ -148,7 +148,7 @@ fun LoginScreen(
         // Password field
         Column {
             Text(
-                text = "Password",
+                text = "Mật khẩu",
                 color = primaryColor,
                 style = CustomTypography.TextMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -158,7 +158,7 @@ fun LoginScreen(
                 value = uiModel.value.password,
                 onValueChange = viewModel::onPasswordChanged,
                 modifier = Modifier.fillMaxWidth(),
-                hint = "Enter your password",
+                hint = "Nhập mật khẩu",
                 visualTransformation = if (uiModel.value.isShowPassword) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -177,7 +177,7 @@ fun LoginScreen(
                         )
                     }
                 },
-                errorMessage = "Incorrect password",
+                errorMessage = "Sai mật khẩu",
             )
         }
 
@@ -190,13 +190,13 @@ fun LoginScreen(
                 viewModel.login()
             },
             enabled = uiModel.value.isEnableLoginButton.value,
-            text = "Sign in",
+            text = "Đăng nhập",
             modifier = Modifier.fillMaxWidth()
         )
 
         // Or divider
         Text(
-            text = "Or",
+            text = "Hoặc",
             color = colorResource(R.color.colorSystem_normal_text),
             style = CustomTypography.TextRegular,
             modifier = Modifier.padding(vertical = 16.dp)
@@ -210,7 +210,7 @@ fun LoginScreen(
                 .fillMaxWidth()
         ) {
             Text(
-                text = "Haven\' had an account?",
+                text = "Bạn chưa có tài khoản?",
                 color = colorResource(R.color.colorSystem_normal_text),
                 style = CustomTypography.TextRegular
             )
@@ -220,7 +220,7 @@ fun LoginScreen(
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
-                    text = "Sign up",
+                    text = "Đăng ký ngay",
                     color = primaryColor,
                     style = CustomTypography.TextMedium
                 )

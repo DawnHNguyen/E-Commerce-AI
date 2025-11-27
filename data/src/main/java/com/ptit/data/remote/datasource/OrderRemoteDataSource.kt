@@ -1,44 +1,17 @@
 package com.ptit.data.remote.datasource
 
 import com.ptit.data.remote.api.OrderApi
-import com.ptit.data.remote.dto.order.CreateOrderRequest
-import com.ptit.data.remote.dto.order.OrderDetailResponse
-import com.ptit.data.remote.dto.order.PayOrderRequest
-import com.ptit.domain.utils.Resource
+import com.ptit.data.remote.dto.order.CreateOrderRequestDto
+
 import javax.inject.Inject
 
-class OrderRemoteDataSource @Inject constructor(private val remoteService: OrderApi) {
-    suspend fun createOrder(
-        purchaseIds: List<String>,
-        fullName: String,
-        phone: String,
-        address: String,
-        shippingFee: Int,
-        totalAmount: Int,
-        note: String = ""
-    ) = remoteService.createOrder(
-        CreateOrderRequest(
-            purchaseIds = purchaseIds,
-            fullName = fullName,
-            phone = phone,
-            address = address,
-            shippingFee = shippingFee,
-            totalAmount = totalAmount,
-            note = note
-        )
-    )
+class OrderRemoteDataSource @Inject constructor(private val api: OrderApi) {
+    suspend fun getOrders(page: Int? = 1, limit: Int? = 10, status: String? = null) =
+        api.getOrders(page, limit, status)
 
-    suspend fun getOrders() = remoteService.getOrders()
+    suspend fun getOrderById(orderId: String) = api.getOrderById(orderId)
 
-    suspend fun getOrderById(orderId: String): Resource<OrderDetailResponse> {
-        return remoteService.getOrderById(orderId)
-    }
+    suspend fun createOrder(request: CreateOrderRequestDto) = api.createOrder(request)
 
-    suspend fun payOrder(
-        orderId: String,
-        tokenId: String
-    ) = remoteService.payOrder(
-        orderId = orderId,
-        payOrderRequest = PayOrderRequest(tokenId = tokenId)
-    )
+    suspend fun cancelOrder(orderId: String) = api.cancelOrder(orderId)
 }

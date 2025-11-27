@@ -175,15 +175,12 @@ fun AccountScreen(
             // Menu Items
             SettingsMenuCard(
                 isSettingsExpanded = uiModel.value.isSettingsExpanded,
-                hasShop = uiModel.value.user.shop.name.isNotEmpty(),
+                //hasShop = uiModel.value.user.shop.name.isNotEmpty(),\
+                hasShop = false,
                 onSettingsClick = viewModel::toggleSettingsExpanded,
                 onOrdersClick = onNavigateToOrders,
                 onShopClick = {
-                    if (uiModel.value.user.shop.name.isNotEmpty()) {
-                        onNavigateToShop()
-                    } else {
-                        onNavigateToCreateShop()
-                    }
+
                 },
                 onPaymentMethodsClick = onNavigateToPaymentMethods,
                 onChangePasswordClick = onNavigateToChangePassword,
@@ -265,10 +262,10 @@ private fun ProfileCard(
                 )
 
                 // User Phone
-                if (user.phone.isNotEmpty()) {
+                if (user.phoneNumber.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = user.phone,
+                        text = user.phoneNumber,
                         style = CustomTypography.TextRegular,
                         fontSize = 14.sp,
                         color = colorResource(id = R.color.colorSystem_normal_text)
@@ -301,17 +298,17 @@ private fun SettingsMenuCard(
             modifier = Modifier.padding(8.dp)
         ) {
             // My Orders
-//            MenuItem(
-//                icon = Icons.Outlined.ShoppingBag,
-//                title = "Đơn hàng của tôi",
-//                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
-//                onClick = onOrdersClick
-//            )
-//
-//            HorizontalDivider(
-//                modifier = Modifier.padding(horizontal = 16.dp),
-//                color = colorResource(id = R.color.colorSystem_text_button)
-//            )
+            MenuItem(
+                icon = Icons.Outlined.ShoppingBag,
+                title = "Đơn hàng của tôi",
+                subtitle = "Xem trạng thái đơn hàng và lịch sử mua",
+                onClick = onOrdersClick
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = colorResource(id = R.color.colorSystem_text_button)
+            )
 
             // My Shop or Create Shop
             MenuItem(

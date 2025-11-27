@@ -1,40 +1,17 @@
 package com.ptit.core.product_detail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ptit.common.R
@@ -42,174 +19,183 @@ import com.ptit.common.presentation.component.BaseBottomSheet
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.entity.product.ProductDomainEntity
+import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.entity.product.VariantDomainEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToCartBottomSheet(
     product: ProductDomainEntity,
+    selectedVariants: Map<String, String>,
+    selectedSKU: SKUDomainEntity?,
+    onVariantSelected: (String, String) -> Unit,
     isShowBottomSheet: Boolean,
     onDismiss: () -> Unit,
-    onAddToCart: (Int) -> Unit
+    onAddToCart: (String, Int) -> Unit
 ) {
-    val modalSheetState = rememberModalBottomSheetState()
-    var quantity by remember { mutableStateOf("1") }
+    val modalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var quantity by remember { mutableIntStateOf(1) }
 
-    // Validate and parse quantity
-    val quantityValue = quantity.toIntOrNull()?.coerceIn(1, product.quantity) ?: 1
+    val hasSelectedAllVariants = selectedVariants.size == product.variants.size
+    val isInStock = selectedSKU != null && selectedSKU.stock > 0
+    val maxStock = selectedSKU?.stock ?: 1
 
-    // Check if product is in stock
-    val isInStock = product.quantity > 0
+    // Reset quantity mỗi khi mở bottom sheet
+    LaunchedEffect(isShowBottomSheet) {
+        if (isShowBottomSheet) {
+            quantity = 1
+        }
+    }
 
     BaseBottomSheet(
         modalSheetState = modalSheetState,
         isShowBottomSheet = isShowBottomSheet,
         onDismiss = onDismiss
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = colorResource(id = R.color.colorSystem_background_level_0)
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorResource(id = R.color.colorSystem_background_level_0))
+                .padding(16.dp)
         ) {
-            Column(
+            // Tên sản phẩm
+            Text(
+                text = product.name,
+                style = CustomTypography.TextSemiBold.merge(
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    fontSize = 18.sp
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // Hiển thị giá
+            val displayPrice = selectedSKU?.price ?: product.basePrice
+            Text(
+                text = "${displayPrice}đ",
+                style = CustomTypography.TextSemiBold.merge(
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    fontSize = 20.sp
+                ),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Variant selectors
+            product.variants.forEach { variant ->
+                VariantSelectorInBottomSheet(
+                    variant = variant,
+                    selectedOption = selectedVariants[variant.name],
+                    onOptionSelected = { option ->
+                        onVariantSelected(variant.name, option)
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Hiển thị tồn kho
+            if (hasSelectedAllVariants) {
+                Text(
+                    text = if (isInStock) "Kho: ${selectedSKU.stock}" else "Hết hàng",
+                    style = CustomTypography.TextRegular.merge(
+                        color = if (isInStock)
+                            colorResource(id = R.color.colorSystem_normal_text)
+                        else
+                            MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp
+                    ),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            // Chọn số lượng
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Product info
                 Text(
-                    text = product.name,
-                    style = CustomTypography.TextSemiBold.merge(
+                    text = "Số lượng",
+                    style = CustomTypography.TextMedium.merge(
                         color = colorResource(id = R.color.colorSystem_heading_button),
-                        fontSize = 18.sp
-                    ),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                        fontSize = 16.sp
+                    )
                 )
 
-                // Inventory status
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Kho:",
-                        style = CustomTypography.TextRegular,
-                        color = colorResource(id = R.color.colorSystem_normal_text)
-                    )
-
-                    //Spacer(modifier = Modifier.weight(1f))
-
-                    if (isInStock) {
-                        Text(
-                            text = "    ${product.quantity}",
-                            style = CustomTypography.TextMedium,
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-                    } else {
-                        Text(
-                            text = "Hết hàng",
-                            style = CustomTypography.TextMedium,
-                            color = Color.Red
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Quantity selection
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Số lượng:",
-                        style = CustomTypography.TextRegular,
-                        color = colorResource(id = R.color.colorSystem_normal_text)
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Decrease button
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = {
-                            val current = quantity.toIntOrNull() ?: 1
-                            if (current > 1) {
-                                quantity = (current - 1).toString()
-                            }
+                            if (quantity > 1) quantity--
                         },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(colorResource(id = R.color.colorSystem_background_level_2)),
-                        enabled = (quantityValue > 1) && isInStock
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = "Decrease",
-                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        enabled = quantity > 1,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = colorResource(id = R.color.colorSystem_heading_button)
                         )
+                    ) {
+                        Icon(Icons.Filled.Remove, contentDescription = "Giảm")
                     }
 
-                    // Quantity input
-                    OutlinedTextField(
-                        value = quantity,
-                        onValueChange = { newValue ->
-                            // Only accept numeric values
-                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                val newQuantity = newValue.toIntOrNull() ?: 0
-                                if (newValue.isEmpty() || (newQuantity in 1..product.quantity)) {
-                                    quantity = newValue
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(0.5f)
-                            .padding(horizontal = 8.dp),
-                        textStyle = CustomTypography.TextMedium.merge(
-                            textAlign = TextAlign.Center
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        enabled = isInStock
+                    Text(
+                        text = quantity.toString(),
+                        style = CustomTypography.TextMedium.merge(fontSize = 16.sp),
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
 
-                    // Increase button
                     IconButton(
                         onClick = {
-                            val current = quantity.toIntOrNull() ?: 1
-                            if (current < product.quantity) {
-                                quantity = (current + 1).toString()
-                            }
+                            if (quantity < maxStock) quantity++
                         },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(colorResource(id = R.color.colorSystem_background_level_2)),
-                        enabled = (quantityValue < product.quantity) && isInStock
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Increase",
-                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        enabled = quantity < maxStock,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = colorResource(id = R.color.colorSystem_heading_button)
                         )
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Tăng")
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-                // Add to cart button
-                FilledButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = "Thêm vào giỏ hàng",
-                    onClick = {
-                        onAddToCart(quantityValue)
+            // Nút thêm vào giỏ
+            FilledButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = "Thêm vào giỏ hàng",
+                enabled = hasSelectedAllVariants && isInStock,
+                onClick = {
+                    selectedSKU?.let {
+                        onAddToCart(it.value, quantity)
                         onDismiss()
-                    },
-                    enabled = isInStock && quantityValue > 0
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun VariantSelectorInBottomSheet(
+    variant: VariantDomainEntity,
+    selectedOption: String?,
+    onOptionSelected: (String) -> Unit
+) {
+    Column {
+        Text(
+            text = variant.name,
+            style = CustomTypography.TextMedium.merge(
+                color = colorResource(id = R.color.colorSystem_heading_button),
+                fontSize = 14.sp
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(variant.options) { option ->
+                VariantOption(
+                    option = option,
+                    isSelected = option == selectedOption,
+                    onClick = { onOptionSelected(option) }
                 )
             }
         }

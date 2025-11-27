@@ -1,9 +1,7 @@
 package com.ptit.core.cart
 
 import DialogState
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
@@ -14,88 +12,108 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.core.cart.components.*
+import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun CartScreen(
     onBack: () -> Unit,
-    onCheckout: (List<String>) -> Unit, // Modified to accept IDs instead of PurchaseDomainEntity objects
+    onCheckout: (List<String>, List<CartItemDetailDomainEntity>) -> Unit,
     onProductClick: (String) -> Unit = {}
 ) {
+    // ✅ Hiển thị bottom navigation
     LocalBottomNavigationVisibility.current.value = true
 
+    // ✅ ViewModel
     val viewModel: CartViewModel = hiltViewModel()
     val cartState by viewModel.cartState.collectAsState()
-    val updatePurchaseState by viewModel.updatePurchaseState.collectAsState()
-    val deletePurchaseState by viewModel.deletePurchaseState.collectAsState()
+    val updateState by viewModel.updateCartState.collectAsState()
+    val deleteState by viewModel.deleteCartState.collectAsState()
+
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.Hidden) }
 
-    // Handle operation states and show appropriate snackbars
+    // ✅ Hiển thị snackbar khi có update/delete
     HandleOperationStates(
-        updatePurchaseState = updatePurchaseState,
-        deletePurchaseState = deletePurchaseState,
+        updateCartState = updateState,
+        deleteCartState = deleteState,
         snackbarHostState = snackbarHostState
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (val state = cartState) {
-            is CartViewModel.CartState.Loading -> FullScreenProgressBar()
+            is CartViewModel.CartState.Loading -> {
+                FullScreenProgressBar()
+            }
 
             is CartViewModel.CartState.Error -> {
-                //ErrorMessage(message = state.message)
+                // TODO: hiển thị UI lỗi nếu cần
             }
 
             is CartViewModel.CartState.Success -> {
+                val flatItems = remember(state.groupedItems) {
+                    viewModel.getFlatCartItems(state.groupedItems)
+                }
                 CartContent(
-                    purchases = state.purchases,
-                    onRefresh = { viewModel.getPurchases() },
+                    // ✅ Danh sách sản phẩm trong giỏ
+                    purchases = flatItems, // state.items là List<CartItemDomainEntity>
+
+                    // ✅ Làm mới danh sách
+                    onRefresh = { viewModel.getCart() },
+
+                    // ✅ Hiển thị loading khi đang xóa hoặc tải
                     isLoading = cartState is CartViewModel.CartState.Loading ||
-                            deletePurchaseState is CartViewModel.DeletePurchaseState.Loading,
+                            deleteState is CartViewModel.DeleteCartState.Loading,
+
+                    // ✅ Quay lại màn hình trước
                     onBack = onBack,
-                    onUpdateQuantity = { productId, newQuantity ->
-                        viewModel.updatePurchaseQuantity(productId, newQuantity)
+
+                    // ✅ Cập nhật số lượng sản phẩm
+                    onUpdateQuantity = { cartItemId, skuId, newQty ->
+                        viewModel.updateCartItemQuantity(cartItemId, skuId, newQty)
                     },
-                    onDeleteSingleItem = { purchase ->
-                        dialogState = DialogState.DeleteSingleItem(purchase)
+
+                    // ✅ Xóa 1 sản phẩm
+                    onDeleteSingleItem = { cartItem ->
+                        dialogState = DialogState.DeleteSingleItem(item = cartItem)
                     },
-                    onDeleteMultipleItems = { selectedIds ->
-                        dialogState = DialogState.DeleteMultipleItems(selectedIds)
+
+                    // ✅ Xóa nhiều sản phẩm
+                    onDeleteMultipleItems = { ids ->
+                        dialogState = DialogState.DeleteMultipleItems(itemIds = ids)
                     },
+
+                    // ✅ Thanh toán danh sách sản phẩm đã chọn
                     onCheckout = { selectedIds ->
-                        onCheckout(selectedIds.toList()) // Convert Set<String> to List<String>
+                        onCheckout(selectedIds.toList(), state.groupedItems)
                     },
+
+                    // ✅ Xem chi tiết sản phẩm
                     onProductClick = onProductClick
                 )
             }
-
-            else -> {}
         }
 
-        // SnackbarHost positioned at the bottom
+        // ✅ Snackbar hiển thị dưới cùng màn hình
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp) // Position above the bottom bar
+                .padding(bottom = 80.dp)
         )
     }
 
-    // Handle dialog displays based on dialogState
+    // ✅ Xử lý hiển thị dialog xác nhận xóa
     HandleDialogs(
         dialogState = dialogState,
         onDismiss = { dialogState = DialogState.Hidden },
-        onConfirmDelete = { itemIds ->
+        onConfirmDelete = { ids ->
             dialogState = DialogState.Hidden
             scope.launch {
-                delay(150) // Wait briefly to ensure dialog has closed
-                if (itemIds.size == 1) {
-                    viewModel.deletePurchase(itemIds.first())
-                } else {
-                    viewModel.deletePurchases(itemIds.toList())
-                }
+                delay(150) // tránh xung đột animation
+                viewModel.deleteCartItems(ids.toList())
             }
         }
     )

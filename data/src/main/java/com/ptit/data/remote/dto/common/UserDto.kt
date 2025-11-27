@@ -3,37 +3,54 @@ package com.ptit.data.remote.dto.common
 import com.google.gson.annotations.SerializedName
 
 data class UserDto(
-    @SerializedName("createdAt")
-    val createdAt: String?,
+    @SerializedName("id")
+    val id: String?,
     @SerializedName("email")
     val email: String?,
-    @SerializedName("_id")
-    val id: String?,
-    @SerializedName("shop")
-    val shop: Shop?,
-    @SerializedName("updatedAt")
-    val updatedAt: String?,
-    @SerializedName("watchList")
-    val watchList: List<String>?,
     @SerializedName("name")
     val name: String?,
-    @SerializedName("phone")
-    val phone: String?,
+    @SerializedName("phoneNumber")
+    val phoneNumber: String?,
     @SerializedName("avatar")
     val avatar: String?,
-    @SerializedName("address")
-    val address: String?,
+    @SerializedName("status")
+    val status: String?,
+    @SerializedName("roleId")
+    val roleId: String?,
+    @SerializedName("createdById")
+    val createdById: String?,
+    @SerializedName("updatedById")
+    val updatedById: String?,
+    @SerializedName("deletedById")
+    val deletedById: String?,
+    @SerializedName("deletedAt")
+    val deletedAt: String?,
+    @SerializedName("createdAt")
+    val createdAt: String?,
+    @SerializedName("updatedAt")
+    val updatedAt: String?,
+    @SerializedName("role")
+    val role: RoleDto?,
 ) {
-    data class Shop(
-        @SerializedName("address")
-        val address: String?,
-        @SerializedName("avatar")
-        val avatar: String?,
-        @SerializedName("description")
-        val description: String?,
+    data class RoleDto(
+        @SerializedName("id")
+        val id: String?,
         @SerializedName("name")
         val name: String?,
-        @SerializedName("phone")
-        val phone: String?,
-    )
+        @SerializedName("permissions")
+        val permissions: List<PermissionDto>?,
+    ) {
+        data class PermissionDto(
+            @SerializedName("id")
+            val id: String?,
+            @SerializedName("name")
+            val name: String?,
+            @SerializedName("module")
+            val module: String?,
+            @SerializedName("path")
+            val path: String?,
+            @SerializedName("method")
+            val method: String?,
+        )
+    }
 }

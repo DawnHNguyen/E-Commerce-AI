@@ -59,7 +59,7 @@ class SearchViewModel @Inject constructor(
     private fun loadTrendingProducts() {
         viewModelScope.launch {
             _trendingProductsState.value = Resource.loading()
-            _trendingProductsState.value = homeRepository.getTrendingProducts()
+//            _trendingProductsState.value = homeRepository.getTrendingProducts()
         }
     }
 

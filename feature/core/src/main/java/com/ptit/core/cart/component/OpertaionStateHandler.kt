@@ -8,40 +8,41 @@ import com.ptit.core.cart.CartViewModel
 
 @Composable
 fun HandleOperationStates(
-    updatePurchaseState: CartViewModel.UpdatePurchaseState,
-    deletePurchaseState: CartViewModel.DeletePurchaseState,
+    updateCartState: CartViewModel.UpdateCartState,
+    deleteCartState: CartViewModel.DeleteCartState,
     snackbarHostState: SnackbarHostState
 ) {
-    LaunchedEffect(updatePurchaseState) {
-        when (updatePurchaseState) {
-            is CartViewModel.UpdatePurchaseState.Success -> {
+    // ✅ Theo dõi trạng thái cập nhật số lượng
+    LaunchedEffect(updateCartState) {
+        when (updateCartState) {
+            is CartViewModel.UpdateCartState.Success -> {
                 snackbarHostState.showSnackbar(
                     message = "Cập nhật số lượng thành công",
                     duration = SnackbarDuration.Short
                 )
             }
-            is CartViewModel.UpdatePurchaseState.Error -> {
-                // Uncomment if needed
-                 snackbarHostState.showSnackbar(
-                     message = updatePurchaseState.message,
-                     duration = SnackbarDuration.Short
-                 )
+            is CartViewModel.UpdateCartState.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = updateCartState.message,
+                    duration = SnackbarDuration.Short
+                )
             }
             else -> {}
         }
     }
 
-    LaunchedEffect(deletePurchaseState) {
-        when (deletePurchaseState) {
-            is CartViewModel.DeletePurchaseState.Success -> {
+    // ✅ Theo dõi trạng thái xóa
+    LaunchedEffect(deleteCartState) {
+        when (deleteCartState) {
+            is CartViewModel.DeleteCartState.Success -> {
                 snackbarHostState.showSnackbar(
-                    message = "Đã xóa ${deletePurchaseState.deletedCount} sản phẩm",
+                    message = "Đã xóa ${deleteCartState.deletedCount} sản phẩm khỏi giỏ hàng",
                     duration = SnackbarDuration.Short
                 )
             }
-            is CartViewModel.DeletePurchaseState.Error -> {
+            is CartViewModel.DeleteCartState.Error -> {
                 snackbarHostState.showSnackbar(
-                    message = deletePurchaseState.message,
+                    message = deleteCartState.message,
                     duration = SnackbarDuration.Short
                 )
             }
