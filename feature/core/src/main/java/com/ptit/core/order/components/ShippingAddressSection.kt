@@ -211,11 +211,10 @@ fun ShippingAddressSection(
 
 
                 // Địa chỉ cụ thể
-                ShippingTextField(
-                    label = "Dịa chỉ cụ thể",
+                ShippingTextField(label = "Địa chỉ cụ thể",  // ✅ Fixed typo: "Địa" instead of "Dịa"
                     value = detailAddress,
                     hint = "Số nhà, tên đường, khu vực...",
-                    onDetailAddressChange,
+                    onValueChange = onDetailAddressChange,  // ✅ Fixed: Use onValueChange parameter name
                     modifier = Modifier.fillMaxWidth()
                 )
             }
