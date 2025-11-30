@@ -65,7 +65,7 @@ import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
-import com.ptit.core.order.history.OrderHistoryScreen
+import com.ptit.core.order_history.OrderHistoryScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen

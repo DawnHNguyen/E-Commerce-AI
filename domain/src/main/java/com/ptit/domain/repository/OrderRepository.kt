@@ -14,6 +14,8 @@ interface OrderRepository {
         status: String? = null
     ): Resource<GetOrderListDomainEntity>
 
+    suspend fun getMyOrders(): Resource<List<OrderDomainEntity>>
+
     suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity>
 
     suspend fun createOrder(
