@@ -66,6 +66,7 @@ import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
 import com.ptit.core.order_history.OrderHistoryScreen
+import com.ptit.core.overview.OverviewScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
@@ -80,6 +81,7 @@ import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.OrderHistoryRoute
+import com.ptit.navigation.destination.OverviewRoute
 import com.ptit.navigation.destination.ProductDetailRoute
 import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
@@ -226,6 +228,19 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // ✅ NEW: Overview Screen
+                        composable<OverviewRoute> {
+                            OverviewScreen(
+                                onBack = navController::navigateUp,
+                                onViewAllOrders = {
+                                    navController.navigate(OrderHistoryRoute)
+                                },
+                                onOrderClick = { orderId ->
+                                    navController.navigate(OrderDetailRoute(orderId = orderId))
+                                }
+                            )
+                        }
+
                         // 🔴 SỬA composable<OrderDetailRoute>
                         composable<OrderDetailRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<OrderDetailRoute>()
@@ -258,6 +273,10 @@ class MainActivity : FragmentActivity() {
                                     // 🔴 SỬA: Điều hướng đến OrderHistoryRoute
                                     onNavigateToOrders = {
                                         navController.navigate(OrderHistoryRoute)
+                                    },
+                                    // ✅ NEW: Navigate to Overview
+                                    onNavigateToOverview = {
+                                        navController.navigate(OverviewRoute)
                                     },
                                     onNavigateToEditProfile = {
                                         navController.navigate(EditProfileRoute)

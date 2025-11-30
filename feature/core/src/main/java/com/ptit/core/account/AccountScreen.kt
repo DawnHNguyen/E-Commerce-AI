@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,15 +26,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,11 +80,13 @@ import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.utils.onError
 import com.ptit.domain.utils.onLoading
 import com.ptit.domain.utils.onSuccess
+import com.ptit.common.utils.toPriceFormat
 
 @Composable
 fun AccountScreen(
     backStackEntry: NavBackStackEntry,
     onNavigateToOrders: () -> Unit,
+    onNavigateToOverview: () -> Unit, // ✅ NEW
     onNavigateToEditProfile: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
@@ -172,12 +179,23 @@ fun AccountScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // ✅ Order Statistics Section with real data
+            OrderStatisticsSection(
+                totalOrders = uiModel.value.totalOrders,
+                totalSpent = uiModel.value.totalSpent,
+                isLoading = uiModel.value.isLoadingStats,
+                onViewOverviewClick = onNavigateToOverview
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Menu Items
             SettingsMenuCard(
                 isSettingsExpanded = uiModel.value.isSettingsExpanded,
                 //hasShop = uiModel.value.user.shop.name.isNotEmpty(),\
                 hasShop = false,
                 onSettingsClick = viewModel::toggleSettingsExpanded,
+                onOverviewClick = onNavigateToOverview,
                 onOrdersClick = onNavigateToOrders,
                 onShopClick = {
 
@@ -223,17 +241,18 @@ private fun ProfileCard(
                 )
             }
 
-            MaxWidthColumn(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(16.dp)
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Profile Image
+                // Profile Image - LEFT
                 GlideImage(
                     model = user.avatar.takeIf { it.isNotEmpty() }
                         ?: "https://i.pinimg.com/564x/19/b8/d6/19b8d6e9b13eef23ec9c746968bb88b1.jpg",
                     contentDescription = "Ảnh đại diện",
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(80.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.FillBounds,
                     transition = MyCrossFade
@@ -241,34 +260,169 @@ private fun ProfileCard(
                     it.centerCrop()
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // User Name
-                Text(
-                    text = user.name.ifEmpty { "Tên người dùng" },
-                    style = CustomTypography.TextBold,
-                    fontSize = 20.sp,
-                    color = colorResource(id = R.color.colorSystem_heading_button)
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // User Email
-                Text(
-                    text = user.email.ifEmpty { "email@example.com" },
-                    style = CustomTypography.TextRegular,
-                    fontSize = 14.sp,
-                    color = colorResource(id = R.color.colorSystem_normal_text)
-                )
-
-                // User Phone
-                if (user.phoneNumber.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                // User Info - RIGHT
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // User Name
                     Text(
-                        text = user.phoneNumber,
+                        text = user.name.ifEmpty { "Tên người dùng" },
+                        style = CustomTypography.TextBold,
+                        fontSize = 18.sp,
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+
+                    // User Phone
+                    if (user.phoneNumber.isNotEmpty()) {
+                        Text(
+                            text = user.phoneNumber,
+                            style = CustomTypography.TextRegular,
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.colorSystem_normal_text)
+                        )
+                    }
+
+                    // User Email
+                    Text(
+                        text = user.email.ifEmpty { "email@example.com" },
                         style = CustomTypography.TextRegular,
-                        fontSize = 14.sp,
-                        color = colorResource(id = R.color.colorSystem_normal_text)
+                        fontSize = 13.sp,
+                        color = colorResource(id = R.color.colorSystem_greyscale_500)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderStatisticsSection(
+    totalOrders: Int,
+    totalSpent: Int,
+    isLoading: Boolean,
+    onViewOverviewClick: () -> Unit
+) {
+    if (isLoading) {
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = colorResource(R.color.colorSystem_heading_button)
+                )
+            }
+        }
+    } else {
+        // Horizontal layout with 2 cards side by side
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Total Orders Card - Primary Color
+            ElevatedCard(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = colorResource(R.color.colorSystem_heading_button) // App primary color
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Icon
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.ShoppingBag,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Title
+                    Text(
+                        text = "Tổng đơn hàng",
+                        style = CustomTypography.TextMedium.copy(fontSize = 13.sp),
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Number - Reduced size
+                    Text(
+                        text = totalOrders.toString(),
+                        style = CustomTypography.TextBold.copy(fontSize = 24.sp),
+                        color = Color.White
+                    )
+                }
+            }
+
+            // Total Spent Card - Red
+            ElevatedCard(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = Color(0xFFFF5252) // Red color
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Icon
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.AttachMoney,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Title
+                    Text(
+                        text = "Tổng chi tiêu",
+                        style = CustomTypography.TextMedium.copy(fontSize = 13.sp),
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Amount - Reduced size
+                    Text(
+                        text = totalSpent.toPriceFormat(),
+                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
                     )
                 }
             }
@@ -281,6 +435,7 @@ private fun SettingsMenuCard(
     isSettingsExpanded: Boolean,
     hasShop: Boolean,
     onSettingsClick: () -> Unit,
+    onOverviewClick: () -> Unit,
     onOrdersClick: () -> Unit,
     onShopClick: () -> Unit,
     onPaymentMethodsClick: () -> Unit,
@@ -297,6 +452,19 @@ private fun SettingsMenuCard(
         MaxWidthColumn(
             modifier = Modifier.padding(8.dp)
         ) {
+            // Thống kê chi tiêu - NEW MENU ITEM
+            MenuItem(
+                icon = Icons.Default.Assessment,
+                title = "Thống kê chi tiêu",
+                subtitle = "Xem chi tiết thống kê và phân tích chi tiêu",
+                onClick = onOverviewClick
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = colorResource(id = R.color.colorSystem_text_button)
+            )
+
             // My Orders
             MenuItem(
                 icon = Icons.Outlined.ShoppingBag,

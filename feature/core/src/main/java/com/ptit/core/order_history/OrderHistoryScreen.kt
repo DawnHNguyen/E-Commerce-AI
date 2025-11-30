@@ -95,7 +95,7 @@ fun OrderHistoryScreen(
                 startDate = uiState.startDate,
                 endDate = uiState.endDate,
                 onDateRangeSelected = { start, end ->
-                    viewModel.setDateRange(start, end)
+                    viewModel.setCustomDateRange(start, end)
                 },
                 onClearFilter = {
                     viewModel.clearDateFilter()

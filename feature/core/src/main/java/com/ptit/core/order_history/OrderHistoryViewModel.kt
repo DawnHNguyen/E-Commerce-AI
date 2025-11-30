@@ -12,8 +12,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
+
+enum class DateFilterPreset {
+    ONE_DAY,
+    SEVEN_DAYS,
+    ONE_MONTH,
+    ONE_YEAR;
+
+    fun getDisplayName(): String {
+        return when (this) {
+            ONE_DAY -> "1 ngày"
+            SEVEN_DAYS -> "7 ngày"
+            ONE_MONTH -> "1 tháng"
+            ONE_YEAR -> "1 năm"
+        }
+    }
+}
 
 data class OrderHistoryUiState(
     val orders: List<OrderDomainEntity> = emptyList(),
@@ -22,7 +39,8 @@ data class OrderHistoryUiState(
     val error: String? = null,
     val selectedStatus: String = OrderStatus.ALL,
     val startDate: Long? = null,
-    val endDate: Long? = null
+    val endDate: Long? = null,
+    val selectedPreset: DateFilterPreset? = DateFilterPreset.ONE_MONTH
 )
 
 @HiltViewModel
@@ -34,6 +52,8 @@ class OrderHistoryViewModel @Inject constructor(
     val uiState: StateFlow<OrderHistoryUiState> = _uiState.asStateFlow()
 
     init {
+        // Set default filter to 1 month
+        applyPresetFilter(DateFilterPreset.ONE_MONTH)
         loadOrders()
     }
 
@@ -58,7 +78,7 @@ class OrderHistoryViewModel @Inject constructor(
                 is Resource.Loading<List<OrderDomainEntity>> -> {
                     _uiState.value = _uiState.value.copy(isLoading = true)
                 }
-                is Resource.Idle -> {
+                else -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                 }
             }
@@ -70,22 +90,49 @@ class OrderHistoryViewModel @Inject constructor(
         applyFilters()
     }
 
-    fun setDateRange(startDate: Long, endDate: Long) {
+    fun applyPresetFilter(preset: DateFilterPreset) {
+        val calendar = Calendar.getInstance()
+        val endDate = calendar.timeInMillis
+
+        val startDate = when (preset) {
+            DateFilterPreset.ONE_DAY -> {
+                calendar.add(Calendar.DAY_OF_MONTH, -1)
+                calendar.timeInMillis
+            }
+            DateFilterPreset.SEVEN_DAYS -> {
+                calendar.add(Calendar.DAY_OF_MONTH, -7)
+                calendar.timeInMillis
+            }
+            DateFilterPreset.ONE_MONTH -> {
+                calendar.add(Calendar.MONTH, -1)
+                calendar.timeInMillis
+            }
+            DateFilterPreset.ONE_YEAR -> {
+                calendar.add(Calendar.YEAR, -1)
+                calendar.timeInMillis
+            }
+        }
+
         _uiState.value = _uiState.value.copy(
             startDate = startDate,
-            endDate = endDate
+            endDate = endDate,
+            selectedPreset = preset
+        )
+        applyFilters()
+    }
+
+    fun setCustomDateRange(startDate: Long, endDate: Long) {
+        _uiState.value = _uiState.value.copy(
+            startDate = startDate,
+            endDate = endDate,
+            selectedPreset = null // Clear preset selection when using custom range
         )
         applyFilters()
     }
 
     fun clearDateFilter() {
-        _uiState.value = _uiState.value.copy(
-            startDate = null,
-            endDate = null
-        )
-        applyFilters()
+        applyPresetFilter(DateFilterPreset.ONE_MONTH)
     }
-
 
     private fun applyFilters() {
         val currentState = _uiState.value
@@ -119,6 +166,8 @@ class OrderHistoryViewModel @Inject constructor(
     }
 
     fun refresh() {
+        // Reset to default 1 month filter when refreshing
+        applyPresetFilter(DateFilterPreset.ONE_MONTH)
         loadOrders()
     }
 }
