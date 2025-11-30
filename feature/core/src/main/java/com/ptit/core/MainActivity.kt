@@ -59,8 +59,8 @@ import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
 import com.ptit.core.cart.CartDataTransfer
 import com.ptit.core.cart.CartScreen
-//import com.ptit.core.category.CategoryScreen
-//import com.ptit.core.category.ProductsByCategoryScreen
+import com.ptit.core.category.CategoryScreen
+import com.ptit.core.category.ProductsByCategoryScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
@@ -165,6 +165,22 @@ class MainActivity : FragmentActivity() {
                                 navigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
                                 },
+                            )
+                        }
+
+                        composable<BottomNavigationScreen.CategoryScreen> {
+                            CategoryScreen(navController = navController)
+                        }
+
+                        composable<ProductsByCategoryRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
+                            ProductsByCategoryScreen(
+                                categoryId = args.categoryId,
+                                categoryDisplayName = args.categoryDisplayName,
+                                onBack = navController::navigateUp,
+                                onProductClick = { productId: String ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                }
                             )
                         }
 

@@ -1,7 +1,9 @@
 package com.ptit.data.remote.datasource
 
 import com.ptit.data.remote.api.ProductApi
+import com.ptit.data.remote.dto.product.CreateCategoryBodyDto
 import com.ptit.data.remote.dto.product.CreateProductRequestDto
+import com.ptit.data.remote.dto.product.UpdateCategoryBodyDto
 import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import javax.inject.Inject
 
@@ -30,7 +32,6 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
 
     suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
     suspend fun getProductsByShop(createdById: String, isPublic: Boolean? = null) = remoteService.getProductsByShop(createdById, isPublic)
-    suspend fun getCategories() = remoteService.getCategories()
     suspend fun deleteProduct(productId: String) = remoteService.deleteProduct(productId)
     suspend fun createProduct(request: CreateProductRequestDto) =
         remoteService.createProduct(request)
@@ -38,5 +39,20 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
     suspend fun updateProduct(productId: String, request: UpdateProductRequestDto) =
         remoteService.updateProduct(productId, request)
 
+    // ==================== CATEGORY ====================
 
+    suspend fun getAllCategories(parentCategoryId: String?) =
+        remoteService.getAllCategories(parentCategoryId)
+
+    suspend fun getCategoryById(categoryId: String) =
+        remoteService.getCategoryById(categoryId)
+
+    suspend fun createCategory(body: CreateCategoryBodyDto) =
+        remoteService.createCategory(body)
+
+    suspend fun updateCategory(categoryId: String, body: UpdateCategoryBodyDto) =
+        remoteService.updateCategory(categoryId, body)
+
+    suspend fun deleteCategory(categoryId: String) =
+        remoteService.deleteCategory(categoryId)
 }
