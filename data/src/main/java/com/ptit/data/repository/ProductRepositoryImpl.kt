@@ -1,14 +1,17 @@
 package com.ptit.data.repository
 
 import com.ptit.data.mapping.toDomainEntity
-import com.ptit.data.mapping.toDomainEntity as toListDomainEntity
 import com.ptit.data.remote.datasource.ProductRemoteDataSource
+import com.ptit.data.remote.dto.product.CreateCategoryBodyDto
 import com.ptit.data.remote.dto.product.CreateProductRequestDto
 import com.ptit.data.remote.dto.product.SKUDto
+import com.ptit.data.remote.dto.product.UpdateCategoryBodyDto
 import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import com.ptit.data.remote.dto.product.VariantDto
+import com.ptit.data.remote.mapper.toDomainEntity as categoryToDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.CreateProductRequestDomainEntity
+import com.ptit.domain.entity.product.GetAllCategoriesDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.entity.product.UpdateProductRequestDomainEntity
 import com.ptit.domain.repository.ProductRepository
@@ -32,14 +35,6 @@ class ProductRepositoryImpl @Inject constructor(
             // use wrapper mapping
             res.data?.map { it.toDomainEntity() } ?: emptyList()
         }
-
-    override suspend fun getCategories(): Resource<List<CategoryDomainEntity>> {
-        return remoteDataSource.getCategories().map { response ->
-            response.map { categoryDto ->
-                (categoryDto).toDomainEntity()
-            }
-        }
-    }
 
     override suspend fun listProducts(
         page: Int,
@@ -123,11 +118,58 @@ class ProductRepositoryImpl @Inject constructor(
         return remoteDataSource.updateProduct(productId, requestDto).map { it.toDomainEntity() }
     }
 
-
     override suspend fun deleteProduct(productId: String): Resource<Unit> {
         return remoteDataSource.deleteProduct(productId)
     }
 
+    // ==================== CATEGORY ====================
 
+    override suspend fun getAllCategories(parentCategoryId: String?): Resource<GetAllCategoriesDomainEntity> {
+        return remoteDataSource.getAllCategories(parentCategoryId).map {
+            it.categoryToDomainEntity()
+        }
+    }
 
+    override suspend fun getCategoryById(categoryId: String): Resource<CategoryDomainEntity> {
+        return remoteDataSource.getCategoryById(categoryId).map {
+            it.categoryToDomainEntity()
+        }
+    }
+
+    override suspend fun createCategory(
+        name: String,
+        logo: String?,
+        parentCategoryId: String?
+    ): Resource<CategoryDomainEntity> {
+        val body = CreateCategoryBodyDto(
+            name = name,
+            logo = logo,
+            parentCategoryId = parentCategoryId
+        )
+        return remoteDataSource.createCategory(body).map {
+            it.categoryToDomainEntity()
+        }
+    }
+
+    override suspend fun updateCategory(
+        categoryId: String,
+        name: String,
+        logo: String?,
+        parentCategoryId: String?
+    ): Resource<CategoryDomainEntity> {
+        val body = UpdateCategoryBodyDto(
+            name = name,
+            logo = logo,
+            parentCategoryId = parentCategoryId
+        )
+        return remoteDataSource.updateCategory(categoryId, body).map {
+            it.categoryToDomainEntity()
+        }
+    }
+
+    override suspend fun deleteCategory(categoryId: String): Resource<String> {
+        return remoteDataSource.deleteCategory(categoryId).map {
+            it.message ?: "Xóa danh mục thành công"
+        }
+    }
 }

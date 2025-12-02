@@ -365,51 +365,20 @@ fun OrderNoteDisplay(note: String) {
 
 @Composable
 fun OrderStatusSection(status: String) {
-    val statusText: String
-    val statusColor: Color
-
-    when (status) {
-        "PENDING_PAYMENT" -> {
-            statusText = "Chờ thanh toán"
-            statusColor = colorResource(R.color.colorSystem_tint_yellow)
-        }
-        "PENDING_PACKAGING" -> {
-            statusText = "Đang chuẩn bị hàng"
-            statusColor = colorResource(R.color.colorSystem_tint_blue)
-        }
-        "PICKUPED" -> {
-            statusText = "Đã lấy hàng"
-            statusColor = colorResource(R.color.colorSystem_tint_blue)
-        }
-        "PENDING_DELIVERY" -> {
-            statusText = "Đang giao hàng"
-            statusColor = colorResource(R.color.colorSystem_tint_blue)
-        }
-        "DELIVERED" -> {
-            statusText = "Đã giao thành công"
-            statusColor = colorResource(R.color.colorSystem_tint_green)
-        }
-        "CANCELLED" -> {
-            statusText = "Đã huỷ"
-            statusColor = colorResource(R.color.colorSystem_tint_red)
-        }
-        "RETURNED" -> {
-            statusText = "Đã hoàn trả"
-            statusColor = colorResource(R.color.colorSystem_tint_red)
-        }
-        "PENDING" -> {
-            statusText = "Chờ xác nhận"
-            statusColor = colorResource(R.color.colorSystem_tint_yellow)
-        }
-        "PAID" -> {
-            statusText = "Đã thanh toán"
-            statusColor = colorResource(R.color.colorSystem_heading_button)
-        }
-        else -> {
-            statusText = status
-            statusColor = colorResource(R.color.colorSystem_normal_text)
-        }
+    // Map backend status values to OrderStatus constants
+    val normalizedStatus = when (status) {
+        "PENDING_PAYMENT", "PENDING" -> com.ptit.common.const.OrderStatus.PENDING
+        "PENDING_PACKAGING", "PROCESSING" -> com.ptit.common.const.OrderStatus.PROCESSING
+        "PICKUPED", "PENDING_DELIVERY", "SHIPPING" -> com.ptit.common.const.OrderStatus.SHIPPING
+        "DELIVERED" -> com.ptit.common.const.OrderStatus.DELIVERED
+        "CANCELLED" -> com.ptit.common.const.OrderStatus.CANCELLED
+        "RETURNED" -> com.ptit.common.const.OrderStatus.RETURNED
+        else -> status
     }
+
+    val statusText = com.ptit.common.const.OrderStatus.getDisplayName(normalizedStatus)
+    val statusColorHex = com.ptit.common.const.OrderStatus.getStatusColor(normalizedStatus)
+    val statusColor = Color(android.graphics.Color.parseColor(statusColorHex))
 
     Row(
         modifier = Modifier

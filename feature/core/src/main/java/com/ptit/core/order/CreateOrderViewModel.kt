@@ -160,7 +160,8 @@ class CreateOrderViewModel @Inject constructor(
             length = 20.0,
             width = 20.0,
             height = 10.0,
-            shippingFee = 30000.0,
+            // ✅ Use calculated shipping fee (0 if not calculated, API result if success, 30k if error)
+            shippingFee = state.calculatedShippingFee,
             note = state.note.text.ifBlank { null },
             paymentTypeId = 1,
             configFeeId = null,
@@ -178,8 +179,9 @@ class CreateOrderViewModel @Inject constructor(
                 cartItemIds = detail.cartItems.map { it.id },
                 discountCodes = emptyList(),
                 shippingInfo = defaultShippingInfo,
-                // 🔴 SỬA: Quay lại isCod = true để tạo đơn PENDING_PAYMENT
-                isCod = true
+                // ✅ FIX: isCod = false để tạo đơn PENDING_PAYMENT (Chờ thanh toán)
+                // Sau khi user thanh toán thành công → Backend sẽ chuyển sang PENDING_PACKAGE (Chờ vận chuyển)
+                isCod = false
             )
         }
 
@@ -287,6 +289,98 @@ class CreateOrderViewModel @Inject constructor(
                 selectedWard = ward
             )
         }
+        // ✅ NEW: Calculate shipping fee when address is complete
+        if (ward != null) {
+            calculateShippingFee()
+        }
+    }
+
+    /**
+     * 📦 Calculate shipping fee from GHN API
+     * Triggered automatically when user completes address selection (Province → District → Ward)
+     *
+     * Logic:
+     * - Ban đầu: Phí ship = 0đ
+     * - API success (200 OK) → Set phí ship = kết quả từ API
+     * - API error (≠ 200) → Set phí ship = 30,000đ và cho phép tạo đơn bình thường
+     */
+    private fun calculateShippingFee() {
+        val address = _addressState.value
+        val state = _orderState.value
+
+        // Validate address is complete
+        if (address.selectedProvince == null ||
+            address.selectedDistrict == null ||
+            address.selectedWard == null ||
+            state.selectedShops.isEmpty()) {
+            return
+        }
+
+        viewModelScope.launch {
+            _orderState.update { it.copy(isCalculatingShippingFee = true) }
+
+            // ✅ Calculate total weight from selected products
+            val totalWeight = calculateTotalWeight(state.selectedShops)
+
+            // Build request
+            val request = com.ptit.domain.entity.shipping.CalculateShippingFeeRequestDomainEntity(
+                height = 10.0,
+                weight = totalWeight,
+                length = 20.0,
+                width = 20.0,
+                wardCode = address.selectedWard!!.code,
+                districtId = address.selectedDistrict!!.id,
+                provinceId = address.selectedProvince!!.id,
+                serviceTypeId = 2
+            )
+
+            // ✅ Call GHN API via repository
+            when (val result = shippingRepository.calculateShippingFee(request)) {
+                is Resource.Success -> {
+                    // ✅ Response = 200 OK: Use calculated shipping fee from API
+                    _orderState.update {
+                        it.copy(
+                            calculatedShippingFee = result.data.total.toDouble(),
+                            isCalculatingShippingFee = false
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    // ✅ Response ≠ 200: Set default 30,000đ và cho phép tạo đơn
+                    _orderState.update {
+                        it.copy(
+                            calculatedShippingFee = 30000.0,
+                            isCalculatingShippingFee = false
+                        )
+                    }
+                    // Show friendly message - user can still create order
+                    _orderEvents.emit(
+                        OrderEvent.ShowError("Sử dụng phí ship mặc định 30,000đ. Bạn vẫn có thể đặt hàng bình thường.")
+                    )
+                }
+                else -> {
+                    // ✅ Other cases: Set default 30,000đ
+                    _orderState.update {
+                        it.copy(
+                            calculatedShippingFee = 30000.0,
+                            isCalculatingShippingFee = false
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper: Calculate total weight from selected products
+     * TODO: Get actual weight from product data when available
+     */
+    private fun calculateTotalWeight(shops: List<CartItemDetailDomainEntity>): Double {
+        // Estimate 200g per item (you can improve this later with real product weights)
+        val totalItems = shops.sumOf { shop ->
+            shop.cartItems.sumOf { it.quantity }
+        }
+        return (totalItems * 200).toDouble() // grams
     }
 
     private fun loadWards(districtId: Int) {
@@ -315,7 +409,11 @@ class CreateOrderViewModel @Inject constructor(
         val email: String = "",
         val address: TextFieldValue = TextFieldValue(""),
         val note: TextFieldValue = TextFieldValue(""),
-        val isUserInfoLoaded: Boolean = false
+        val isUserInfoLoaded: Boolean = false,
+        // ✅ NEW: Store calculated shipping fee from GHN API
+        // Ban đầu = 0đ, sau khi gọi API sẽ update
+        val calculatedShippingFee: Double = 0.0,
+        val isCalculatingShippingFee: Boolean = false
     )
 
     data class AddressState(

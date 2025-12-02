@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.repository.AuthRepository
+import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,10 @@ import javax.inject.Inject
 data class AccountUiModel(
     val user: UserDomainEntity = UserDomainEntity(),
     val isSettingsExpanded: Boolean = false,
+    // ✅ NEW: Order statistics
+    val totalOrders: Int = 0,
+    val totalSpent: Int = 0,
+    val isLoadingStats: Boolean = false
 )
 
 data class UpdateProfileUiModel(
@@ -55,6 +60,7 @@ data class UpdateProfileUiModel(
 class AccountViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
+    private val orderRepository: OrderRepository
 ) : ViewModel() {
 
     private val _uiModel = MutableStateFlow(AccountUiModel())
@@ -74,6 +80,7 @@ class AccountViewModel @Inject constructor(
 
     init {
         fetchUserProfile()
+        loadOrderStatistics()
     }
 
     fun fetchUserProfile() {
@@ -87,6 +94,46 @@ class AccountViewModel @Inject constructor(
             if (response is Resource.Success) {
                 _uiModel.update {
                     it.copy(user = response.data)
+                }
+            }
+        }
+    }
+
+    // ✅ NEW: Load order statistics
+    fun loadOrderStatistics() {
+        _uiModel.update { it.copy(isLoadingStats = true) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val result = orderRepository.getOrders(
+                status = null,
+                page = 1,
+                limit = 1000 // Get all orders for total count
+            )) {
+                is Resource.Success -> {
+                    val orders = result.data.data  // ✅ Fixed: Use .data instead of .orders
+
+                    // Only count orders that are not PENDING, CANCELLED, or RETURNED
+                    val excludedStatuses = setOf("PENDING", "PENDING_PAYMENT", "CANCELLED", "RETURNED")
+                    val validOrders = orders.filter { order ->
+                        !excludedStatuses.contains(order.status.uppercase())
+                    }
+
+                    val totalOrders = validOrders.size
+                    val totalSpent = validOrders.sumOf { it.totalPayment }
+
+                    _uiModel.update {
+                        it.copy(
+                            totalOrders = totalOrders,
+                            totalSpent = totalSpent,
+                            isLoadingStats = false
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    _uiModel.update { it.copy(isLoadingStats = false) }
+                }
+                else -> {
+                    _uiModel.update { it.copy(isLoadingStats = false) }
                 }
             }
         }

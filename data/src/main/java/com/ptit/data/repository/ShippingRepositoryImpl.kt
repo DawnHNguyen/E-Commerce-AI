@@ -2,7 +2,10 @@ package com.ptit.data.repository
 
 
 import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.ShippingRemoteDataSource
+import com.ptit.domain.entity.shipping.CalculateShippingFeeRequestDomainEntity
+import com.ptit.domain.entity.shipping.CalculateShippingFeeResponseDomainEntity
 import com.ptit.domain.entity.shipping.DistrictEntity
 import com.ptit.domain.entity.shipping.ProvinceEntity
 import com.ptit.domain.entity.shipping.WardEntity
@@ -28,5 +31,13 @@ class ShippingRepositoryImpl @Inject constructor(
     override suspend fun getWards(districtId: Int): Resource<List<WardEntity>> {
         // 🔴 SỬA: Gọi qua DataSource
         return remoteDataSource.getWards(districtId).map { list -> list.map { it.toDomainEntity() } }
+    }
+
+    // ✅ NEW: Calculate shipping fee from GHN API
+    override suspend fun calculateShippingFee(
+        request: CalculateShippingFeeRequestDomainEntity
+    ): Resource<CalculateShippingFeeResponseDomainEntity> {
+        return remoteDataSource.calculateShippingFee(request.toDto())
+            .map { response -> response.toDomainEntity() }
     }
 }

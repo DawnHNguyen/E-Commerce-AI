@@ -99,16 +99,20 @@ class ProductViewModel @Inject constructor(
         viewModelScope.launch {
             _categoryListState.value = Resource.loading()
 
-            when (val result = productRepository.getCategories()) {
+            when (val result = productRepository.getAllCategories()) {
                 is Resource.Success -> {
-                    Log.d("ProductViewModel", "getCategories: ${result.data}")
-                    _categoryListState.value = result
-
+                    Log.d("ProductViewModel", "getCategories: ${result.data.data}")
+                    _categoryListState.value = Resource.success(result.data.data)
                 }
                 is Resource.Error -> {
-                    _categoryListState.value = result
+                    _categoryListState.value = Resource.error(result.error)
                 }
-                else -> { /* Handle other cases if needed */ }
+                is Resource.Loading -> {
+                    _categoryListState.value = Resource.loading(result.data?.data)
+                }
+                is Resource.Idle -> {
+                    _categoryListState.value = Resource.idle()
+                }
             }
         }
     }

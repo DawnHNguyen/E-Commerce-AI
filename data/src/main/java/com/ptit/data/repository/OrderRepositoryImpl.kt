@@ -18,9 +18,18 @@ class OrderRepositoryImpl @Inject constructor(
 ) : OrderRepository {
 
     override suspend fun getOrders(
-        page: Int?, limit: Int?, status: String?
+        page: Int?, 
+        limit: Int?, 
+        status: String?
     ): Resource<GetOrderListDomainEntity> {
         return remoteDataSource.getOrders(page, limit, status).map { it.toDomainEntity() }
+    }
+    
+    override suspend fun getMyOrders(): Resource<List<OrderDomainEntity>> {
+        // Get all orders without pagination
+        return remoteDataSource.getOrders(page = 1, limit = 1000, status = null).map { response ->
+            response.data?.map { it.toDomainEntity() } ?: emptyList()
+        }
     }
 
     override suspend fun getOrderById(orderId: String): Resource<OrderDomainEntity> {
@@ -30,7 +39,6 @@ class OrderRepositoryImpl @Inject constructor(
     override suspend fun createOrder(
         request: CreateOrderRequestDomainEntity
     ): Resource<CreateOrderResponseDomainEntity> {
-        // Sử dụng mapper toDto() mới
         val dtoList = request.toDto()
         return remoteDataSource.createOrder(dtoList).map { it.toDomainEntity() }
     }
@@ -39,3 +47,4 @@ class OrderRepositoryImpl @Inject constructor(
         return remoteDataSource.cancelOrder(orderId).map { it.toDomainEntity() }
     }
 }
+

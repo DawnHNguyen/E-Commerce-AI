@@ -3,8 +3,12 @@ package com.ptit.data.remote.api
 import com.ptit.common.const.SecureStorageKey
 import com.ptit.data.remote.dto.home.ListProductResponse
 import com.ptit.data.remote.dto.product.CategoryDto
+import com.ptit.data.remote.dto.product.CreateCategoryBodyDto
 import com.ptit.data.remote.dto.product.CreateProductRequestDto
+import com.ptit.data.remote.dto.product.GetAllCategoriesResDto
+import com.ptit.data.remote.dto.product.MessageResDto
 import com.ptit.data.remote.dto.product.ProductDto
+import com.ptit.data.remote.dto.product.UpdateCategoryBodyDto
 import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import com.ptit.domain.utils.Resource
 import com.tencent.mmkv.MMKV
@@ -44,9 +48,6 @@ interface ProductApi {
         @Query("isPublic") isPublic: Boolean?
     ): Resource<ListProductResponse>
 
-    @GET("categories")
-    suspend fun getCategories(): Resource<List<CategoryDto>>
-
     @DELETE("products/{productId}")
     suspend fun deleteProduct(
         @Path("productId") productId: String
@@ -64,6 +65,34 @@ interface ProductApi {
         @Path("productId") productId: String,
         @Body product: UpdateProductRequestDto
     ): Resource<ProductDto>
+
+    // ==================== CATEGORY API ====================
+
+    @GET("categories")
+    suspend fun getAllCategories(
+        @Query("parentCategoryId") parentCategoryId: String?
+    ): Resource<GetAllCategoriesResDto>
+
+    @GET("categories/{categoryId}")
+    suspend fun getCategoryById(
+        @Path("categoryId") categoryId: String
+    ): Resource<CategoryDto>
+
+    @POST("categories")
+    suspend fun createCategory(
+        @Body body: CreateCategoryBodyDto
+    ): Resource<CategoryDto>
+
+    @PUT("categories/{categoryId}")
+    suspend fun updateCategory(
+        @Path("categoryId") categoryId: String,
+        @Body body: UpdateCategoryBodyDto
+    ): Resource<CategoryDto>
+
+    @DELETE("categories/{categoryId}")
+    suspend fun deleteCategory(
+        @Path("categoryId") categoryId: String
+    ): Resource<MessageResDto>
 
 //    @GET("https://recommend-system-323292678684.us-central1.run.app/recommendations/trending")
 //    suspend fun getTrendingProducts(

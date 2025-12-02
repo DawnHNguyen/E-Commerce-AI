@@ -52,7 +52,21 @@ class SearchViewModel @Inject constructor(
     private fun loadCategories() {
         viewModelScope.launch {
             _categoriesState.value = Resource.loading()
-            _categoriesState.value = productRepository.getCategories()
+            val result = productRepository.getAllCategories()
+            when (result) {
+                is Resource.Success -> {
+                    _categoriesState.value = Resource.success(result.data.data)
+                }
+                is Resource.Error -> {
+                    _categoriesState.value = Resource.error(result.error)
+                }
+                is Resource.Loading -> {
+                    _categoriesState.value = Resource.loading(result.data?.data)
+                }
+                is Resource.Idle -> {
+                    _categoriesState.value = Resource.idle()
+                }
+            }
         }
     }
 
