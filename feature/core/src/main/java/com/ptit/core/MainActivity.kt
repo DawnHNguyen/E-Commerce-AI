@@ -70,6 +70,7 @@ import com.ptit.core.overview.OverviewScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
+import com.ptit.core.seller_request.CreateSellerRequestScreen
 import com.ptit.core.shop.ShopDetailScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
@@ -77,6 +78,7 @@ import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.CreateSellerRequestRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
@@ -291,7 +293,7 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(ShopDetailRoute)
                                     },
                                     onNavigateToCreateShop = {
-                                        navController.navigate(UpdateShopRoute)
+                                        navController.navigate(CreateSellerRequestRoute)
                                     },
                                 )
                             }
@@ -314,6 +316,16 @@ class MainActivity : FragmentActivity() {
                                 onNavigateToAddPaymentMethod = {
                                     navController.navigate(ConfigPaymentMethodRoute)
                                 },
+                            )
+                        }
+
+                        composable<CreateSellerRequestRoute> {
+                            CreateSellerRequestScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onRequestSubmitted = {
+                                    // Navigate back to account screen
+                                    navController.navigateUp()
+                                }
                             )
                         }
 

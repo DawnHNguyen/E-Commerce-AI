@@ -184,4 +184,10 @@ object RemoteModule {
     fun provideShippingApi(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.remote.api.ShippingApi = retrofit.create(com.ptit.data.remote.api.ShippingApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSellerRequestApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.SellerRequestApi = retrofit.create(com.ptit.data.remote.api.SellerRequestApi::class.java)
 }

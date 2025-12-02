@@ -86,7 +86,7 @@ import com.ptit.common.utils.toPriceFormat
 fun AccountScreen(
     backStackEntry: NavBackStackEntry,
     onNavigateToOrders: () -> Unit,
-    onNavigateToOverview: () -> Unit, // ✅ NEW
+    onNavigateToOverview: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
@@ -198,7 +198,12 @@ fun AccountScreen(
                 onOverviewClick = onNavigateToOverview,
                 onOrdersClick = onNavigateToOrders,
                 onShopClick = {
-
+                    // Nếu đã có shop thì đến ShopDetail, chưa có thì đến CreateSellerRequest
+                    if (false) { // hasShop = false
+                        onNavigateToShop()
+                    } else {
+                        onNavigateToCreateShop()
+                    }
                 },
                 onPaymentMethodsClick = onNavigateToPaymentMethods,
                 onChangePasswordClick = onNavigateToChangePassword,

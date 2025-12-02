@@ -12,6 +12,9 @@ data object ConfigPaymentMethodRoute
 data object UpdateShopRoute
 
 @Serializable
+data object CreateSellerRequestRoute
+
+@Serializable
 data object ShopDetailRoute
 
 @Serializable

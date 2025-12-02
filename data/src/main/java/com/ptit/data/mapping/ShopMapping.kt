@@ -1,14 +1,17 @@
 package com.ptit.data.mapping
 
-import com.ptit.data.remote.dto.shop.CreateAndUpdateShopResponse
+import com.ptit.data.remote.dto.shop.ShopDto
 import com.ptit.domain.entity.shop.ShopDomainEntity
 
-fun CreateAndUpdateShopResponse.toDomainEntity() = ShopDomainEntity(
-    name = name ?: "",
-    address = address ?: "",
-    phone = phone ?: "",
-    description = description ?: "",
-    avatar = avatar ?: "",
-    totalProduct = totalProduct ?: 0,
-    totalOrder = totalOrder ?: 0,
+fun ShopDto.toDomainEntity() = ShopDomainEntity(
+    id = id,
+    name = name,
+    description = description,
+    address = address,
+    phone = phone,
+    avatar = avatar,
+    userId = userId,
+    isActive = isActive,
+    createdAt = createdAt,
+    updatedAt = updatedAt
 )
