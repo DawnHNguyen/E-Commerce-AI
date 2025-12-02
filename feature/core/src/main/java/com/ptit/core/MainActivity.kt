@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalRippleConfiguration
@@ -61,6 +62,8 @@ import com.ptit.core.cart.CartDataTransfer
 import com.ptit.core.cart.CartScreen
 import com.ptit.core.category.CategoryScreen
 import com.ptit.core.category.ProductsByCategoryScreen
+import com.ptit.core.chat.ChatScreen
+import com.ptit.core.chat.ChatSessionListScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
 import com.ptit.core.order.CreateOrderScreen
@@ -75,6 +78,8 @@ import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
 import com.ptit.navigation.destination.BottomNavigationItem
 import com.ptit.navigation.destination.BottomNavigationScreen
+import com.ptit.navigation.destination.ChatRoute
+import com.ptit.navigation.destination.ChatSessionListRoute
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.EditProfileRoute
@@ -185,6 +190,47 @@ class MainActivity : FragmentActivity() {
                                 }
                             )
                         }
+
+//                        composable<BottomNavigationScreen.CategoryScreen> { // Thêm composable cho CategoryScreen
+//                            CategoryScreen(navController = navController)
+//                        }
+
+                        // Chat Session List (Bottom Nav destination)
+                        navigation<BottomNavigationScreen.ChatScreen>(
+                            startDestination = ChatSessionListRoute,
+                        ) {
+                            composable<ChatSessionListRoute> {
+                                ChatSessionListScreen(
+                                    onNavigateToChat = { sessionId ->
+                                        navController.navigate(ChatRoute(sessionId = sessionId))
+                                    }
+                                )
+                            }
+
+                            composable<ChatRoute> { backStackEntry ->
+                                val args = backStackEntry.toRoute<ChatRoute>()
+                                ChatScreen(
+                                    sessionId = args.sessionId ?: "",
+                                    onNavigateBack = navController::navigateUp,
+                                    onNavigateToAddPayment = {
+                                        navController.navigate(ConfigPaymentMethodRoute)
+                                    },
+                                    onNavigateToOrderDetail = { orderId ->
+                                        navController.navigate(OrderDetailRoute(orderId = orderId))
+                                    }
+                                )
+                            }
+                        }
+
+//                        composable<ProductsByCategoryRoute> { backStackEntry -> // Thêm route này
+//                            val args = backStackEntry.toRoute<ProductsByCategoryRoute>()
+//                            ProductsByCategoryScreen(
+//                                navController = navController,
+//                                navigateToProductDetail = { productId ->
+//                                    navController.navigate(ProductDetailRoute(productId = productId))
+//                                }
+//                            )
+//                        }
 
                         composable<BottomNavigationScreen.CartScreen> {
                             CartScreen(
@@ -392,7 +438,6 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    // ... (BottomNavigationBar giữ nguyên)
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun BottomNavigationBar(
@@ -409,6 +454,11 @@ class MainActivity : FragmentActivity() {
                     icon = Icons.Outlined.Apps, // Sử dụng icon Apps hoặc một icon Category phù hợp
                     title = "Danh mục",
                     screen = BottomNavigationScreen.CategoryScreen
+                ),
+                BottomNavigationItem(
+                    icon = Icons.Outlined.SmartToy,
+                    title = "Trợ lý",
+                    screen = BottomNavigationScreen.ChatScreen
                 ),
                 BottomNavigationItem(
                     icon = Icons.Outlined.ShoppingCart,

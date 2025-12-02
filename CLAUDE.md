@@ -58,14 +58,18 @@ The project is organized into multiple modules:
 
 ### 3. Key Technologies
 
-- **Kotlin**: Primary language
-- **Jetpack Compose**: UI framework
-- **Hilt**: Dependency injection
-- **Retrofit**: Network communication
-- **MMKV**: Key-value storage
-- **SQLDelight**: Database
-- **Jetpack Navigation**: Screen navigation with Compose integration
+- **Kotlin**: Primary language (targeting JVM 11)
+- **Jetpack Compose**: UI framework (BOM 2025.04.00)
+- **Hilt**: Dependency injection (v2.52)
+- **Retrofit**: Network communication with GSON converter
+- **MMKV**: Key-value storage (v1.3.11)
+- **SQLDelight**: Database with coroutines support (v2.0.2)
+- **Jetpack Navigation**: Screen navigation with Compose integration (v2.8.9)
 - **Flow/StateFlow**: Reactive programming
+- **Paging 3**: Pagination support (v3.3.6)
+- **Glide Compose**: Image loading (v1.0.0-beta01)
+- **Recurly SDK**: Payment processing
+- **Biometric**: Authentication (v1.4.0-alpha03)
 
 ### 4. Data Flow Architecture
 
@@ -87,6 +91,8 @@ sealed class Resource<out T> {
     data class Error<T>(val error: CustomException) : Resource<T>()
 }
 ```
+
+The Resource class includes companion functions (`success()`, `error()`, `loading()`, `idle()`), extension functions for state handling (`onIdle`, `onLoading`, `onSuccess`, `onError`), and data transformation with the `map()` function.
 
 ### ViewModels
 
@@ -120,6 +126,26 @@ Repositories follow a standard interface-implementation pattern:
 ## Error Handling
 
 The app uses custom exceptions and error handling through the Resource pattern:
-- Custom exceptions extend `CustomException`
-- Network errors categorized by client/server error types
+- Custom exceptions extend `CustomException` (including `CustomRemoteException`, `UnknownException`)
+- Network errors categorized by client/server error types via `BaseErrorResponse` mapping
 - UI displays appropriate error messages based on error type
+- Repository implementations handle API errors and map to domain exceptions
+
+## Additional Architecture Details
+
+### Secure Storage
+- MMKV used for secure key-value storage (access tokens, refresh tokens, user ID)
+- Storage keys defined in `SecureStorageKey` constants
+- Token management handled in repository implementations
+
+### Payment Integration
+- Recurly SDK integration for payment processing
+- Card validation and tokenization in ViewModels
+- Payment method persistence via local storage
+- Biometric authentication support for secure payments
+
+### API Architecture
+- Base response patterns: `BaseSuccessResponse` and `BaseErrorResponse`
+- Automatic token refresh via `RefreshTokenAuthenticator`
+- Authorization headers added via `HeaderAuthorizationInterceptor`
+- Call adapter factory for Resource wrapping

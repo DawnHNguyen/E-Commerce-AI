@@ -30,11 +30,23 @@ object CustomTypography {
         fontWeight = FontWeight.Bold,
     )
 
+    val TextSmall = TextStyle(
+        fontFamily = sfProFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp
+    )
+
     val TextField = TextRegular.merge(
         fontSize = 14.sp
     )
 
     val Button = TextBold.merge(
+        fontSize = 18.sp
+    )
+
+    val HeadingH5 = TextStyle(
+        fontFamily = sfProFontFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp
     )
 }
