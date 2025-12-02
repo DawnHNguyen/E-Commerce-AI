@@ -11,6 +11,9 @@ sealed class BottomNavigationScreen {
     data object CategoryScreen : BottomNavigationScreen()
 
     @Serializable
+    data object ChatScreen : BottomNavigationScreen()
+
+    @Serializable
     data object CartScreen : BottomNavigationScreen()
 
     @Serializable

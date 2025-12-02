@@ -27,4 +27,6 @@
     <color name="colorSystem_background_level_0">#F5F7FB</color>
     <color name="colorSystem_background_level_1">#FCFCFD</color>
     <color name="colorSystem_background_level_2">#FFFFFF</color>
+
+    <color name="colorSystem_success">#4CAF50</color>
 </resources>

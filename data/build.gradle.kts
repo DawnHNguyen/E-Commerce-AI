@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.library)
@@ -6,6 +7,14 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.sql.delight)
+}
+
+// Load local.properties
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    }
 }
 
 android {
@@ -20,6 +29,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        // Add Gemini API key from local.properties
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties.getProperty("GEMINI_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -75,6 +87,8 @@ dependencies {
     implementation(libs.mmkv)
 
     implementation(libs.recurly)
+    
+    implementation(libs.gemini.ai)
 
     implementation(libs.gson)
     implementation(libs.retrofit)
