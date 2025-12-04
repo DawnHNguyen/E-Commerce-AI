@@ -105,7 +105,9 @@ fun ProductsSection(
                     .padding(vertical = 50.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color = colorResource(id = R.color.colorSystem_heading_button)
+                )
             }
         }
 
