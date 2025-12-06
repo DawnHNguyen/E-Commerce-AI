@@ -190,4 +190,10 @@ object RemoteModule {
     fun provideSellerRequestApi(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.remote.api.SellerRequestApi = retrofit.create(com.ptit.data.remote.api.SellerRequestApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAddressService(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.AddressService = retrofit.create(com.ptit.data.remote.api.AddressService::class.java)
 }

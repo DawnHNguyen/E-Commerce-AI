@@ -47,26 +47,31 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout(): Resource<Unit> {
         val refreshToken = mmkv.decodeString(SecureStorageKey.REFRESH_TOKEN)
-        if (refreshToken.isNullOrEmpty()) {
-            mmkv.removeValuesForKeys(
-                arrayOf(
-                    SecureStorageKey.ACCESS_TOKEN,
-                    SecureStorageKey.REFRESH_TOKEN
-                )
+
+        // ✅ Always clear local tokens first
+        mmkv.removeValuesForKeys(
+            arrayOf(
+                SecureStorageKey.ACCESS_TOKEN,
+                SecureStorageKey.REFRESH_TOKEN
             )
+        )
+        mmkv.commit()
+
+        // ✅ If no refresh token, already logged out locally
+        if (refreshToken.isNullOrEmpty()) {
             return Resource.success(Unit)
         }
 
-        return remoteDataSource
-            .logout(RefreshTokenRequest(refreshToken))
-            .onSuccess {
-                mmkv.removeValuesForKeys(
-                    arrayOf(
-                        SecureStorageKey.ACCESS_TOKEN,
-                        SecureStorageKey.REFRESH_TOKEN
-                    )
-                )
-                mmkv.commit()
-            }
+        // ✅ Try to call logout API, but don't fail if it errors
+        // This is because we've already cleared local tokens
+        return try {
+            remoteDataSource.logout(RefreshTokenRequest(refreshToken))
+            // If API succeeds, great!
+            Resource.success(Unit)
+        } catch (e: Exception) {
+            // ✅ If API fails (500 error, network error, etc.), still return success
+            // because we've already logged out locally
+            Resource.success(Unit)
+        }
     }
 }

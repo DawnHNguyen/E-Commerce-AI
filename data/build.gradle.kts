@@ -82,6 +82,7 @@ android {
 
 dependencies {
     implementation(libs.hilt)
+    implementation(libs.suggestions)
     ksp(libs.hilt.compiler)
 
     implementation(libs.mmkv)

@@ -7,8 +7,14 @@ interface UserRepository {
     suspend fun getUserProfile(): Resource<UserDomainEntity>
 
     suspend fun updateUserProfile(
-        name: String?,
-        phoneNumber: String?,
-        avatar: String?,
+        name: String,
+        phoneNumber: String,
+        avatar: String,
+    ): Resource<Unit>
+
+    suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmNewPassword: String
     ): Resource<Unit>
 }

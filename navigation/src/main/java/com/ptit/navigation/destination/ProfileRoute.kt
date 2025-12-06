@@ -27,6 +27,12 @@ data class ProductFormRoute (val productId: String? = null)
 data object EditProfileRoute
 
 @Serializable
+data object AddAddressRoute
+
+@Serializable
+data object ChangePasswordRoute
+
+@Serializable
 data object ProfileRoute
 
 @Serializable

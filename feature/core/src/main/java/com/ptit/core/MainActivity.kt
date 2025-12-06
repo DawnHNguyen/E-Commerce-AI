@@ -55,6 +55,8 @@ import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
+import com.ptit.core.account.AddAddressScreen
+import com.ptit.core.account.ChangePasswordScreen
 import com.ptit.core.account.EditProfile
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
@@ -85,6 +87,8 @@ import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.CreateSellerRequestRoute
 import com.ptit.navigation.destination.EditProfileRoute
+import com.ptit.navigation.destination.AddAddressRoute
+import com.ptit.navigation.destination.ChangePasswordRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.OrderHistoryRoute
@@ -330,7 +334,7 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(EditProfileRoute)
                                     },
                                     onNavigateToChangePassword = {
-                                        // TODO: Implement navigation to Change Password
+                                        navController.navigate(ChangePasswordRoute)
                                     },
                                     onNavigateToPaymentMethods = {
                                         navController.navigate(ListPaymentMethodRoute)
@@ -349,6 +353,28 @@ class MainActivity : FragmentActivity() {
                                     navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
                                 }
                                 EditProfile(
+                                    backStackEntry = accountGraphBackStackEntry,
+                                    onBack = navController::navigateUp,
+                                    onNavigateToAddAddress = {
+                                        navController.navigate(AddAddressRoute)
+                                    }
+                                )
+                            }
+
+                            composable<AddAddressRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                AddAddressScreen(
+                                    onBack = navController::navigateUp
+                                )
+                            }
+
+                            composable<ChangePasswordRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                ChangePasswordScreen(
                                     backStackEntry = accountGraphBackStackEntry,
                                     onBack = navController::navigateUp,
                                 )
