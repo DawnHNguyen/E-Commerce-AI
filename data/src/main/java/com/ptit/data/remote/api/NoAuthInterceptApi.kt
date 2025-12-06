@@ -8,7 +8,7 @@ import retrofit2.http.POST
 
 interface NoAuthInterceptApi {
 
-    @POST("refresh-access-token")
+    @POST("auth/refresh-token")
     suspend fun refreshAccessToken(
         @Body refreshTokenRequest: RefreshTokenRequest
     ): Resource<LoginResponse>
