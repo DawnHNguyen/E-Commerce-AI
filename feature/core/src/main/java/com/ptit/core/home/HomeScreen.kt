@@ -7,14 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,7 +23,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
@@ -46,16 +45,12 @@ fun HomeScreen(
     LocalBottomNavigationVisibility.current.value = true
 
     val viewModel = hiltViewModel<HomeViewModel>()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
+    val products = viewModel.products.collectAsLazyPagingItems()
 
     CustomPullToRefreshBox(
         modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0)),
-        isRefreshing = uiState.isLoading,
-        onRefresh = { viewModel.refreshData() }
+        isRefreshing = products.loadState.refresh == LoadState.Loading,
+        onRefresh = { products.refresh() }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // 🔍 Search Bar (cố định, không cuộn)
@@ -79,11 +74,8 @@ fun HomeScreen(
 
             // 🛍️ Danh sách sản phẩm
             ProductsSection(
-                isLoading = uiState.isLoading,
-                products = uiState.products,
-                error = uiState.error,
-                onProductClick = navigateToProductDetail,
-                onRetry = { viewModel.fetchProducts() }
+                products = products,
+                onProductClick = navigateToProductDetail
             )
         }
     }
@@ -91,72 +83,115 @@ fun HomeScreen(
 
 @Composable
 fun ProductsSection(
-    isLoading: Boolean,
-    products: List<ProductDomainEntity>,
-    error: String?,
-    onProductClick: (String) -> Unit,
-    onRetry: () -> Unit
+    products: androidx.paging.compose.LazyPagingItems<ProductDomainEntity>,
+    onProductClick: (String) -> Unit
 ) {
-    when {
-        isLoading -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 50.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    color = colorResource(id = R.color.colorSystem_heading_button)
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Header
+        item(span = { GridItemSpan(2) }) {
+            Text(
+                text = "Sản phẩm",
+                style = CustomTypography.TextBold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = colorResource(id = R.color.colorSystem_heading_button)
+            )
+        }
+
+        // Loading state (first load)
+        if (products.loadState.refresh is LoadState.Loading) {
+            item(span = { GridItemSpan(2) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 50.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+                }
+            }
+        }
+
+        // Error state
+        if (products.loadState.refresh is LoadState.Error) {
+            item(span = { GridItemSpan(2) }) {
+                val error = (products.loadState.refresh as LoadState.Error).error
+                ProductEmptyState(
+                    message = "Lỗi tải sản phẩm: ${error.message}",
+                    buttonText = "Thử lại",
+                    onActionClick = { products.retry() }
                 )
             }
         }
 
-        error != null -> {
-            ProductEmptyState(
-                message = "Lỗi tải sản phẩm: $error",
-                buttonText = "Thử lại",
-                onActionClick = onRetry
-            )
+        // Empty state
+        if (products.loadState.refresh is LoadState.NotLoading && products.itemCount == 0) {
+            item(span = { GridItemSpan(2) }) {
+                Text(
+                    text = "Hiện chưa có sản phẩm nào.",
+                    style = CustomTypography.TextRegular,
+                    modifier = Modifier
+                        .padding(vertical = 16.dp)
+                        .fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    color = colorResource(id = R.color.colorSystem_normal_text)
+                )
+            }
         }
 
-        products.isEmpty() -> {
-            Text(
-                text = "Hiện chưa có sản phẩm nào.",
-                style = CustomTypography.TextRegular,
-                modifier = Modifier
-                    .padding(vertical = 16.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = colorResource(id = R.color.colorSystem_normal_text)
-            )
+        // Product items
+        items(
+            count = products.itemCount,
+            key = products.itemKey { it.id }
+        ) { index ->
+            products[index]?.let { product ->
+                ProductItem(
+                    product = product,
+                    onClick = { onProductClick(product.id) }
+                )
+            }
         }
 
-        else -> {
-            // ✅ Dùng LazyVerticalGrid trực tiếp, không bọc trong LazyColumn
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Header nằm trong grid, chiếm 2 cột
-                item(span = { GridItemSpan(2) }) {
-                    Text(
-                        text = "Sản phẩm",
-                        style = CustomTypography.TextBold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(bottom = 8.dp),
+        // Loading more indicator
+        if (products.loadState.append is LoadState.Loading) {
+            item(span = { GridItemSpan(2) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
                         color = colorResource(id = R.color.colorSystem_heading_button)
                     )
                 }
+            }
+        }
 
-                // Items sản phẩm
-                items(products, key = { it.id }) { product ->
-                    ProductItem(
-                        product = product,
-                        onClick = { onProductClick(product.id) }
-                    )
+        // Load more error
+        if (products.loadState.append is LoadState.Error) {
+            item(span = { GridItemSpan(2) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TextButton(onClick = { products.retry() }) {
+                        Text(
+                            text = "Lỗi tải thêm. Nhấn để thử lại",
+                            color = colorResource(id = R.color.colorSystem_tint_red)
+                        )
+                    }
                 }
             }
         }
