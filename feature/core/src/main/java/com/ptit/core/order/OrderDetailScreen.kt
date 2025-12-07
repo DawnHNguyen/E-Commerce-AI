@@ -58,6 +58,7 @@ fun OrderDetailScreen(
 
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
     val cancelOrderState by viewModel.cancelOrderState.collectAsStateWithLifecycle()
+    val processPaymentState by viewModel.processPaymentState.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
     // 🔴 MỚI: Thêm lại state
@@ -87,6 +88,38 @@ fun OrderDetailScreen(
                 .onError {
                     isShowProgressBar.value = false
                     Toast.makeText(context, "Huỷ đơn hàng thất bại", Toast.LENGTH_SHORT).show()
+                }
+        }
+
+        lifecycleOwner.safeCollectFlow(viewModel.processPaymentState) {
+            it
+                .onLoading { isShowProgressBar.value = true }
+                .onSuccess { result ->
+                    Toast.makeText(context, "Thanh toán thành công!", Toast.LENGTH_SHORT).show()
+                    isShowPurchaseConfirmBottomSheet.value = false
+
+                    // Reload order details after a short delay to ensure backend has updated
+                    viewModel.reloadOrderAfterPayment(orderId)
+                }
+                .onError { error ->
+                    isShowProgressBar.value = false
+
+                    // Check if error is token expiration
+                    val errorMessage = error.message ?: ""
+                    if (errorMessage.contains("Token is invalid or expired", ignoreCase = true)) {
+                        Toast.makeText(
+                            context,
+                            "Token thanh toán đã hết hạn. Vui lòng xóa và thêm lại phương thức thanh toán.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Thanh toán thất bại: ${error.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    viewModel.resetPaymentState()
                 }
         }
     }
@@ -259,11 +292,9 @@ fun OrderDetailScreen(
         onAddPaymentMethod = {
             navigateToPaymentMethod()
         },
-        onConfirmedPurchase = {
-            // Đây là luồng thanh toán cũ (chỉ hiển thị Toast)
-            // TODO: Cần gọi API thanh toán thật ở đây
-            Toast.makeText(context, "Đang xử lý thanh toán...", Toast.LENGTH_SHORT).show()
-            isShowPurchaseConfirmBottomSheet.value = false
+        onConfirmedPurchase = { tokenId ->
+            // Process payment with the actual API
+            viewModel.processPayment(orderId, tokenId)
         }
     )
 
