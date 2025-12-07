@@ -89,6 +89,13 @@ fun PurchaseBottomSheet(
         skipPartiallyExpanded = true
     )
 
+    // ✅ NEW: Reload default payment method when bottom sheet is shown
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            viewModel.loadDefaultPaymentMethod()
+        }
+    }
+
     // Handle payment methods loading state
     LaunchedEffect(Unit) {
         lifecycleOwner.safeCollectFlow(viewModel.paymentMethodsState) { resource ->

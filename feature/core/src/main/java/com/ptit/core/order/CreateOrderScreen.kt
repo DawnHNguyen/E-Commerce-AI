@@ -206,10 +206,13 @@ fun CreateOrderScreen(
                     )
                 }
 
+                // ✅ Calculate subtotal from selected products
                 val subtotal = selectedShops.sumOf { shop ->
                     shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
                 }
-                val shippingFee = 30000
+
+                // ✅ Use calculated shipping fee from orderState (default 0đ)
+                val shippingFee = orderState.calculatedShippingFee.toInt()
                 val total = subtotal + shippingFee
 
                 item {
