@@ -196,4 +196,10 @@ object RemoteModule {
     fun provideAddressService(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.remote.api.AddressService = retrofit.create(com.ptit.data.remote.api.AddressService::class.java)
+
+    @Provides
+    @Singleton
+    fun providePaymentApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.PaymentApi = retrofit.create(com.ptit.data.remote.api.PaymentApi::class.java)
 }
