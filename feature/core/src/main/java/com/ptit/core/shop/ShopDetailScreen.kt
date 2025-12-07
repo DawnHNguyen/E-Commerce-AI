@@ -32,6 +32,7 @@ import com.ptit.domain.utils.Resource
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class)
 @Composable
 fun ShopDetailScreen(
+    shopId: String? = null,  // ✅ Optional: If provided, load specific shop. Otherwise load user's shop
     viewModel: ShopViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToEditShop: () -> Unit,
@@ -42,7 +43,8 @@ fun ShopDetailScreen(
     val shopDetailsState by viewModel.shopDetailsState.collectAsStateWithLifecycle()
 
     // Refresh shop data on screen load
-    LaunchedEffect(Unit) {
+    LaunchedEffect(shopId) {
+        // TODO: If shopId is provided, fetch that specific shop. For now, always fetch user's shop
         viewModel.fetchMyShopDetails()
     }
 

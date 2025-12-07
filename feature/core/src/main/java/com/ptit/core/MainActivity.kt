@@ -76,7 +76,9 @@ import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.seller_request.CreateSellerRequestScreen
+import com.ptit.core.seller_request.RequestStatusScreen
 import com.ptit.core.shop.ShopDetailScreen
+import com.ptit.core.shop.ShopEntryScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
 import com.ptit.navigation.destination.BottomNavigationItem
@@ -100,6 +102,8 @@ import com.ptit.navigation.destination.ProductsByCategoryRoute
 import com.ptit.navigation.destination.ProfileRoute
 import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
+import com.ptit.navigation.destination.ShopEntryRoute
+import com.ptit.navigation.destination.RequestStatusRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
@@ -340,10 +344,12 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(ListPaymentMethodRoute)
                                     },
                                     onNavigateToShop = {
-                                        navController.navigate(ShopDetailRoute)
+                                        // ✅ Navigate to ShopEntryRoute - will check shop/request status
+                                        navController.navigate(ShopEntryRoute)
                                     },
                                     onNavigateToCreateShop = {
-                                        navController.navigate(CreateSellerRequestRoute)
+                                        // ✅ Same as onNavigateToShop - unified entry point
+                                        navController.navigate(ShopEntryRoute)
                                     },
                                 )
                             }
@@ -391,12 +397,54 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // ✅ NEW: Shop Entry Screen - Check shop/request status
+                        composable<ShopEntryRoute> {
+                            ShopEntryScreen(
+                                onNavigateToShopDetail = { shopId ->
+                                    navController.navigate(ShopDetailRoute(shopId = shopId)) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToRequestStatus = {
+                                    navController.navigate(RequestStatusRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToCreateRequest = {
+                                    navController.navigate(CreateSellerRequestRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onBack = navController::navigateUp
+                            )
+                        }
+
+                        // ✅ NEW: Request Status Screen
+                        composable<RequestStatusRoute> {
+                            RequestStatusScreen(
+                                onBack = navController::navigateUp,
+                                onNavigateToCreateRequest = {
+                                    navController.navigate(CreateSellerRequestRoute) {
+                                        popUpTo(RequestStatusRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToShop = {
+                                    // Navigate to Shop screen - user's seller request was approved
+                                    navController.navigate(ShopEntryRoute) {
+                                        popUpTo(RequestStatusRoute) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         composable<CreateSellerRequestRoute> {
                             CreateSellerRequestScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onRequestSubmitted = {
-                                    // Navigate back to account screen
-                                    navController.navigateUp()
+                                    // Navigate to request status screen to show submitted request
+                                    navController.navigate(RequestStatusRoute) {
+                                        popUpTo(CreateSellerRequestRoute) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -414,7 +462,9 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<ShopDetailRoute> {
+                        composable<ShopDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ShopDetailRoute>()
+                            // Note: args.shopId is available but ShopDetailScreen fetches user's shop by default
                             ShopDetailScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToEditShop = {

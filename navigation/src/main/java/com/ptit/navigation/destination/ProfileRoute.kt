@@ -15,7 +15,13 @@ data object UpdateShopRoute
 data object CreateSellerRequestRoute
 
 @Serializable
-data object ShopDetailRoute
+data object ShopEntryRoute
+
+@Serializable
+data class ShopDetailRoute(val shopId: String)
+
+@Serializable
+data object RequestStatusRoute
 
 @Serializable
 data object ProductListRoute
