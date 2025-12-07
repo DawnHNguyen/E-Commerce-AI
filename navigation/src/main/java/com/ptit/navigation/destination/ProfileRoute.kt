@@ -12,7 +12,16 @@ data object ConfigPaymentMethodRoute
 data object UpdateShopRoute
 
 @Serializable
-data object ShopDetailRoute
+data object CreateSellerRequestRoute
+
+@Serializable
+data object ShopEntryRoute
+
+@Serializable
+data class ShopDetailRoute(val shopId: String)
+
+@Serializable
+data object RequestStatusRoute
 
 @Serializable
 data object ProductListRoute
@@ -22,6 +31,12 @@ data class ProductFormRoute (val productId: String? = null)
 
 @Serializable
 data object EditProfileRoute
+
+@Serializable
+data object AddAddressRoute
+
+@Serializable
+data object ChangePasswordRoute
 
 @Serializable
 data object ProfileRoute

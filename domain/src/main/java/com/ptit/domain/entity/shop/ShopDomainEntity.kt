@@ -1,11 +1,14 @@
 package com.ptit.domain.entity.shop
 
 data class ShopDomainEntity(
+    val id: String = "",
     val name: String = "",
-    val description: String = "",
-    val address: String = "",
-    val phone: String = "",
-    val avatar: String = "",
-    val totalProduct: Int? = 0,
-    val totalOrder: Int? = 0,
+    val description: String? = null,
+    val address: String? = null,
+    val phone: String? = null,
+    val avatar: String? = null,
+    val userId: String = "",
+    val isActive: Boolean = true,
+    val createdAt: String = "",
+    val updatedAt: String = ""
 )

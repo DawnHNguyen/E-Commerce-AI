@@ -77,11 +77,7 @@ class AuthActivity : ComponentActivity() {
 
                     composable<RegisterScreen> {
                         RegisterScreen(
-                            onNavigateToSignIn = navController::navigateUp,
-                            onRegisterSuccess = {
-                                Navigator.navigateToMainActivity(this@AuthActivity)
-                                finish()
-                            }
+                            onNavigateToSignIn = navController::navigateUp
                         )
                     }
                 }

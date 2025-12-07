@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +15,7 @@ import com.ptit.common.R
 import com.ptit.common.presentation.component.BaseBottomSheet
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.core.cart.components.QuantityControl
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.entity.product.SKUDomainEntity
 import com.ptit.domain.entity.product.VariantDomainEntity
@@ -122,37 +120,23 @@ fun AddToCartBottomSheet(
                     )
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = {
-                            if (quantity > 1) quantity--
-                        },
-                        enabled = quantity > 1,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-                    ) {
-                        Icon(Icons.Filled.Remove, contentDescription = "Giảm")
+                QuantityControl(
+                    quantity = quantity,
+                    onIncrease = {
+                        if (quantity < maxStock) quantity++
+                    },
+                    onDecrease = {
+                        if (quantity > 1) quantity--
+                    },
+                    onQuantityChange = { newQty ->
+                        // Giới hạn quantity trong khoảng 1 đến maxStock
+                        quantity = when {
+                            newQty < 1 -> 1
+                            newQty > maxStock -> maxStock
+                            else -> newQty
+                        }
                     }
-
-                    Text(
-                        text = quantity.toString(),
-                        style = CustomTypography.TextMedium.merge(fontSize = 16.sp),
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-
-                    IconButton(
-                        onClick = {
-                            if (quantity < maxStock) quantity++
-                        },
-                        enabled = quantity < maxStock,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = "Tăng")
-                    }
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

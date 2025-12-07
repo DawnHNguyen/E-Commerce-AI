@@ -39,6 +39,7 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleViewmodelKtx = "2.9.4"
+suggestions = "1.0.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -90,6 +91,7 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+suggestions = { group = "com.google.assistant.appactions", name = "suggestions", version.ref = "suggestions" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

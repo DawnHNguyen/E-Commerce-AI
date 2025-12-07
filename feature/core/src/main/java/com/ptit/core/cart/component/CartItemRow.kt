@@ -41,7 +41,7 @@ fun CartItemRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(colorResource(R.color.colorSystem_background_level_2))
-            .padding(12.dp)
+            .padding(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
@@ -103,6 +103,9 @@ fun CartItemRow(
                 },
                 onDecrease = {
                     if (quantity > 1) sku?.id?.let { onQuantityUpdate(purchase.id, it, quantity - 1) }
+                },
+                onQuantityChange = { newQty ->
+                    sku?.id?.let { onQuantityUpdate(purchase.id, it, newQty) }
                 }
             )
         }

@@ -40,7 +40,8 @@ class PurchaseBottomSheetViewModel @Inject constructor(
         loadDefaultPaymentMethod()
     }
 
-    private fun loadDefaultPaymentMethod() {
+    // ✅ Changed from private to public so it can be called when bottom sheet is shown
+    fun loadDefaultPaymentMethod() {
         viewModelScope.launch {
             val defaultMethod = paymentMethodRepository.getDefaultPaymentMethod()
             _uiState.update { it.copy(selectedPaymentMethod = defaultMethod) }

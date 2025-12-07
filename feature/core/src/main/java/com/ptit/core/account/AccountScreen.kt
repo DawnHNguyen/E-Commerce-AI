@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Store
@@ -86,7 +87,7 @@ import com.ptit.common.utils.toPriceFormat
 fun AccountScreen(
     backStackEntry: NavBackStackEntry,
     onNavigateToOrders: () -> Unit,
-    onNavigateToOverview: () -> Unit, // ✅ NEW
+    onNavigateToOverview: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
@@ -198,7 +199,12 @@ fun AccountScreen(
                 onOverviewClick = onNavigateToOverview,
                 onOrdersClick = onNavigateToOrders,
                 onShopClick = {
-
+                    // Nếu đã có shop thì đến ShopDetail, chưa có thì đến CreateSellerRequest
+                    if (false) { // hasShop = false
+                        onNavigateToShop()
+                    } else {
+                        onNavigateToCreateShop()
+                    }
                 },
                 onPaymentMethodsClick = onNavigateToPaymentMethods,
                 onChangePasswordClick = onNavigateToChangePassword,
@@ -539,19 +545,19 @@ private fun SettingsMenuCard(
                         color = colorResource(id = R.color.colorSystem_text_button)
                     )
 
-//                    // Change Password
-//                    MenuItem(
-//                        icon = Icons.Outlined.Password,
-//                        title = "Đổi mật khẩu",
-//                        subtitle = "Cập nhật mật khẩu tài khoản",
-//                        onClick = onChangePasswordClick,
-//                        isSubItem = true
-//                    )
-//
-//                    HorizontalDivider(
-//                        modifier = Modifier.padding(end = 16.dp, start = 56.dp),
-//                        color = colorResource(id = R.color.colorSystem_text_button)
-//                    )
+                    // Change Password
+                    MenuItem(
+                        icon = Icons.Outlined.Password,
+                        title = "Đổi mật khẩu",
+                        subtitle = "Cập nhật mật khẩu tài khoản",
+                        onClick = onChangePasswordClick,
+                        isSubItem = true
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(end = 16.dp, start = 56.dp),
+                        color = colorResource(id = R.color.colorSystem_text_button)
+                    )
 
                     // Logout
                     MenuItem(

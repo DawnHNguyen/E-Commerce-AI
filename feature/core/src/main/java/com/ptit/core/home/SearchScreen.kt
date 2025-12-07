@@ -5,26 +5,31 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,12 +45,8 @@ import com.ptit.common.presentation.component.CustomPullToRefreshBox
 import com.ptit.common.presentation.component.CustomSearchBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.core.home.component.CategoryItem
-import com.ptit.core.home.component.FilterOption
+import com.ptit.core.home.component.FilterBottomSheet
 import com.ptit.core.home.component.ProductItem
-import com.ptit.domain.utils.onError
-import com.ptit.domain.utils.onIdle
-import com.ptit.domain.utils.onLoading
 import com.ptit.domain.utils.onSuccess
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +61,36 @@ fun SearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults = viewModel.searchResults.collectAsLazyPagingItems()
     val categoriesState = viewModel.categoriesState.collectAsStateWithLifecycle().value
-    val trendingProductsState = viewModel.trendingProductsState.collectAsStateWithLifecycle().value
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+
+    var showFilterSheet by remember { mutableStateOf(false) }
+
+    // Calculate active filter count
+    val activeFilterCount = remember(filters) {
+        var count = 0
+        if (filters.categoryIds.isNotEmpty()) count++
+        if (filters.minPrice != null || filters.maxPrice != null) count++
+        if (filters.sortBy != "createdAt" || filters.orderBy != "desc") count++
+        count
+    }
+
+    // Show filter bottom sheet
+    if (showFilterSheet) {
+        categoriesState.onSuccess { categories ->
+            FilterBottomSheet(
+                categories = categories,
+                selectedCategoryIds = filters.categoryIds,
+                minPrice = filters.minPrice,
+                maxPrice = filters.maxPrice,
+                selectedSortBy = filters.sortBy,
+                selectedOrderBy = filters.orderBy,
+                onDismiss = { showFilterSheet = false },
+                onApply = { categoryIds, minPrice, maxPrice, sortBy, orderBy ->
+                    viewModel.applyAllFilters(categoryIds, minPrice, maxPrice, sortBy, orderBy)
+                }
+            )
+        }
+    }
 
     CustomPullToRefreshBox(
         modifier = Modifier.background(color = colorResource(R.color.colorSystem_background_level_0)),
@@ -86,7 +116,7 @@ fun SearchScreen(
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = colorResource(R.color.colorSystem_background_level_0)
                     )
@@ -99,8 +129,45 @@ fun SearchScreen(
                     modifier = Modifier.weight(1f),
                     onClickSearch = { /* Search is automatically triggered */ }
                 )
+
+                // Filter button with badge
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    IconButton(
+                        onClick = { showFilterSheet = true },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(colorResource(R.color.colorSystem_background_level_0).copy(alpha = 0.2f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = colorResource(R.color.colorSystem_background_level_0)
+                        )
+                    }
+
+                    // Active filter count badge
+                    if (activeFilterCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(colorResource(R.color.colorSystem_tint_red))
+                                .align(Alignment.TopEnd),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = activeFilterCount.toString(),
+                                style = CustomTypography.TextBold.copy(
+                                    fontSize = 10.sp,
+                                    color = colorResource(R.color.colorSystem_background_level_0)
+                                )
+                            )
+                        }
+                    }
+                }
             }
-            
+
             // Grid of search results
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
@@ -112,101 +179,20 @@ fun SearchScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // If search query is empty, show trending products section
+                // If search query is empty, show placeholder
                 if (searchQuery.isEmpty()) {
                     item(
-                        key = "trending_title",
+                        key = "search_placeholder",
                         span = { GridItemSpan(maxCurrentLineSpan) }
                     ) {
-                        Text(
-                            text = "Xu hướng",
-                            style = CustomTypography.TextSemiBold.merge(
-                                color = colorResource(R.color.colorSystem_heading_button),
-                                fontSize = 18.sp
-                            ),
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    // Show trending products
-                    trendingProductsState.onIdle { /* Do nothing */ }
-                    trendingProductsState.onLoading {
-                        item(
-                            key = "trending_loading",
-                            span = { GridItemSpan(maxCurrentLineSpan) }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(60.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Loading trending products...",
-                                    style = CustomTypography.TextRegular.merge(
-                                        color = colorResource(R.color.colorSystem_normal_text),
-                                        fontSize = 14.sp
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    trendingProductsState.onSuccess { products ->
-                        items(
-                            count = products.size,
-                            key = { products[it].id }
-                        ) { index ->
-                            ProductItem(
-                                product = products[index],
-                                onClickProduct = { navigateToProductDetail(products[index].id) }
-                            )
-                        }
-                    }
-                    trendingProductsState.onError {
-                        item(
-                            key = "trending_error",
-                            span = { GridItemSpan(maxCurrentLineSpan) }
-                        ) {
-                            Text(
-                                text = "Failed to load trending products",
-                                style = CustomTypography.TextRegular.merge(
-                                    color = colorResource(R.color.colorSystem_tint_red),
-                                    fontSize = 14.sp
-                                ),
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                    }
-                    
-                    // Show search history section
-                    item(
-                        key = "search_history_title",
-                        span = { GridItemSpan(maxCurrentLineSpan) }
-                    ) {
-                        Text(
-                            text = "Lịch sử tìm kiếm",
-                            style = CustomTypography.TextSemiBold.merge(
-                                color = colorResource(R.color.colorSystem_heading_button),
-                                fontSize = 18.sp
-                            ),
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    // Add some example search history items
-                    item(
-                        key = "search_history_item_1",
-                        span = { GridItemSpan(maxCurrentLineSpan) }
-                    ) {
-                        MaxWidthRow(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable { viewModel.onSearchQueryChanged("áo khoác gió") },
-                            verticalAlignment = Alignment.CenterVertically
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "áo khoác gió",
+                                text = "Nhập từ khóa để tìm kiếm sản phẩm",
                                 style = CustomTypography.TextRegular.merge(
                                     color = colorResource(R.color.colorSystem_normal_text),
                                     fontSize = 14.sp
@@ -221,7 +207,7 @@ fun SearchScreen(
                         span = { GridItemSpan(maxCurrentLineSpan) }
                     ) {
                         Text(
-                            text = "Kết quả tìm kiếm cho '$searchQuery'",
+                            text = "Kết quả tìm kiếm",
                             style = CustomTypography.TextSemiBold.merge(
                                 color = colorResource(R.color.colorSystem_heading_button),
                                 fontSize = 16.sp
@@ -256,7 +242,30 @@ fun SearchScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Loading more...",
+                                    text = "Đang tải thêm...",
+                                    style = CustomTypography.TextRegular.merge(
+                                        color = colorResource(R.color.colorSystem_normal_text),
+                                        fontSize = 14.sp
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Show empty state
+                    if (searchResults.itemCount == 0 && searchResults.loadState.refresh !is LoadState.Loading) {
+                        item(
+                            key = "empty_state",
+                            span = { GridItemSpan(maxCurrentLineSpan) }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Không tìm thấy sản phẩm",
                                     style = CustomTypography.TextRegular.merge(
                                         color = colorResource(R.color.colorSystem_normal_text),
                                         fontSize = 14.sp

@@ -53,7 +53,6 @@ import com.ptit.domain.utils.onSuccess
 @Composable
 fun RegisterScreen(
     onNavigateToSignIn: () -> Unit,
-    onRegisterSuccess: () -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -82,7 +81,13 @@ fun RegisterScreen(
                         ).show()
                 }
                 .onSuccess {
-                    onRegisterSuccess()
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Đăng ký thành công! Vui lòng đăng nhập.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    onNavigateToSignIn()
                 }
         }
     }

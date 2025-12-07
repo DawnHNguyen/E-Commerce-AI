@@ -28,7 +28,15 @@ class HomeRepositoryImpl @Inject constructor(private val remoteDataSource: Produ
             }
         ).flow
 
-    override fun searchProducts(query: String): Flow<PagingData<ProductDomainEntity>> =
+    override fun searchProducts(
+        query: String,
+        minPrice: Int?,
+        maxPrice: Int?,
+        categories: List<String>?,
+        brandIds: List<String>?,
+        sortBy: String,
+        orderBy: String
+    ): Flow<PagingData<ProductDomainEntity>> =
         Pager(
             config = PagingConfig(
                 pageSize = SEARCH_PRODUCT_PAGE_SIZE,
@@ -38,7 +46,13 @@ class HomeRepositoryImpl @Inject constructor(private val remoteDataSource: Produ
             pagingSourceFactory = {
                 ProductPagingSource(
                     remoteDataSource = remoteDataSource,
-                    name = query
+                    name = query.ifEmpty { null },
+                    minPrice = minPrice,
+                    maxPrice = maxPrice,
+                    categories = categories,
+                    brandIds = brandIds,
+                    sortBy = sortBy,
+                    orderBy = orderBy
                 )
             }
         ).flow

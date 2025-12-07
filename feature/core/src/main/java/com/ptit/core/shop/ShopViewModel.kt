@@ -33,6 +33,9 @@ class ShopViewModel @Inject constructor(
     private val _shopDetailsState = MutableStateFlow<Resource<ShopDomainEntity>>(Resource.idle())
     val shopDetailsState = _shopDetailsState.asStateFlow()
 
+    private val _createShopState = MutableStateFlow<Resource<ShopDomainEntity>>(Resource.idle())
+    val createShopState = _createShopState.asStateFlow()
+
     private val _updateShopState = MutableStateFlow<Resource<ShopDomainEntity>>(Resource.idle())
     val updateShopState = _updateShopState.asStateFlow()
 
@@ -50,7 +53,7 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = shopRepository.getMyShop()
-            Log.e("ShopViewModel", "Shop API Response: $response")
+            Log.d("ShopViewModel", "Shop API Response: $response")
             _shopDetailsState.value = response
 
             if (response is Resource.Success) {
@@ -59,18 +62,60 @@ class ShopViewModel @Inject constructor(
         }
     }
 
+    // Create new shop
+    fun createShop(
+        name: String,
+        description: String?,
+        address: String?,
+        phone: String?,
+        avatar: String?
+    ) {
+        if (_createShopState.value is Resource.Loading) return
+        _createShopState.value = Resource.loading()
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = shopRepository.createShop(
+                name = name,
+                description = description,
+                address = address,
+                phone = phone,
+                avatar = avatar
+            )
+            Log.d("ShopViewModel", "Shop create response: $response")
+            _createShopState.value = response
+
+            if (response is Resource.Success) {
+                _uiModel.value = ShopUiModel(shop = response.data)
+                fetchMyShopDetails()
+            }
+        }
+    }
+
     // Update shop details
-    fun updateShopDetails(updatedShop: ShopDomainEntity) {
+    fun updateShopDetails(
+        name: String?,
+        description: String?,
+        address: String?,
+        phone: String?,
+        avatar: String?
+    ) {
         if (_updateShopState.value is Resource.Loading) return
         _updateShopState.value = Resource.loading()
 
         viewModelScope.launch(Dispatchers.IO) {
-            val response = shopRepository.updateShop(updatedShop.name, updatedShop.description, updatedShop.address, updatedShop.phone, updatedShop.avatar)
-            Log.e("ShopViewModel", "Shop update response: $response")
+            val response = shopRepository.updateShop(
+                name = name,
+                description = description,
+                address = address,
+                phone = phone,
+                avatar = avatar
+            )
+            Log.d("ShopViewModel", "Shop update response: $response")
             _updateShopState.value = response
 
             if (response is Resource.Success) {
                 _uiModel.value = ShopUiModel(shop = response.data)
+                fetchMyShopDetails()
             }
         }
     }
@@ -82,8 +127,20 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = fileUploadRepository.uploadSingleFile(imageUri)
-            Log.e("ShopViewModel", "Image upload response: $response")
+            Log.d("ShopViewModel", "Image upload response: $response")
             _uploadImageState.value = response
         }
+    }
+
+    @Deprecated(
+        message = "This method is deprecated along with createShop. Use SellerRequestViewModel instead.",
+        level = DeprecationLevel.WARNING
+    )
+    fun resetCreateShopState() {
+        _updateShopState.value = Resource.idle()
+    }
+
+    fun resetUploadImageState() {
+        _uploadImageState.value = Resource.idle()
     }
 }

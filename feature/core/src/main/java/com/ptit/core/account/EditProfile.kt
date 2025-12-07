@@ -27,6 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +65,7 @@ import com.ptit.domain.utils.onSuccess
 fun EditProfile(
     backStackEntry: NavBackStackEntry,
     onBack: () -> Unit,
+    onNavigateToAddAddress: () -> Unit,
 ) {
     LocalBottomNavigationVisibility.current.value = false
 
@@ -71,9 +74,11 @@ fun EditProfile(
 
     val viewModel = hiltViewModel<AccountViewModel>(viewModelStoreOwner = backStackEntry)
     val uiModel = viewModel.updateProfileUiModel.collectAsStateWithLifecycle()
+    val addressesState = viewModel.addressesState.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
     val isShowAlertDialog = rememberState { false }
+    val isShowAddAddressDialog = rememberState { false }
     val selectedAvatarUri = rememberState<String?> { null }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -86,6 +91,11 @@ fun EditProfile(
         }
     )
 
+    // Fetch addresses on first load
+    LaunchedEffect(Unit) {
+        viewModel.fetchAddresses()
+    }
+
     LaunchedEffect(Unit) {
         lifecycleOwner.safeCollectFlow(viewModel.updateProfileState) {
             it
@@ -94,13 +104,41 @@ fun EditProfile(
                 }
                 .onSuccess {
                     isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Cập nhật thông tin thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     onBack()
                 }
-                .onError {
+                .onError { error ->
                     isShowProgressBar.value = false
                     Toast.makeText(
                         context,
-                        "Cập nhật thông tin thất bại",
+                        "Cập nhật thông tin thất bại: ${error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
+    }
+
+    // Handle create address state
+    LaunchedEffect(Unit) {
+        lifecycleOwner.safeCollectFlow(viewModel.createAddressState) {
+            it
+                .onSuccess {
+                    isShowAddAddressDialog.value = false
+                    viewModel.resetCreateAddressState()
+                    Toast.makeText(
+                        context,
+                        "Thêm địa chỉ thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                .onError { exception ->
+                    Toast.makeText(
+                        context,
+                        "Thêm địa chỉ thất bại: ${exception.message}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -261,6 +299,66 @@ fun EditProfile(
                     }
                 }
             } else null
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        // Email field (read-only)
+        Text(
+            text = "Email",
+            style = CustomTypography.TextMedium,
+            fontSize = 16.sp,
+            color = colorResource(id = R.color.colorSystem_heading_button),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        FilledTextField(
+            value = uiModel.value.original.email,
+            onValueChange = { },
+            hint = "Email",
+            singleLine = true,
+            maxLines = 1,
+            enabled = false,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        // Default address section
+        Text(
+            text = "Địa chỉ mặc định",
+            style = CustomTypography.TextMedium,
+            fontSize = 16.sp,
+            color = colorResource(id = R.color.colorSystem_heading_button),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        val defaultAddress = when (val state = addressesState.value) {
+            is com.ptit.domain.utils.Resource.Success -> state.data.firstOrNull { it.isDefault }
+            else -> null
+        }
+
+        FilledTextField(
+            value = defaultAddress?.fullAddress ?: "Chưa có",
+            onValueChange = { },
+            hint = "Địa chỉ",
+            singleLine = false,
+            maxLines = 3,
+            enabled = false,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Add address button
+        FilledButton(
+            text = "Thêm địa chỉ mới",
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onNavigateToAddAddress
         )
     }
 

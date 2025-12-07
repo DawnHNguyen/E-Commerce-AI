@@ -107,20 +107,18 @@ fun CreateOrderScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Tạo đơn hàng",
-                            style = CustomTypography.TextBold.copy(fontSize = 20.sp),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    Text(
+                        "Tạo đơn hàng",
+                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "Quay lại",
                             tint = colorResource(R.color.colorSystem_greyscale_0_white)
                         )
                     }
@@ -208,10 +206,13 @@ fun CreateOrderScreen(
                     )
                 }
 
+                // ✅ Calculate subtotal from selected products
                 val subtotal = selectedShops.sumOf { shop ->
                     shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
                 }
-                val shippingFee = 30000
+
+                // ✅ Use calculated shipping fee from orderState (default 0đ)
+                val shippingFee = orderState.calculatedShippingFee.toInt()
                 val total = subtotal + shippingFee
 
                 item {
@@ -272,26 +273,38 @@ fun ShopOrderSection(shopName: String, cartItems: List<com.ptit.domain.entity.ca
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(colorResource(R.color.colorSystem_background_level_2))
-            .padding(12.dp)
+            .padding(16.dp)
     ) {
-        Text(
-            text = shopName,
-            style = CustomTypography.TextSemiBold,
-            color = colorResource(R.color.colorSystem_heading_button)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "🏪",
+                style = CustomTypography.TextSemiBold.copy(fontSize = 18.sp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = shopName,
+                style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                color = colorResource(R.color.colorSystem_heading_button)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         if (cartItems.isEmpty()) {
             Text(
                 text = "Không có sản phẩm",
-                style = CustomTypography.TextRegular,
-                color = colorResource(R.color.colorSystem_greyscale_400)
+                style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
+                color = colorResource(R.color.colorSystem_text_button)
             )
         } else {
             cartItems.forEach { item ->
                 SharedCartItemRow(cartItem = item)
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -302,16 +315,22 @@ fun OrderNoteSection(
     note: TextFieldValue,
     onNoteChange: (TextFieldValue) -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(colorResource(R.color.colorSystem_background_level_2))
             .padding(16.dp)
     ) {
+        Text(
+            text = "📝 Ghi chú đơn hàng",
+            style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+            color = colorResource(R.color.colorSystem_heading_button)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         FilledTextField(
             value = note,
-            hint = "Ghi chú cho shop (nếu có)",
+            hint = "Nhập ghi chú cho shop (nếu có)...",
             onValueChange = onNoteChange,
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,

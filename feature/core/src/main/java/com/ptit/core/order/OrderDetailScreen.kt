@@ -367,8 +367,8 @@ fun OrderNoteDisplay(note: String) {
 fun OrderStatusSection(status: String) {
     // Map backend status values to OrderStatus constants
     val normalizedStatus = when (status) {
-        "PENDING_PAYMENT", "PENDING" -> com.ptit.common.const.OrderStatus.PENDING
-        "PENDING_PACKAGING", "PROCESSING" -> com.ptit.common.const.OrderStatus.PROCESSING
+        "PENDING_PAYMENT", "PENDING" -> com.ptit.common.const.OrderStatus.PENDING_PAYMENT
+        "PENDING_PACKAGING", "PENDING_PACKAGE", "PROCESSING" -> com.ptit.common.const.OrderStatus.PENDING_PACKAGING
         "PICKUPED", "PENDING_DELIVERY", "SHIPPING" -> com.ptit.common.const.OrderStatus.SHIPPING
         "DELIVERED" -> com.ptit.common.const.OrderStatus.DELIVERED
         "CANCELLED" -> com.ptit.common.const.OrderStatus.CANCELLED

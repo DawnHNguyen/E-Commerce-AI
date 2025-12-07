@@ -7,404 +7,379 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeColumn
-import com.ptit.common.presentation.MyCrossFade
-import com.ptit.common.presentation.component.FullScreenProgressBar
-import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
-import com.ptit.common.presentation.rememberState
-import com.ptit.common.presentation.theme.CustomTypography
-import com.ptit.common.utils.safeCollectFlow
-import com.ptit.domain.entity.shop.ShopDomainEntity
-import com.ptit.domain.utils.onError
-import com.ptit.domain.utils.onLoading
-import com.ptit.domain.utils.onSuccess
+import com.ptit.domain.utils.Resource
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class)
 @Composable
 fun UpdateShopScreen(
+    viewModel: ShopViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
-    LocalBottomNavigationVisibility.current.value = false
-
-    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
-    val viewModel = hiltViewModel<ShopViewModel>()
-    val uiModel = viewModel.uiModel.collectAsStateWithLifecycle()
-    val isLoading = rememberState { false }
+    val uiModel by viewModel.uiModel.collectAsStateWithLifecycle()
+    val updateShopState by viewModel.updateShopState.collectAsStateWithLifecycle()
+    val uploadImageState by viewModel.uploadImageState.collectAsStateWithLifecycle()
 
-    var shopName by remember { mutableStateOf("") }
-    var shopDescription by remember { mutableStateOf("") }
-    var shopAddress by remember { mutableStateOf("") }
-    var shopAvatar by remember { mutableStateOf("") }
+    // Initialize states from current shop data
+    var shopName by remember { mutableStateOf(uiModel.shop.name) }
+    var shopDescription by remember { mutableStateOf(uiModel.shop.description ?: "") }
+    var shopAddress by remember { mutableStateOf(uiModel.shop.address ?: "") }
+    var shopPhone by remember { mutableStateOf(uiModel.shop.phone ?: "") }
+    var shopAvatarUrl by remember { mutableStateOf(uiModel.shop.avatar ?: "") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Initialize form fields with current shop data
-    LaunchedEffect(uiModel.value.shop) {
-        shopName = uiModel.value.shop.name
-        shopDescription = uiModel.value.shop.description
-        shopAddress = uiModel.value.shop.address
-        shopAvatar = uiModel.value.shop.avatar
+    // Update local states when shop data changes
+    LaunchedEffect(uiModel.shop) {
+        shopName = uiModel.shop.name
+        shopDescription = uiModel.shop.description ?: ""
+        shopAddress = uiModel.shop.address ?: ""
+        shopPhone = uiModel.shop.phone ?: ""
+        shopAvatarUrl = uiModel.shop.avatar ?: ""
     }
 
-    // Image picker launcher
+    // Image picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
+    ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
-            // Upload image and get URL
             viewModel.uploadShopImage(it)
         }
     }
 
-    // Observe image upload status
-    LaunchedEffect(Unit) {
-        lifecycleOwner.safeCollectFlow(viewModel.uploadImageState) {
-            it
-                .onLoading {
-                    isLoading.value = true
-                }
-                .onError { error ->
-                    isLoading.value = false
-                    Toast.makeText(
-                        context,
-                        "Không thể tải hình ảnh: ${error.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                .onSuccess { imageUrl ->
-                    isLoading.value = false
-                    shopAvatar = imageUrl
-                    Toast.makeText(
-                        context,
-                        "Tải hình ảnh thành công",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+    // Handle upload image result
+    LaunchedEffect(uploadImageState) {
+        when (uploadImageState) {
+            is Resource.Success -> {
+                shopAvatarUrl = (uploadImageState as Resource.Success).data
+                Toast.makeText(context, "Image uploaded successfully", Toast.LENGTH_SHORT).show()
+                viewModel.resetUploadImageState()
+            }
+            is Resource.Error -> {
+                Toast.makeText(
+                    context,
+                    (uploadImageState as Resource.Error).error.message ?: "Upload failed",
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.resetUploadImageState()
+            }
+            else -> {}
         }
     }
 
-    // Observe update shop status
-    LaunchedEffect(Unit) {
-        lifecycleOwner.safeCollectFlow(viewModel.updateShopState) {
-            it
-                .onLoading {
-                    isLoading.value = true
-                }
-                .onError { error ->
-                    isLoading.value = false
-                    Toast.makeText(
-                        context,
-                        "Cập nhật thông tin thất bại: ${error.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                .onSuccess { _ ->
-                    isLoading.value = false
-                    Toast.makeText(
-                        context,
-                        "Cập nhật thông tin thành công",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    onNavigateBack()
-                }
+    // Handle update shop result
+    LaunchedEffect(updateShopState) {
+        when (updateShopState) {
+            is Resource.Success -> {
+                Toast.makeText(context, "Shop updated successfully!", Toast.LENGTH_SHORT).show()
+                onNavigateBack()
+            }
+            is Resource.Error -> {
+                Toast.makeText(
+                    context,
+                    (updateShopState as Resource.Error).error.message ?: "Failed to update shop",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            else -> {}
         }
     }
 
-    MaxSizeColumn(
-        modifier = Modifier
-            .background(colorResource(R.color.colorSystem_background_level_0))
-            .statusBarsPadding()
-    ) {
-        // Top bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            // Back button
-            IconButton(
-                onClick = onNavigateBack,
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = "Quay lại",
-                    tint = colorResource(id = R.color.colorSystem_heading_button)
-                )
-            }
-
-            // Title
-            Text(
-                text = "Cập nhật cửa hàng",
-                style = CustomTypography.TextBold,
-                fontSize = 20.sp,
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center,
-                color = colorResource(id = R.color.colorSystem_heading_button)
-            )
-        }
-
-        // Content
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Shop avatar editor
-            AvatarEditor(
-                currentAvatar = shopAvatar,
-                shopName = shopName,
-                onSelectImage = { imagePickerLauncher.launch("image/*") }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Shop details form
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    // Shop name field
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
                     Text(
-                        text = "Tên cửa hàng",
-                        style = CustomTypography.TextSemiBold,
-                        fontSize = 16.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-
-                    OutlinedTextField(
-                        value = shopName,
-                        onValueChange = { shopName = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        placeholder = {
-                            Text(
-                                "Nhập tên cửa hàng",
-                                style = CustomTypography.TextRegular,
-                                color = colorResource(id = R.color.colorSystem_text_button)
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
-                            unfocusedBorderColor = colorResource(id = R.color.colorSystem_stroke)
-                        ),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Shop description field
-                    Text(
-                        text = "Mô tả cửa hàng",
-                        style = CustomTypography.TextSemiBold,
-                        fontSize = 16.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-
-                    OutlinedTextField(
-                        value = shopDescription,
-                        onValueChange = { shopDescription = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .height(120.dp),
-                        placeholder = {
-                            Text(
-                                "Mô tả về cửa hàng của bạn",
-                                style = CustomTypography.TextRegular,
-                                color = colorResource(id = R.color.colorSystem_text_button)
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
-                            unfocusedBorderColor = colorResource(id = R.color.colorSystem_stroke)
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Shop address field
-                    Text(
-                        text = "Địa chỉ cửa hàng",
-                        style = CustomTypography.TextSemiBold,
-                        fontSize = 16.sp,
-                        color = colorResource(id = R.color.colorSystem_heading_button)
-                    )
-
-                    OutlinedTextField(
-                        value = shopAddress,
-                        onValueChange = { shopAddress = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        placeholder = {
-                            Text(
-                                "Nhập địa chỉ cửa hàng",
-                                style = CustomTypography.TextRegular,
-                                color = colorResource(id = R.color.colorSystem_text_button)
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
-                            unfocusedBorderColor = colorResource(id = R.color.colorSystem_stroke)
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Save button
-            Button(
-                onClick = {
-                    viewModel.updateShopDetails(
-                        ShopDomainEntity(
-                            name = shopName,
-                            description = shopDescription,
-                            address = shopAddress,
-                            avatar = shopAvatar,
-                            phone = uiModel.value.shop.phone // Keep existing phone number
-                        )
+                        "Update Shop Details",
+                        fontWeight = FontWeight.Bold
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.colorSystem_heading_button)
-                ),
-                shape = RoundedCornerShape(8.dp),
-                enabled = shopName.isNotEmpty() && !isLoading.value
-            ) {
-                Text(
-                    text = "Lưu thay đổi",
-                    style = CustomTypography.TextSemiBold,
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            }
-        }
-    }
-
-    // Show loading indicator when processing
-    if (isLoading.value) {
-        FullScreenProgressBar()
-    }
-}
-
-@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
-private fun AvatarEditor(
-    currentAvatar: String,
-    shopName: String,
-    onSelectImage: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(150.dp)
-            .clip(CircleShape)
-            .background(colorResource(R.color.colorSystem_background_level_2))
-            .border(2.dp, colorResource(R.color.colorSystem_stroke), CircleShape)
-            .clickable { onSelectImage() },
-        contentAlignment = Alignment.Center
-    ) {
-        if (currentAvatar.isNotEmpty()) {
-            GlideImage(
-                model = currentAvatar,
-                contentDescription = "Logo cửa hàng",
-                modifier = Modifier.fillMaxWidth(),
-                contentScale = ContentScale.Crop,
-                transition = MyCrossFade
-            ) {
-                it.centerCrop()
-            }
-        } else {
-            Text(
-                text = if (shopName.isNotEmpty()) shopName.first().toString().uppercase() else "?",
-                style = CustomTypography.TextBold,
-                fontSize = 50.sp,
-                color = colorResource(id = R.color.colorSystem_heading_button)
             )
         }
-
-        // Camera icon overlay
-        Box(
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .matchParentSize()
-                .background(Color.Black.copy(alpha = 0.3f)),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
-            Icon(
-                imageVector = Icons.Outlined.CameraAlt,
-                contentDescription = "Chọn ảnh",
-                tint = Color.White,
-                modifier = Modifier.size(40.dp)
-            )
+            // Header with gradient
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape)
+                            .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            .clickable { imagePickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedImageUri != null || shopAvatarUrl.isNotEmpty()) {
+                            GlideImage(
+                                model = selectedImageUri ?: shopAvatarUrl,
+                                contentDescription = "Shop Avatar",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Store,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+
+                        // Camera icon overlay
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = "Change photo",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Upload indicator
+                        if (uploadImageState is Resource.Loading) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.5f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Tap to change shop logo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Form fields
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Shop Name (Required)
+                OutlinedTextField(
+                    value = shopName,
+                    onValueChange = { shopName = it },
+                    label = { Text("Shop Name *") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Store, contentDescription = null)
+                    },
+                    placeholder = { Text("Enter your shop name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+
+                // Shop Description
+                OutlinedTextField(
+                    value = shopDescription,
+                    onValueChange = { shopDescription = it },
+                    label = { Text("Shop Description") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Description, contentDescription = null)
+                    },
+                    placeholder = { Text("Tell customers about your shop") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                // Phone
+                OutlinedTextField(
+                    value = shopPhone,
+                    onValueChange = { shopPhone = it },
+                    label = { Text("Phone Number") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Phone, contentDescription = null)
+                    },
+                    placeholder = { Text("Enter contact phone") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                // Address
+                OutlinedTextField(
+                    value = shopAddress,
+                    onValueChange = { shopAddress = it },
+                    label = { Text("Shop Address") },
+                    leadingIcon = {
+                        Icon(Icons.Default.LocationOn, contentDescription = null)
+                    },
+                    placeholder = { Text("Enter shop address") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Update Button
+                Button(
+                    onClick = {
+                        if (shopName.isBlank()) {
+                            Toast.makeText(context, "Shop name is required", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        viewModel.updateShopDetails(
+                            name = if (shopName != uiModel.shop.name) shopName.trim() else null,
+                            description = if (shopDescription != (uiModel.shop.description ?: "")) shopDescription.trim().ifBlank { null } else null,
+                            address = if (shopAddress != (uiModel.shop.address ?: "")) shopAddress.trim().ifBlank { null } else null,
+                            phone = if (shopPhone != (uiModel.shop.phone ?: "")) shopPhone.trim().ifBlank { null } else null,
+                            avatar = if (shopAvatarUrl != (uiModel.shop.avatar ?: "")) shopAvatarUrl.ifBlank { null } else null
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = updateShopState !is Resource.Loading && shopName.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    if (updateShopState is Resource.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(Icons.Default.Save, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Save Changes",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Shop Info Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                "Shop Information",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            "Shop ID: ${uiModel.shop.id}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Status: ${if (uiModel.shop.isActive) "Active" else "Inactive"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (uiModel.shop.isActive) Color(0xFF4CAF50) else Color(0xFFF44336),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
     }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Text(
-        text = "Nhấn để thay đổi ảnh",
-        style = CustomTypography.TextRegular,
-        fontSize = 14.sp,
-        color = colorResource(id = R.color.colorSystem_normal_text)
-    )
 }

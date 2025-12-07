@@ -55,6 +55,8 @@ import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
 import com.ptit.core.account.AccountScreen
+import com.ptit.core.account.AddAddressScreen
+import com.ptit.core.account.ChangePasswordScreen
 import com.ptit.core.account.EditProfile
 import com.ptit.core.account.paymentConfig.PaymentConfigScreen
 import com.ptit.core.account.paymentMethod.PaymentMethodScreen
@@ -73,7 +75,10 @@ import com.ptit.core.overview.OverviewScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
+import com.ptit.core.seller_request.CreateSellerRequestScreen
+import com.ptit.core.seller_request.RequestStatusScreen
 import com.ptit.core.shop.ShopDetailScreen
+import com.ptit.core.shop.ShopEntryScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
 import com.ptit.navigation.destination.BottomNavigationItem
@@ -82,7 +87,10 @@ import com.ptit.navigation.destination.ChatRoute
 import com.ptit.navigation.destination.ChatSessionListRoute
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.CreateSellerRequestRoute
 import com.ptit.navigation.destination.EditProfileRoute
+import com.ptit.navigation.destination.AddAddressRoute
+import com.ptit.navigation.destination.ChangePasswordRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.OrderHistoryRoute
@@ -94,6 +102,8 @@ import com.ptit.navigation.destination.ProductsByCategoryRoute
 import com.ptit.navigation.destination.ProfileRoute
 import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
+import com.ptit.navigation.destination.ShopEntryRoute
+import com.ptit.navigation.destination.RequestStatusRoute
 import com.ptit.navigation.destination.UpdateShopRoute
 import com.recurly.androidsdk.data.model.RecurlySessionData
 import dagger.hilt.android.AndroidEntryPoint
@@ -328,16 +338,18 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(EditProfileRoute)
                                     },
                                     onNavigateToChangePassword = {
-                                        // TODO: Implement navigation to Change Password
+                                        navController.navigate(ChangePasswordRoute)
                                     },
                                     onNavigateToPaymentMethods = {
                                         navController.navigate(ListPaymentMethodRoute)
                                     },
                                     onNavigateToShop = {
-                                        navController.navigate(ShopDetailRoute)
+                                        // ✅ Navigate to ShopEntryRoute - will check shop/request status
+                                        navController.navigate(ShopEntryRoute)
                                     },
                                     onNavigateToCreateShop = {
-                                        navController.navigate(UpdateShopRoute)
+                                        // ✅ Same as onNavigateToShop - unified entry point
+                                        navController.navigate(ShopEntryRoute)
                                     },
                                 )
                             }
@@ -347,6 +359,28 @@ class MainActivity : FragmentActivity() {
                                     navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
                                 }
                                 EditProfile(
+                                    backStackEntry = accountGraphBackStackEntry,
+                                    onBack = navController::navigateUp,
+                                    onNavigateToAddAddress = {
+                                        navController.navigate(AddAddressRoute)
+                                    }
+                                )
+                            }
+
+                            composable<AddAddressRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                AddAddressScreen(
+                                    onBack = navController::navigateUp
+                                )
+                            }
+
+                            composable<ChangePasswordRoute> {
+                                val accountGraphBackStackEntry = remember(it) {
+                                    navController.getBackStackEntry(BottomNavigationScreen.ProfileScreen)
+                                }
+                                ChangePasswordScreen(
                                     backStackEntry = accountGraphBackStackEntry,
                                     onBack = navController::navigateUp,
                                 )
@@ -363,6 +397,58 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
+                        // ✅ NEW: Shop Entry Screen - Check shop/request status
+                        composable<ShopEntryRoute> {
+                            ShopEntryScreen(
+                                onNavigateToShopDetail = { shopId ->
+                                    navController.navigate(ShopDetailRoute(shopId = shopId)) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToRequestStatus = {
+                                    navController.navigate(RequestStatusRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToCreateRequest = {
+                                    navController.navigate(CreateSellerRequestRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                onBack = navController::navigateUp
+                            )
+                        }
+
+                        // ✅ NEW: Request Status Screen
+                        composable<RequestStatusRoute> {
+                            RequestStatusScreen(
+                                onBack = navController::navigateUp,
+                                onNavigateToCreateRequest = {
+                                    navController.navigate(CreateSellerRequestRoute) {
+                                        popUpTo(RequestStatusRoute) { inclusive = true }
+                                    }
+                                },
+                                onNavigateToShop = {
+                                    // Navigate to Shop screen - user's seller request was approved
+                                    navController.navigate(ShopEntryRoute) {
+                                        popUpTo(RequestStatusRoute) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+                        composable<CreateSellerRequestRoute> {
+                            CreateSellerRequestScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onRequestSubmitted = {
+                                    // Navigate to request status screen to show submitted request
+                                    navController.navigate(RequestStatusRoute) {
+                                        popUpTo(CreateSellerRequestRoute) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         composable<UpdateShopRoute> {
                             UpdateShopScreen(
                                 onNavigateBack = navController::navigateUp
@@ -376,7 +462,9 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        composable<ShopDetailRoute> {
+                        composable<ShopDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ShopDetailRoute>()
+                            // Note: args.shopId is available but ShopDetailScreen fetches user's shop by default
                             ShopDetailScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToEditShop = {
