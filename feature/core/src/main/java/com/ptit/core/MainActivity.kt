@@ -75,6 +75,7 @@ import com.ptit.core.overview.OverviewScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
+import com.ptit.core.review.CreateReviewScreen
 import com.ptit.core.seller_request.CreateSellerRequestScreen
 import com.ptit.core.seller_request.RequestStatusScreen
 import com.ptit.core.shop.ShopDetailScreen
@@ -87,6 +88,8 @@ import com.ptit.navigation.destination.ChatRoute
 import com.ptit.navigation.destination.ChatSessionListRoute
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.CreateReviewRoute
+import com.ptit.navigation.destination.AllReviewsRoute
 import com.ptit.navigation.destination.CreateSellerRequestRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.AddAddressRoute
@@ -309,7 +312,45 @@ class MainActivity : FragmentActivity() {
                                 },
                                 backToCart = {
                                     navController.popBackStack(BottomNavigationScreen.CartScreen, false)
+                                },
+                                navigateToCreateReview = { orderId, productId, productName, productImage, productPrice, productSkuValue ->
+                                    navController.navigate(
+                                        CreateReviewRoute(
+                                            orderId = orderId,
+                                            productId = productId,
+                                            productName = productName,
+                                            productImage = productImage,
+                                            productPrice = productPrice,
+                                            productSkuValue = productSkuValue
+                                        )
+                                    )
+                                },
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
                                 }
+                            )
+                        }
+
+                        // Review Screen
+                        composable<CreateReviewRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<CreateReviewRoute>()
+                            CreateReviewScreen(
+                                orderId = args.orderId,
+                                productId = args.productId,
+                                productName = args.productName,
+                                productImage = args.productImage,
+                                productPrice = args.productPrice,
+                                productSkuValue = args.productSkuValue,
+                                onBack = navController::navigateUp
+                            )
+                        }
+
+                        // All Reviews Screen
+                        composable<AllReviewsRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<AllReviewsRoute>()
+                            com.ptit.core.review.AllReviewsScreen(
+                                productId = args.productId,
+                                onBack = navController::navigateUp
                             )
                         }
 
@@ -517,6 +558,9 @@ class MainActivity : FragmentActivity() {
                                         launchSingleTop = true
                                         popUpTo(BottomNavigationScreen.HomeScreen) // Optional: pop back to home to avoid deep stack
                                     }
+                                },
+                                navigateToAllReviews = { productId ->
+                                    navController.navigate(AllReviewsRoute(productId = productId))
                                 }
                             )
                         }

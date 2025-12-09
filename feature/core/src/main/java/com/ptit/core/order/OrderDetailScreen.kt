@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,15 +53,19 @@ fun OrderDetailScreen(
     // 🔴 MỚI: Thêm lại
     navigateToPaymentMethod: () -> Unit,
     backToCart: () -> Unit,
+    navigateToCreateReview: (orderId: String, productId: String, productName: String, productImage: String, productPrice: Int, productSkuValue: String) -> Unit = { _, _, _, _, _, _ -> },
+    navigateToProductDetail: (productId: String) -> Unit = {}
 ) {
     LocalBottomNavigationVisibility.current.value = false
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val context = LocalContext.current
     val viewModel: OrderDetailViewModel = hiltViewModel()
+    val reviewViewModel: com.ptit.core.review.ReviewViewModel = hiltViewModel()
 
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
     val cancelOrderState by viewModel.cancelOrderState.collectAsStateWithLifecycle()
     val processPaymentState by viewModel.processPaymentState.collectAsStateWithLifecycle()
+    val reviewedProducts by reviewViewModel.reviewedProducts.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
     // 🔴 MỚI: Thêm lại state
@@ -124,6 +131,20 @@ fun OrderDetailScreen(
         }
     }
 
+    // Check review status for each product in delivered orders
+    LaunchedEffect(orderState) {
+        if (orderState is Resource.Success) {
+            val order = (orderState as Resource.Success).data
+            if (order.status == "DELIVERED") {
+                order.items?.forEach { item ->
+                    item.productId?.let { productId ->
+                        reviewViewModel.checkReviewExists(orderId, productId)
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -162,6 +183,9 @@ fun OrderDetailScreen(
             }
             val isCancellable = remember(order.status) {
                 order.status == "PENDING_PAYMENT" || order.status == "PENDING_PACKAGING"
+            }
+            val isReviewable = remember(order.status) {
+                order.status == "DELIVERED"
             }
 
             MaxSizeColumn(
@@ -215,7 +239,147 @@ fun OrderDetailScreen(
                         }
                     } else {
                         items(itemsList) { item ->
-                            SharedSnapshotItemRow(snapshot = item)
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SharedSnapshotItemRow(
+                                    snapshot = item,
+                                    onClick = {
+                                        item.productId?.let { productId ->
+                                            navigateToProductDetail(productId)
+                                        }
+                                    }
+                                )
+
+                                // Add review button for delivered orders
+                                item.productId?.let { productId ->
+                                    if (isReviewable) {
+                                        // Get key for this order-product combination
+                                        val key = "${orderId}_${productId}"
+                                        // Observe the state to trigger recomposition
+                                        val isReviewed = reviewedProducts[key] ?: false
+                                        val existingReview = reviewViewModel.getExistingReview(orderId, productId)
+
+                                        android.util.Log.d("OrderDetailScreen", "UI Render - key: $key, isReviewed: $isReviewed, existingReview: ${existingReview?.id}")
+                                        android.util.Log.d("OrderDetailScreen", "reviewedProducts map: $reviewedProducts")
+
+                                        if (isReviewed && existingReview != null) {
+
+                                            // Show existing review with beautiful card design
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(16.dp),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = colorResource(R.color.colorSystem_background_level_2)
+                                                ),
+                                                elevation = CardDefaults.cardElevation(
+                                                    defaultElevation = 2.dp
+                                                )
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(16.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    // Header with title and edit icon
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = "Đánh giá của bạn",
+                                                            style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                                                            color = colorResource(R.color.colorSystem_heading_button)
+                                                        )
+
+                                                        // Edit icon button
+                                                        IconButton(
+                                                            onClick = {
+                                                                navigateToCreateReview(
+                                                                    orderId,
+                                                                    productId,
+                                                                    item.productName,
+                                                                    item.image,
+                                                                    item.skuPrice,
+                                                                    item.skuValue
+                                                                )
+                                                            },
+                                                            modifier = Modifier.size(32.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = androidx.compose.material.icons.Icons.Filled.Edit,
+                                                                contentDescription = "Chỉnh sửa đánh giá",
+                                                                tint = colorResource(R.color.colorSystem_heading_button),
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // Star rating with larger size
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        repeat(5) { index ->
+                                                            Icon(
+                                                                imageVector = if (index < (existingReview?.rating ?: 0)) {
+                                                                    androidx.compose.material.icons.Icons.Filled.Star
+                                                                } else {
+                                                                    androidx.compose.material.icons.Icons.Outlined.StarOutline
+                                                                },
+                                                                contentDescription = null,
+                                                                tint = if (index < (existingReview?.rating ?: 0)) {
+                                                                    Color(0xFFFFB800)
+                                                                } else {
+                                                                    colorResource(R.color.colorSystem_greyscale_300)
+                                                                },
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // Review content
+                                                    if (existingReview != null && existingReview.content.isNotEmpty()) {
+                                                        Text(
+                                                            text = existingReview.content,
+                                                            style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
+                                                            color = colorResource(R.color.colorSystem_normal_text),
+                                                            lineHeight = 20.sp
+                                                        )
+                                                    }
+
+                                                    // Review date
+                                                    existingReview?.createdAt?.let { createdAt ->
+                                                        Text(
+                                                            text = "Đánh giá vào ${formatTimestamp(createdAt)}",
+                                                            style = CustomTypography.TextRegular.copy(fontSize = 12.sp),
+                                                            color = colorResource(R.color.colorSystem_greyscale_400)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // Show review button
+                                            FilledButton(
+                                                text = "Đánh giá sản phẩm",
+                                                onClick = {
+                                                    navigateToCreateReview(
+                                                        orderId,
+                                                        productId,
+                                                        item.productName,
+                                                        item.image,
+                                                        item.skuPrice,
+                                                        item.skuValue
+                                                    )
+                                                },
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 

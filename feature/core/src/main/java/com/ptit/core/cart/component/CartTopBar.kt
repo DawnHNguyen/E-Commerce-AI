@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,7 +31,7 @@ fun CartTopBar(onBack: () -> Unit) {
     ) {
         // ✅ Uncommented: Back button
         Icon(
-            imageVector = Icons.Default.ArrowBack,
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
             modifier = Modifier.noRippleClickable { onBack() },
             tint = colorResource(R.color.colorSystem_greyscale_0_white)

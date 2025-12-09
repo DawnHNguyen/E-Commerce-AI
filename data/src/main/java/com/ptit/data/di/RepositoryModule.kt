@@ -12,6 +12,7 @@ import com.ptit.data.repository.OrderRepositoryImpl
 import com.ptit.data.repository.SellerRequestRepositoryImpl
 import com.ptit.data.repository.ShippingRepositoryImpl
 import com.ptit.data.repository.AddressRepositoryImpl
+import com.ptit.data.repository.ReviewRepositoryImpl
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.FileUploadRepository
@@ -24,6 +25,7 @@ import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.SellerRequestRepository
 import com.ptit.domain.repository.ShippingRepository
 import com.ptit.domain.repository.AddressRepository
+import com.ptit.domain.repository.ReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -80,4 +82,8 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindAddressRepository(impl: AddressRepositoryImpl): AddressRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindReviewRepository(impl: ReviewRepositoryImpl): ReviewRepository
 }

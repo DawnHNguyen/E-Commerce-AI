@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.StarRate
 import androidx.compose.material3.*
@@ -51,7 +52,8 @@ fun ProductDetailScreen(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
-    onProductItemClick: (String) -> Unit
+    onProductItemClick: (String) -> Unit,
+    navigateToAllReviews: (String) -> Unit = {}
 ) {
     LocalBottomNavigationVisibility.current.value = false
 
@@ -106,7 +108,8 @@ fun ProductDetailScreen(
                         onCartClick = onCartClick,
                         onAddToCartClick = { showAddToCartBottomSheet = true },
                         isAddingToCart = addToCartState is AddToCartState.Loading,
-                        onProductItemClick = onProductItemClick
+                        onProductItemClick = onProductItemClick,
+                        navigateToAllReviews = navigateToAllReviews
                     )
 
                     if (showAddToCartBottomSheet) {
@@ -174,7 +177,8 @@ fun ProductDetailContent(
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     isAddingToCart: Boolean = false,
-    onProductItemClick: (String) -> Unit
+    onProductItemClick: (String) -> Unit,
+    navigateToAllReviews: (String) -> Unit = {}
 ) {
     MaxSizeColumn(
         modifier = Modifier
@@ -501,45 +505,10 @@ fun ProductDetailContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             // ⭐ Đánh giá sản phẩm
-            Text(
-                text = "Đánh giá sản phẩm",
-                style = CustomTypography.TextSemiBold.merge(
-                    color = colorResource(id = R.color.colorSystem_heading_button),
-                    fontSize = 16.sp
-                )
+            ProductReviewsSection(
+                productId = product.id,
+                onViewAllClick = { navigateToAllReviews(product.id) }
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "0.0 trên 5",
-                        style = CustomTypography.TextSemiBold.merge(
-                            color = colorResource(id = R.color.colorSystem_heading_button),
-                            fontSize = 18.sp
-                        )
-                    )
-                    Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                        repeat(5) {
-                            Icon(
-                                imageVector = Icons.Outlined.StarRate,
-                                contentDescription = null,
-                                tint = colorResource(id = R.color.colorSystem_stroke)
-                            )
-                        }
-                    }
-                    Text(
-                        text = "Chưa có đánh giá nào",
-                        style = CustomTypography.TextRegular.merge(
-                            color = colorResource(id = R.color.colorSystem_normal_text),
-                            fontSize = 14.sp
-                        )
-                    )
-                }
-            }
 
         }
     }
@@ -675,6 +644,289 @@ fun ShopInfoItem(label: String, value: String) {
             text = value,
             style = CustomTypography.TextRegular.merge(
                 color = colorResource(id = R.color.colorSystem_normal_text),
+                fontSize = 12.sp
+            )
+        )
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun ProductReviewsSection(
+    productId: String,
+    onViewAllClick: () -> Unit = {}
+) {
+    val reviewViewModel: com.ptit.core.review.ReviewViewModel = hiltViewModel()
+    val reviewsState by reviewViewModel.reviewsState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(productId) {
+        reviewViewModel.getReviews(productId, page = 1, limit = 5)
+    }
+
+    Column {
+        // Header with title and "Xem tất cả" button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Đánh giá sản phẩm",
+                style = CustomTypography.TextSemiBold.merge(
+                    color = colorResource(id = R.color.colorSystem_heading_button),
+                    fontSize = 16.sp
+                )
+            )
+
+            // "Xem tất cả" button - only show if there are reviews
+            if (reviewsState is com.ptit.domain.utils.Resource.Success) {
+                val reviewsData = (reviewsState as com.ptit.domain.utils.Resource.Success).data
+                if (reviewsData.totalItems > 0) {
+                    TextButton(onClick = onViewAllClick) {
+                        Text(
+                            text = "Xem tất cả",
+                            style = CustomTypography.TextMedium.merge(
+                                color = colorResource(id = R.color.colorSystem_heading_button),
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when (reviewsState) {
+            is com.ptit.domain.utils.Resource.Loading -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+                }
+            }
+            is com.ptit.domain.utils.Resource.Success -> {
+                val reviewsData = (reviewsState as com.ptit.domain.utils.Resource.Success).data
+                val reviews = reviewsData.data
+
+                if (reviews.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "0.0 trên 5",
+                                style = CustomTypography.TextSemiBold.merge(
+                                    color = colorResource(id = R.color.colorSystem_heading_button),
+                                    fontSize = 18.sp
+                                )
+                            )
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                repeat(5) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.StarRate,
+                                        contentDescription = null,
+                                        tint = colorResource(id = R.color.colorSystem_stroke)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Chưa có đánh giá nào",
+                                style = CustomTypography.TextRegular.merge(
+                                    color = colorResource(id = R.color.colorSystem_normal_text),
+                                    fontSize = 14.sp
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    // Calculate average rating
+                    val avgRating = reviews.map { it.rating }.average()
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "%.1f trên 5".format(avgRating),
+                                style = CustomTypography.TextSemiBold.merge(
+                                    color = colorResource(id = R.color.colorSystem_heading_button),
+                                    fontSize = 18.sp
+                                )
+                            )
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                repeat(5) { index ->
+                                    Icon(
+                                        imageVector = if (index < avgRating.toInt())
+                                            Icons.Filled.Star
+                                        else
+                                            Icons.Outlined.StarRate,
+                                        contentDescription = null,
+                                        tint = if (index < avgRating.toInt())
+                                            Color(0xFFFFB800)
+                                        else
+                                            colorResource(id = R.color.colorSystem_stroke)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "${reviewsData.totalItems} đánh giá",
+                                style = CustomTypography.TextRegular.merge(
+                                    color = colorResource(id = R.color.colorSystem_normal_text),
+                                    fontSize = 14.sp
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider(color = colorResource(id = R.color.colorSystem_stroke))
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Show first few reviews
+                            reviews.take(3).forEach { review ->
+                                ReviewItem(review = review)
+                                if (review != reviews.last()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
+                            }
+
+                            if (reviewsData.totalItems > 3) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Xem thêm ${reviewsData.totalItems - 3} đánh giá khác",
+                                    style = CustomTypography.TextMedium.merge(
+                                        color = colorResource(id = R.color.colorSystem_heading_button),
+                                        fontSize = 14.sp
+                                    ),
+                                    modifier = Modifier.clickable {
+                                        // TODO: Navigate to full reviews screen
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            is com.ptit.domain.utils.Resource.Error -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = colorResource(id = R.color.colorSystem_background_level_2)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Không thể tải đánh giá",
+                            style = CustomTypography.TextRegular.merge(
+                                color = colorResource(id = R.color.colorSystem_normal_text),
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun ReviewItem(review: com.ptit.domain.entity.review.ReviewDomainEntity) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // User avatar
+            GlideImage(
+                model = review.user?.avatar ?: "",
+                contentDescription = review.user?.name,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colorResource(id = R.color.colorSystem_stroke)),
+                contentScale = ContentScale.Crop
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = review.user?.name ?: "Anonymous",
+                    style = CustomTypography.TextSemiBold.merge(
+                        color = colorResource(id = R.color.colorSystem_heading_button),
+                        fontSize = 14.sp
+                    )
+                )
+                Row {
+                    repeat(5) { index ->
+                        Icon(
+                            imageVector = if (index < review.rating)
+                                Icons.Filled.Star
+                            else
+                                Icons.Outlined.StarRate,
+                            contentDescription = null,
+                            tint = if (index < review.rating)
+                                Color(0xFFFFB800)
+                            else
+                                colorResource(id = R.color.colorSystem_stroke),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = review.content,
+            style = CustomTypography.TextRegular.merge(
+                color = colorResource(id = R.color.colorSystem_normal_text),
+                fontSize = 14.sp
+            )
+        )
+
+        // Show review images if available
+        review.medias?.filter { it.type == "IMAGE" }?.let { images ->
+            if (images.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(images.take(3)) { media ->
+                        GlideImage(
+                            model = media.url,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = review.createdAt,
+            style = CustomTypography.TextRegular.merge(
+                color = colorResource(id = R.color.colorSystem_greyscale_400),
                 fontSize = 12.sp
             )
         )
