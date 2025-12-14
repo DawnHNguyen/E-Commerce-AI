@@ -114,18 +114,37 @@ class CallAdapterFactory private constructor() : CallAdapter.Factory() {
                     callback.onResponse(this@ResourceCall, Response.success(apiResponse))
                 }
 
+                @Suppress("UNCHECKED_CAST")
                 override fun onResponse(call: Call<BaseSuccessResponse<S>>, response: Response<BaseSuccessResponse<S>>) {
                     val baseResponse = response.body()
-                    val actualData = baseResponse?.data ?: Unit as S
                     val code = response.code()
                     val errorBody = response.errorBody()?.string().orEmpty()
 
                     if (response.isSuccessful) {
+                        // Handle the actual data
+                        // For 204 No Content, use Unit
+                        if (code == 204) {
+                            callback.onResponse(
+                                this@ResourceCall, Response.success(
+                                    Resource.success(Unit as S)
+                                )
+                            )
+                            return
+                        }
+
+                        // For other success responses, handle null data properly
+                        val data = baseResponse?.data
+
+                        // Double cast trick to handle null values for nullable types
+                        // Step 1: Cast to Any? (allows null)
+                        // Step 2: Cast to S (works with type erasure)
+                        // This is safe because the API contract specifies the return type
+                        @Suppress("UNCHECKED_CAST")
+                        val actualData = (data as Any?) as S
+
                         callback.onResponse(
                             this@ResourceCall, Response.success(
-                                Resource.success(
-                                    if (code == 204) Unit as S else actualData
-                                )
+                                Resource.success(actualData)
                             )
                         )
                     } else {

@@ -11,7 +11,7 @@ class SellerRequestRemoteDataSource @Inject constructor(
     suspend fun createSellerRequest(request: CreateSellerRequestBody): Resource<CreateSellerRequestResponse> =
         remoteService.createSellerRequest(request)
 
-    suspend fun getMySellerRequest(): Resource<GetMySellerRequestResponse> =
+    suspend fun getMySellerRequest(): Resource<SellerRequestDto?> =
         remoteService.getMySellerRequest()
 
     suspend fun getSellerRequests(

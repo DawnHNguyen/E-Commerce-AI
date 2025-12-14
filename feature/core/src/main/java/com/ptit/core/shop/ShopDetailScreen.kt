@@ -1,6 +1,5 @@
 package com.ptit.core.shop
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -19,47 +18,34 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
+import com.ptit.common.R
+import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.utils.Resource
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopDetailScreen(
-    shopId: String? = null,  // ✅ Optional: If provided, load specific shop. Otherwise load user's shop
-    viewModel: ShopViewModel = hiltViewModel(),
+    shopId: String? = null,
+    sellerRequestViewModel: com.ptit.core.seller_request.SellerRequestViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToEditShop: () -> Unit,
-    onNavigateToProductList: () -> Unit
+    onNavigateToProductList: () -> Unit,
+    onNavigateToCategories: () -> Unit = {},
+    onNavigateToOrders: () -> Unit = {},
+    onNavigateToPromotions: () -> Unit = {},
+    onNavigateToOverview: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val uiModel by viewModel.uiModel.collectAsStateWithLifecycle()
-    val shopDetailsState by viewModel.shopDetailsState.collectAsStateWithLifecycle()
+    val myRequestState by sellerRequestViewModel.myRequestState.collectAsStateWithLifecycle()
 
-    // Refresh shop data on screen load
+    // Refresh data on screen load
     LaunchedEffect(shopId) {
-        // TODO: If shopId is provided, fetch that specific shop. For now, always fetch user's shop
-        viewModel.fetchMyShopDetails()
-    }
-
-    // Handle shop details loading state
-    LaunchedEffect(shopDetailsState) {
-        when (shopDetailsState) {
-            is Resource.Error -> {
-                Toast.makeText(
-                    context,
-                    (shopDetailsState as Resource.Error).error.message ?: "Failed to load shop",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            else -> {}
-        }
+        sellerRequestViewModel.fetchMySellerRequest()
     }
 
     Scaffold(
@@ -67,53 +53,72 @@ fun ShopDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "My Shop",
-                        fontWeight = FontWeight.Bold
+                        "Cửa hàng của tôi",
+                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                        color = colorResource(R.color.colorSystem_greyscale_0_white)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại",
+                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToEditShop) {
-                        Icon(Icons.Default.Edit, "Edit Shop")
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Chỉnh sửa",
+                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                    containerColor = colorResource(R.color.colorSystem_heading_button),
+                    titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white)
+                ),
+                modifier = Modifier.statusBarsPadding()
             )
         }
     ) { paddingValues ->
-        if (shopDetailsState is Resource.Loading) {
+        if (myRequestState is Resource.Loading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(colorResource(R.color.colorSystem_background_level_0))
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color = colorResource(R.color.colorSystem_heading_button)
+                )
             }
         } else {
+            // Lấy thông tin từ seller request (nếu có)
+            val sellerRequest = (myRequestState as? Resource.Success)?.data
+            val shopName = sellerRequest?.shopName ?: "Cửa hàng của tôi"
+            val shopDescription = sellerRequest?.shopDescription
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(colorResource(R.color.colorSystem_background_level_0))
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Header with shop avatar
+                // Header with shop info
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(280.dp)
+                        .height(240.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    MaterialTheme.colorScheme.surface
+                                    colorResource(R.color.colorSystem_heading_button),
+                                    colorResource(R.color.colorSystem_background_level_0)
                                 )
                             )
                         ),
@@ -123,73 +128,54 @@ fun ShopDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // Shop Avatar
+                        // Shop Avatar (default icon)
                         Box(
                             modifier = Modifier
-                                .size(140.dp)
+                                .size(100.dp)
                                 .clip(CircleShape)
-                                .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                .border(4.dp, colorResource(R.color.colorSystem_greyscale_0_white), CircleShape)
+                                .background(colorResource(R.color.colorSystem_text_field)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            if (uiModel.shop.avatar?.isNotEmpty() == true) {
-                                GlideImage(
-                                    model = uiModel.shop.avatar,
-                                    contentDescription = "Shop Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.Store,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(64.dp),
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                }
-                            }
+                            Icon(
+                                Icons.Default.Store,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = colorResource(R.color.colorSystem_heading_button)
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Shop Name
                         Text(
-                            text = uiModel.shop.name.ifEmpty { "My Shop" },
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = shopName,
+                            style = CustomTypography.TextBold.copy(fontSize = 22.sp),
+                            color = colorResource(R.color.colorSystem_greyscale_0_white)
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Status Badge
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (uiModel.shop.isActive)
-                                Color(0xFF4CAF50).copy(alpha = 0.2f)
-                            else
-                                Color(0xFFF44336).copy(alpha = 0.2f)
+                            shape = RoundedCornerShape(16.dp),
+                            color = colorResource(R.color.colorSystem_success).copy(alpha = 0.2f)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    if (uiModel.shop.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                                    Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (uiModel.shop.isActive) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                    modifier = Modifier.size(14.dp),
+                                    tint = colorResource(R.color.colorSystem_success)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (uiModel.shop.isActive) "Active" else "Inactive",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (uiModel.shop.isActive) Color(0xFF4CAF50) else Color(0xFFF44336),
-                                    fontWeight = FontWeight.Bold
+                                    text = "Đã phê duyệt",
+                                    style = CustomTypography.TextMedium.copy(fontSize = 12.sp),
+                                    color = colorResource(R.color.colorSystem_success)
                                 )
                             }
                         }
@@ -200,141 +186,120 @@ fun ShopDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Description Card
-                    if (uiModel.shop.description?.isNotEmpty() == true) {
+                    if (!shopDescription.isNullOrEmpty()) {
                         InfoCard(
                             icon = Icons.Default.Description,
-                            title = "Description",
-                            content = uiModel.shop.description ?: ""
+                            title = "Mô tả",
+                            content = shopDescription
                         )
                     }
 
-                    // Contact Information Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.ContactMail,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    "Contact Information",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            HorizontalDivider()
-
-                            if (uiModel.shop.phone?.isNotEmpty() == true) {
-                                ContactInfoRow(
-                                    icon = Icons.Default.Phone,
-                                    label = "Phone",
-                                    value = uiModel.shop.phone ?: ""
-                                )
-                            }
-
-                            if (uiModel.shop.address?.isNotEmpty() == true) {
-                                ContactInfoRow(
-                                    icon = Icons.Default.LocationOn,
-                                    label = "Address",
-                                    value = uiModel.shop.address ?: ""
-                                )
-                            }
-                        }
-                    }
-
-                    // Actions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Manage Products Button
-                        Button(
-                            onClick = onNavigateToProductList,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(Icons.Default.Inventory, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Products",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        // Edit Shop Button
-                        OutlinedButton(
-                            onClick = onNavigateToEditShop,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Edit",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // Shop ID Info
-                    if (uiModel.shop.id.isNotEmpty()) {
+                    // Seller Request Info Card (nếu có)
+                    if (sellerRequest != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                                containerColor = colorResource(R.color.colorSystem_background_level_2)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Badge,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        "Shop ID",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Business,
+                                        contentDescription = null,
+                                        tint = colorResource(R.color.colorSystem_heading_button)
                                     )
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        uiModel.shop.id,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium
+                                        "Thông tin doanh nghiệp",
+                                        style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                                        color = colorResource(R.color.colorSystem_heading_button)
+                                    )
+                                }
+
+                                HorizontalDivider(color = colorResource(R.color.colorSystem_stroke))
+
+                                if (!sellerRequest.businessLicense.isNullOrEmpty()) {
+                                    ContactInfoRow(
+                                        icon = Icons.Default.Description,
+                                        label = "Giấy phép kinh doanh",
+                                        value = sellerRequest.businessLicense ?: ""
+                                    )
+                                }
+
+                                if (!sellerRequest.taxCode.isNullOrEmpty()) {
+                                    ContactInfoRow(
+                                        icon = Icons.Default.Numbers,
+                                        label = "Mã số thuế",
+                                        value = sellerRequest.taxCode ?: ""
                                     )
                                 }
                             }
                         }
+                    }
+
+                    // Menu Grid - 5 items
+                    Text(
+                        "Quản lý cửa hàng",
+                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                        color = colorResource(R.color.colorSystem_heading_button),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    // Row 1: 3 items
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MenuCard(
+                            icon = Icons.Default.Inventory,
+                            title = "Sản phẩm",
+                            onClick = onNavigateToProductList,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MenuCard(
+                            icon = Icons.Default.Category,
+                            title = "Danh mục",
+                            onClick = onNavigateToCategories,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MenuCard(
+                            icon = Icons.Default.ShoppingBag,
+                            title = "Đơn hàng",
+                            onClick = onNavigateToOrders,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Row 2: 2 items
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MenuCard(
+                            icon = Icons.Default.LocalOffer,
+                            title = "Khuyến mãi",
+                            onClick = onNavigateToPromotions,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MenuCard(
+                            icon = Icons.Default.BarChart,
+                            title = "Thống kê",
+                            onClick = onNavigateToOverview,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Empty space to balance
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -351,7 +316,7 @@ private fun InfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = colorResource(R.color.colorSystem_background_level_2)
         ),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -364,20 +329,20 @@ private fun InfoCard(
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = colorResource(R.color.colorSystem_heading_button)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                    color = colorResource(R.color.colorSystem_heading_button)
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
+                color = colorResource(R.color.colorSystem_greyscale_600)
             )
         }
     }
@@ -395,22 +360,61 @@ private fun ContactInfoRow(
         Icon(
             icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
+            tint = colorResource(R.color.colorSystem_text_button),
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = CustomTypography.TextMedium.copy(fontSize = 12.sp),
+                color = colorResource(R.color.colorSystem_greyscale_500)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style = CustomTypography.TextSemiBold.copy(fontSize = 14.sp),
+                color = colorResource(R.color.colorSystem_greyscale_900)
             )
         }
     }
 }
+
+@Composable
+private fun MenuCard(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.aspectRatio(1f),
+        colors = CardDefaults.cardColors(
+            containerColor = colorResource(R.color.colorSystem_background_level_2)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = colorResource(R.color.colorSystem_heading_button),
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                title,
+                style = CustomTypography.TextSemiBold.copy(fontSize = 14.sp),
+                color = colorResource(R.color.colorSystem_greyscale_900)
+            )
+        }
+    }
+}
+

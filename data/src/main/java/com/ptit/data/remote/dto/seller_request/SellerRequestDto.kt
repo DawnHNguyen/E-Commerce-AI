@@ -59,9 +59,11 @@ data class CreateSellerRequestResponse(
 // Get My Seller Request (GET /seller-requests/my-request)
 data class GetMySellerRequestResponse(
     @SerializedName("message")
-    val message: String,
+    val message: String? = null,
     @SerializedName("data")
-    val data: SellerRequestDto?
+    val data: SellerRequestDto? = null,
+    @SerializedName("statusCode")
+    val statusCode: Int? = null
 )
 
 // Get Seller Requests List (GET /seller-requests) - Admin

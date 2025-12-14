@@ -42,25 +42,8 @@ class ShopViewModel @Inject constructor(
     private val _uploadImageState = MutableStateFlow<Resource<String>>(Resource.idle())
     val uploadImageState = _uploadImageState.asStateFlow()
 
-    init {
-        fetchMyShopDetails()
-    }
-
-    // Load existing shop details
-    fun fetchMyShopDetails() {
-        if (shopDetailsState.value is Resource.Loading) return
-        _shopDetailsState.value = Resource.loading()
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val response = shopRepository.getMyShop()
-            Log.d("ShopViewModel", "Shop API Response: $response")
-            _shopDetailsState.value = response
-
-            if (response is Resource.Success) {
-                _uiModel.value = ShopUiModel(shop = response.data)
-            }
-        }
-    }
+    // Note: API shops/me is deprecated and removed
+    // Shop info now comes from seller request (my-request endpoint)
 
     // Create new shop
     fun createShop(
@@ -86,7 +69,6 @@ class ShopViewModel @Inject constructor(
 
             if (response is Resource.Success) {
                 _uiModel.value = ShopUiModel(shop = response.data)
-                fetchMyShopDetails()
             }
         }
     }
@@ -115,7 +97,6 @@ class ShopViewModel @Inject constructor(
 
             if (response is Resource.Success) {
                 _uiModel.value = ShopUiModel(shop = response.data)
-                fetchMyShopDetails()
             }
         }
     }

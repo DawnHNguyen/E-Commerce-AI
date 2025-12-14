@@ -92,7 +92,6 @@ fun AccountScreen(
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToShop: () -> Unit,
-    onNavigateToCreateShop: () -> Unit,
     onLogoutSuccess: () -> Unit,
 ) {
     LocalBottomNavigationVisibility.current.value = true
@@ -193,19 +192,10 @@ fun AccountScreen(
             // Menu Items
             SettingsMenuCard(
                 isSettingsExpanded = uiModel.value.isSettingsExpanded,
-                //hasShop = uiModel.value.user.shop.name.isNotEmpty(),\
-                hasShop = false,
                 onSettingsClick = viewModel::toggleSettingsExpanded,
                 onOverviewClick = onNavigateToOverview,
                 onOrdersClick = onNavigateToOrders,
-                onShopClick = {
-                    // Nếu đã có shop thì đến ShopDetail, chưa có thì đến CreateSellerRequest
-                    if (false) { // hasShop = false
-                        onNavigateToShop()
-                    } else {
-                        onNavigateToCreateShop()
-                    }
-                },
+                onNavigateToShop = onNavigateToShop,
                 onPaymentMethodsClick = onNavigateToPaymentMethods,
                 onChangePasswordClick = onNavigateToChangePassword,
                 onLogoutClick = viewModel::logout
@@ -439,11 +429,10 @@ private fun OrderStatisticsSection(
 @Composable
 private fun SettingsMenuCard(
     isSettingsExpanded: Boolean,
-    hasShop: Boolean,
     onSettingsClick: () -> Unit,
     onOverviewClick: () -> Unit,
     onOrdersClick: () -> Unit,
-    onShopClick: () -> Unit,
+    onNavigateToShop: () -> Unit,
     onPaymentMethodsClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -484,12 +473,12 @@ private fun SettingsMenuCard(
                 color = colorResource(id = R.color.colorSystem_text_button)
             )
 
-            // My Shop or Create Shop
+            // My Shop
             MenuItem(
                 icon = Icons.Outlined.Store,
-                title = if (hasShop) "Cửa hàng của tôi" else "Tạo cửa hàng",
-                subtitle = if (hasShop) "Quản lý cửa hàng của bạn" else "Tạo cửa hàng để bán sản phẩm",
-                onClick = onShopClick
+                title = "Cửa hàng của tôi",
+                subtitle = "Quản lý cửa hàng của bạn",
+                onClick = onNavigateToShop
             )
 
             HorizontalDivider(

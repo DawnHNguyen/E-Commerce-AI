@@ -1,6 +1,7 @@
 package com.ptit.core.order.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
@@ -40,13 +41,17 @@ fun SharedCartItemRow(cartItem: CartItemDomainEntity) {
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun SharedSnapshotItemRow(snapshot: ProductSKUSnapshotDomainEntity) {
+fun SharedSnapshotItemRow(
+    snapshot: ProductSKUSnapshotDomainEntity,
+    onClick: () -> Unit = {}
+) {
     SharedOrderItemRowContent(
         name = snapshot.productName,
         image = snapshot.image,
         basePrice = 0,
         price = snapshot.skuPrice,
-        quantity = snapshot.quantity
+        quantity = snapshot.quantity,
+        onClick = onClick
     )
 }
 
@@ -57,7 +62,8 @@ private fun SharedOrderItemRowContent(
     image: String?,
     basePrice: Any,
     price: Int,
-    quantity: Int
+    quantity: Int,
+    onClick: () -> Unit = {}
 ) {
     // Tạo biến giá trị đã định dạng
     val formattedPrice = price.toPriceFormat()
@@ -75,6 +81,7 @@ private fun SharedOrderItemRowContent(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(colorResource(R.color.colorSystem_background_level_2))
+            .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
         Row(

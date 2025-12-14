@@ -7,6 +7,7 @@ import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +78,8 @@ class AccountViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val orderRepository: OrderRepository,
     private val addressRepository: com.ptit.domain.repository.AddressRepository,
-    private val shippingRepository: com.ptit.domain.repository.ShippingRepository
+    private val shippingRepository: com.ptit.domain.repository.ShippingRepository,
+    private val fileUploadRepository: com.ptit.domain.repository.FileUploadRepository
 ) : ViewModel() {
 
     private val _uiModel = MutableStateFlow(AccountUiModel())
@@ -100,6 +102,9 @@ class AccountViewModel @Inject constructor(
 
     private val _changePasswordState = MutableStateFlow<Resource<Unit>>(Resource.idle())
     val changePasswordState = _changePasswordState.asStateFlow()
+
+    private val _uploadAvatarState = MutableStateFlow<Resource<String>>(Resource.idle())
+    val uploadAvatarState = _uploadAvatarState.asStateFlow()
 
     // Address states
     private val _addressesState = MutableStateFlow<Resource<List<com.ptit.domain.entity.address.AddressDomainEntity>>>(Resource.idle())
@@ -211,6 +216,27 @@ class AccountViewModel @Inject constructor(
         _updateProfileUiModel.update {
             it.copy(avatar = avatar)
         }
+    }
+
+    fun uploadAvatar(uri: android.net.Uri) {
+        if (_uploadAvatarState.value is Resource.Loading) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _uploadAvatarState.value = Resource.loading()
+            val result = fileUploadRepository.uploadSingleFile(uri)
+            _uploadAvatarState.value = result
+
+            // Nếu upload thành công, tự động update avatar URL
+            result.onSuccess { url ->
+                _updateProfileUiModel.update {
+                    it.copy(avatar = url)
+                }
+            }
+        }
+    }
+
+    fun resetUploadAvatarState() {
+        _uploadAvatarState.value = Resource.idle()
     }
 
     fun updateProfile() {

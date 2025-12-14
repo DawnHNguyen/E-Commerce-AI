@@ -75,10 +75,10 @@ import com.ptit.core.overview.OverviewScreen
 import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
+import com.ptit.core.review.CreateReviewScreen
 import com.ptit.core.seller_request.CreateSellerRequestScreen
 import com.ptit.core.seller_request.RequestStatusScreen
 import com.ptit.core.shop.ShopDetailScreen
-import com.ptit.core.shop.ShopEntryScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
 import com.ptit.navigation.destination.BottomNavigationItem
@@ -87,6 +87,8 @@ import com.ptit.navigation.destination.ChatRoute
 import com.ptit.navigation.destination.ChatSessionListRoute
 import com.ptit.navigation.destination.ConfigPaymentMethodRoute
 import com.ptit.navigation.destination.CreateOrderRoute
+import com.ptit.navigation.destination.CreateReviewRoute
+import com.ptit.navigation.destination.AllReviewsRoute
 import com.ptit.navigation.destination.CreateSellerRequestRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.AddAddressRoute
@@ -309,7 +311,45 @@ class MainActivity : FragmentActivity() {
                                 },
                                 backToCart = {
                                     navController.popBackStack(BottomNavigationScreen.CartScreen, false)
+                                },
+                                navigateToCreateReview = { orderId, productId, productName, productImage, productPrice, productSkuValue ->
+                                    navController.navigate(
+                                        CreateReviewRoute(
+                                            orderId = orderId,
+                                            productId = productId,
+                                            productName = productName,
+                                            productImage = productImage,
+                                            productPrice = productPrice,
+                                            productSkuValue = productSkuValue
+                                        )
+                                    )
+                                },
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
                                 }
+                            )
+                        }
+
+                        // Review Screen
+                        composable<CreateReviewRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<CreateReviewRoute>()
+                            CreateReviewScreen(
+                                orderId = args.orderId,
+                                productId = args.productId,
+                                productName = args.productName,
+                                productImage = args.productImage,
+                                productPrice = args.productPrice,
+                                productSkuValue = args.productSkuValue,
+                                onBack = navController::navigateUp
+                            )
+                        }
+
+                        // All Reviews Screen
+                        composable<AllReviewsRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<AllReviewsRoute>()
+                            com.ptit.core.review.AllReviewsScreen(
+                                productId = args.productId,
+                                onBack = navController::navigateUp
                             )
                         }
 
@@ -326,11 +366,9 @@ class MainActivity : FragmentActivity() {
                                     onLogoutSuccess = {
                                         Navigator.navigateToAuthActivity(this@MainActivity)
                                     },
-                                    // 🔴 SỬA: Điều hướng đến OrderHistoryRoute
                                     onNavigateToOrders = {
                                         navController.navigate(OrderHistoryRoute)
                                     },
-                                    // ✅ NEW: Navigate to Overview
                                     onNavigateToOverview = {
                                         navController.navigate(OverviewRoute)
                                     },
@@ -344,13 +382,9 @@ class MainActivity : FragmentActivity() {
                                         navController.navigate(ListPaymentMethodRoute)
                                     },
                                     onNavigateToShop = {
-                                        // ✅ Navigate to ShopEntryRoute - will check shop/request status
+                                        // Navigate to ShopLoadingScreen - will check request status and redirect
                                         navController.navigate(ShopEntryRoute)
-                                    },
-                                    onNavigateToCreateShop = {
-                                        // ✅ Same as onNavigateToShop - unified entry point
-                                        navController.navigate(ShopEntryRoute)
-                                    },
+                                    }
                                 )
                             }
                             // ... (Các composable con của Profile giữ nguyên)
@@ -397,21 +431,16 @@ class MainActivity : FragmentActivity() {
                             )
                         }
 
-                        // ✅ NEW: Shop Entry Screen - Check shop/request status
+                        // ✅ Shop Loading Screen - Check seller request status and redirect
                         composable<ShopEntryRoute> {
-                            ShopEntryScreen(
-                                onNavigateToShopDetail = { shopId ->
-                                    navController.navigate(ShopDetailRoute(shopId = shopId)) {
-                                        popUpTo(ShopEntryRoute) { inclusive = true }
-                                    }
-                                },
+                            com.ptit.core.shop.ShopLoadingScreen(
                                 onNavigateToRequestStatus = {
                                     navController.navigate(RequestStatusRoute) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
                                 },
-                                onNavigateToCreateRequest = {
-                                    navController.navigate(CreateSellerRequestRoute) {
+                                onNavigateToShopDetail = {
+                                    navController.navigate(ShopDetailRoute("")) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
                                 },
@@ -429,8 +458,8 @@ class MainActivity : FragmentActivity() {
                                     }
                                 },
                                 onNavigateToShop = {
-                                    // Navigate to Shop screen - user's seller request was approved
-                                    navController.navigate(ShopEntryRoute) {
+                                    // Navigate to ShopDetail so ShopDetailScreen will fetch user's shop
+                                    navController.navigate(ShopDetailRoute("")) {
                                         popUpTo(RequestStatusRoute) { inclusive = true }
                                     }
                                 }
@@ -463,8 +492,6 @@ class MainActivity : FragmentActivity() {
                         }
 
                         composable<ShopDetailRoute> { backStackEntry ->
-                            val args = backStackEntry.toRoute<ShopDetailRoute>()
-                            // Note: args.shopId is available but ShopDetailScreen fetches user's shop by default
                             ShopDetailScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToEditShop = {
@@ -472,6 +499,20 @@ class MainActivity : FragmentActivity() {
                                 },
                                 onNavigateToProductList = {
                                     navController.navigate(ProductListRoute)
+                                },
+                                onNavigateToCategories = {
+                                    // TODO: Implement category management screen
+                                    navController.navigate(BottomNavigationScreen.CategoryScreen)
+                                },
+                                onNavigateToOrders = {
+                                    // Navigate to order history/management
+                                    navController.navigate(OrderHistoryRoute)
+                                },
+                                onNavigateToPromotions = {
+                                    // TODO: Implement promotions management screen
+                                },
+                                onNavigateToOverview = {
+                                    navController.navigate(OverviewRoute)
                                 }
                             )
                         }
@@ -491,9 +532,9 @@ class MainActivity : FragmentActivity() {
                         composable<ProductFormRoute> { backStackEntry ->
                             val args = backStackEntry.toRoute<ProductFormRoute>()
                             val productId = args.productId
-                            ProductForm(
+                            com.ptit.core.product.ProductFormNew(
                                 onNavigateBack = navController::navigateUp,
-                                productId = productId,
+                                productId = productId
                             )
                         }
 
@@ -517,6 +558,9 @@ class MainActivity : FragmentActivity() {
                                         launchSingleTop = true
                                         popUpTo(BottomNavigationScreen.HomeScreen) // Optional: pop back to home to avoid deep stack
                                     }
+                                },
+                                navigateToAllReviews = { productId ->
+                                    navController.navigate(AllReviewsRoute(productId = productId))
                                 }
                             )
                         }

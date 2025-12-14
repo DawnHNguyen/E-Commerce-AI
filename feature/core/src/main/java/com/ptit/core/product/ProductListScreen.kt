@@ -21,9 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,10 +38,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,14 +68,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeBox
 import com.ptit.common.presentation.MaxSizeColumn
-import com.ptit.common.presentation.MaxWidthRow
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.ProductEmptyState
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
+import com.ptit.domain.entity.brand.BrandDomainEntity
+import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.utils.onError
 import com.ptit.domain.utils.onLoading
@@ -79,6 +88,7 @@ sealed class ProductDialogState {
     data class DeleteSingleProduct(val product: ProductDomainEntity) : ProductDialogState()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
     onNavigateBack: () -> Unit,
@@ -88,12 +98,32 @@ fun ProductListScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewModel = hiltViewModel<ProductViewModel>()
     val productList by viewModel.productList.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val brands by viewModel.brands.collectAsState()
     val isLoading = rememberState { false }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var dialogState by remember { mutableStateOf<ProductDialogState>(ProductDialogState.Hidden) }
 
+    // Search and Filter states
+    var searchQuery by remember { mutableStateOf("") }
+    var showFilterDialog by remember { mutableStateOf(false) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
+    var selectedBrandId by remember { mutableStateOf<String?>(null) }
+    var minPrice by remember { mutableStateOf("") }
+    var maxPrice by remember { mutableStateOf("") }
+    var userId by remember { mutableStateOf("") }
+
+    // Reload products when screen is displayed (including when returning from form)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        viewModel.fetchUserIdAndProducts()
+        onDispose { }
+    }
+
     LaunchedEffect(Unit) {
+        viewModel.getCategories()
+        viewModel.getBrands()
+
         lifecycleOwner.safeCollectFlow(viewModel.userProfileState) {
             it
                 .onLoading {
@@ -109,8 +139,9 @@ fun ProductListScreen(
                         )
                     }
                 }
-                .onSuccess {
+                .onSuccess { profile ->
                     isLoading.value = false
+                    profile?.let { userId = it.id }
                 }
         }
     }
@@ -166,17 +197,47 @@ fun ProductListScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorResource(R.color.colorSystem_background_level_0))
-    ) {
-        MaxSizeColumn(
-            modifier = Modifier.statusBarsPadding()
-        ) {
-            // Top App Bar
-            ProductsTopAppBar(onBack = onNavigateBack)
-
+    Scaffold(
+        topBar = {
+            ProductsTopAppBar(
+                onBack = onNavigateBack,
+                searchQuery = searchQuery,
+                onSearchQueryChange = {
+                    searchQuery = it
+                    if (userId.isNotEmpty()) {
+                        viewModel.fetchProductList(
+                            createdById = userId,
+                            searchQuery = it.ifBlank { null },
+                            minPrice = minPrice.toIntOrNull(),
+                            maxPrice = maxPrice.toIntOrNull(),
+                            categoryId = selectedCategoryId,
+                            brandId = selectedBrandId
+                        )
+                    }
+                },
+                onFilterClick = { showFilterDialog = true }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { onNavigateToProductForm(null) },
+                containerColor = colorResource(id = R.color.colorSystem_heading_button),
+                contentColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Thêm sản phẩm",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        containerColor = colorResource(R.color.colorSystem_background_level_0)
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
             // Content
             if (productList.isEmpty() && !isLoading.value) {
                 ProductEmptyState(
@@ -186,8 +247,13 @@ fun ProductListScreen(
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = paddingValues.calculateTopPadding() + 16.dp,
+                        bottom = paddingValues.calculateBottomPadding() + 80.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(productList, key = { it.id }) { product ->
@@ -197,43 +263,14 @@ fun ProductListScreen(
                             onDeleteClick = { dialogState = ProductDialogState.DeleteSingleProduct(product) }
                         )
                     }
-
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
-                    }
                 }
             }
-        }
 
-        // FAB for adding new product
-        FloatingActionButton(
-            onClick = { onNavigateToProductForm(null) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp),
-            containerColor = colorResource(id = R.color.colorSystem_heading_button),
-            contentColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
-            shape = CircleShape
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Thêm sản phẩm",
-                modifier = Modifier.size(24.dp)
-            )
+            // Show loading indicator when processing
+            if (isLoading.value) {
+                FullScreenProgressBar()
+            }
         }
-
-        // Show loading indicator when processing
-        if (isLoading.value) {
-            FullScreenProgressBar()
-        }
-
-        // Snackbar host
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
-        )
 
         // Handle delete confirmation dialog
         when (val currentDialog = dialogState) {
@@ -253,40 +290,173 @@ fun ProductListScreen(
             }
             ProductDialogState.Hidden -> { /* No dialog to show */ }
         }
+
+        // Filter dialog
+        if (showFilterDialog) {
+            FilterDialog(
+                showDialog = showFilterDialog,
+                onDismiss = { showFilterDialog = false },
+                categories = categories,
+                brands = brands,
+                selectedCategoryId = selectedCategoryId,
+                selectedBrandId = selectedBrandId,
+                minPrice = minPrice,
+                maxPrice = maxPrice,
+                onCategorySelected = { selectedCategoryId = it },
+                onBrandSelected = { selectedBrandId = it },
+                onMinPriceChange = { minPrice = it },
+                onMaxPriceChange = { maxPrice = it },
+                onApplyFilter = {
+                    showFilterDialog = false
+                    viewModel.fetchProductList(
+                        createdById = userId,
+                        searchQuery = searchQuery.ifBlank { null },
+                        minPrice = minPrice.toIntOrNull(),
+                        maxPrice = maxPrice.toIntOrNull(),
+                        categoryId = selectedCategoryId,
+                        brandId = selectedBrandId
+                    )
+                },
+                onResetFilter = {
+                    minPrice = ""
+                    maxPrice = ""
+                    selectedCategoryId = null
+                    selectedBrandId = null
+                    viewModel.fetchProductList(
+                        createdById = userId,
+                        searchQuery = searchQuery.ifBlank { null },
+                        minPrice = null,
+                        maxPrice = null,
+                        categoryId = null,
+                        brandId = null
+                    )
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun ProductsTopAppBar(onBack: () -> Unit) {
-    MaxWidthRow(
+private fun ProductsTopAppBar(
+    onBack: () -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onFilterClick: () -> Unit
+) {
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = colorResource(R.color.colorSystem_heading_button))
-            .padding(vertical = 16.dp, horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .statusBarsPadding(),
+        color = colorResource(R.color.colorSystem_heading_button),
+        shadowElevation = 4.dp
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(24.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.ArrowBack,
-                contentDescription = "Quay lại",
-                tint = colorResource(id = R.color.colorSystem_greyscale_0_white)
-            )
+            // Title row with back button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "Quay lại",
+                        tint = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Text(
+                    text = "Quản lý sản phẩm",
+                    style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                    color = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Search and Filter row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Search TextField
+                androidx.compose.material3.OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            text = "Tìm kiếm sản phẩm...",
+                            style = CustomTypography.TextRegular,
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.colorSystem_greyscale_0_white).copy(alpha = 0.7f)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = colorResource(id = R.color.colorSystem_greyscale_0_white).copy(alpha = 0.7f)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear",
+                                    tint = colorResource(id = R.color.colorSystem_greyscale_0_white).copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    },
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                        unfocusedTextColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                        focusedBorderColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                        unfocusedBorderColor = colorResource(id = R.color.colorSystem_greyscale_0_white).copy(alpha = 0.5f),
+                        cursorColor = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    textStyle = CustomTypography.TextRegular.copy(fontSize = 14.sp)
+                )
+
+                // Filter Button
+                androidx.compose.material3.Surface(
+                    onClick = onFilterClick,
+                    modifier = Modifier.size(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = colorResource(id = R.color.colorSystem_greyscale_0_white).copy(alpha = 0.2f)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = colorResource(id = R.color.colorSystem_greyscale_0_white),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Text(
-            text = "Quản lý sản phẩm",
-            style = CustomTypography.TextBold,
-            fontSize = 20.sp,
-            textAlign = TextAlign.Center,
-            color = colorResource(id = R.color.colorSystem_greyscale_0_white)
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
@@ -352,6 +522,245 @@ private fun DeleteProductConfirmationDialog(
     )
 }
 
+@Composable
+private fun FilterDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    categories: List<com.ptit.domain.entity.product.CategoryDomainEntity>,
+    brands: List<com.ptit.domain.entity.brand.BrandDomainEntity>,
+    selectedCategoryId: String?,
+    selectedBrandId: String?,
+    minPrice: String,
+    maxPrice: String,
+    onCategorySelected: (String?) -> Unit,
+    onBrandSelected: (String?) -> Unit,
+    onMinPriceChange: (String) -> Unit,
+    onMaxPriceChange: (String) -> Unit,
+    onApplyFilter: () -> Unit,
+    onResetFilter: () -> Unit
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    text = "Lọc sản phẩm",
+                    style = CustomTypography.TextBold,
+                    fontSize = 20.sp,
+                    color = colorResource(R.color.colorSystem_heading_button)
+                )
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Price Range
+                    item {
+                        Column {
+                            Text(
+                                text = "Khoảng giá",
+                                style = CustomTypography.TextBold,
+                                fontSize = 16.sp,
+                                color = colorResource(R.color.colorSystem_heading_button)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = minPrice,
+                                    onValueChange = onMinPriceChange,
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text("Giá thấp nhất") },
+                                    singleLine = true,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                    )
+                                )
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = maxPrice,
+                                    onValueChange = onMaxPriceChange,
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text("Giá cao nhất") },
+                                    singleLine = true,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Category Filter
+                    item {
+                        Column {
+                            Text(
+                                text = "Danh mục",
+                                style = CustomTypography.TextBold,
+                                fontSize = 16.sp,
+                                color = colorResource(R.color.colorSystem_heading_button)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            var expandedCategory by remember { mutableStateOf(false) }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = categories.find { it.id == selectedCategoryId }?.name ?: "Tất cả danh mục",
+                                    onValueChange = {},
+                                    modifier = Modifier.fillMaxWidth(),
+                                    readOnly = true,
+                                    trailingIcon = {
+                                        IconButton(onClick = { expandedCategory = !expandedCategory }) {
+                                            Icon(
+                                                imageVector = if (expandedCategory)
+                                                    androidx.compose.material.icons.Icons.Default.ArrowDropUp
+                                                else
+                                                    androidx.compose.material.icons.Icons.Default.ArrowDropDown,
+                                                contentDescription = "Dropdown"
+                                            )
+                                        }
+                                    }
+                                )
+
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = expandedCategory,
+                                    onDismissRequest = { expandedCategory = false },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Tất cả danh mục") },
+                                        onClick = {
+                                            onCategorySelected(null)
+                                            expandedCategory = false
+                                        }
+                                    )
+                                    categories.forEach { category ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text(category.name) },
+                                            onClick = {
+                                                onCategorySelected(category.id)
+                                                expandedCategory = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Brand Filter
+                    item {
+                        Column {
+                            Text(
+                                text = "Thương hiệu",
+                                style = CustomTypography.TextBold,
+                                fontSize = 16.sp,
+                                color = colorResource(R.color.colorSystem_heading_button)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            var expandedBrand by remember { mutableStateOf(false) }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = brands.find { it.id == selectedBrandId }?.name ?: "Tất cả thương hiệu",
+                                    onValueChange = {},
+                                    modifier = Modifier.fillMaxWidth(),
+                                    readOnly = true,
+                                    trailingIcon = {
+                                        IconButton(onClick = { expandedBrand = !expandedBrand }) {
+                                            Icon(
+                                                imageVector = if (expandedBrand)
+                                                    androidx.compose.material.icons.Icons.Default.ArrowDropUp
+                                                else
+                                                    androidx.compose.material.icons.Icons.Default.ArrowDropDown,
+                                                contentDescription = "Dropdown"
+                                            )
+                                        }
+                                    }
+                                )
+
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = expandedBrand,
+                                    onDismissRequest = { expandedBrand = false },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Tất cả thương hiệu") },
+                                        onClick = {
+                                            onBrandSelected(null)
+                                            expandedBrand = false
+                                        }
+                                    )
+                                    brands.forEach { brand ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text(brand.name) },
+                                            onClick = {
+                                                onBrandSelected(brand.id)
+                                                expandedBrand = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onApplyFilter,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.colorSystem_heading_button)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Áp dụng",
+                        style = CustomTypography.TextSemiBold,
+                        color = Color.White
+                    )
+                }
+            },
+            dismissButton = {
+                Row {
+                    Button(
+                        onClick = onResetFilter,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Gray
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Đặt lại",
+                            style = CustomTypography.TextSemiBold,
+                            color = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Hủy",
+                            style = CustomTypography.TextSemiBold,
+                            color = Color.White
+                        )
+                    }
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+}
+
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun ProductItem(
@@ -359,6 +768,8 @@ fun ProductItem(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -369,7 +780,7 @@ fun ProductItem(
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             // Product Image
             Box(
@@ -392,8 +803,9 @@ fun ProductItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Product Info
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -407,74 +819,91 @@ fun ProductItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Giá",
-                            style = CustomTypography.TextRegular,
-                            fontSize = 12.sp,
-                            color = colorResource(id = R.color.colorSystem_normal_text)
-                        )
-                        Text(
-                            text = "${product.basePrice} đ",
-                            style = CustomTypography.TextBold,
-                            fontSize = 15.sp,
-                            color = colorResource(id = R.color.colorSystem_heading_button)
-                        )
-                    }
+                Text(
+                    text = "${product.basePrice} đ",
+                    style = CustomTypography.TextBold,
+                    fontSize = 15.sp,
+                    color = colorResource(id = R.color.colorSystem_heading_button)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Kho: ${product.skus.sumOf { it.stock }}",
+                    style = CustomTypography.TextRegular,
+                    fontSize = 13.sp,
+                    color = colorResource(id = R.color.colorSystem_normal_text)
+                )
+            }
+
+            // Three dots menu button
+            Box {
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.MoreVert,
+                        contentDescription = "Menu",
+                        tint = colorResource(id = R.color.colorSystem_normal_text)
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                androidx.compose.material3.DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
                 ) {
-                    Button(
-                        onClick = onEditClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(id = R.color.colorSystem_heading_button)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Sửa",
-                            tint = colorResource(id = R.color.colorSystem_greyscale_0_white),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Sửa",
-                            style = CustomTypography.TextSemiBold,
-                            fontSize = 14.sp,
-                            color = colorResource(id = R.color.colorSystem_greyscale_0_white)
-                        )
-                    }
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Sửa",
+                                    tint = colorResource(id = R.color.colorSystem_heading_button),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Sửa",
+                                    style = CustomTypography.TextSemiBold,
+                                    fontSize = 14.sp,
+                                    color = colorResource(id = R.color.colorSystem_heading_button)
+                                )
+                            }
+                        },
+                        onClick = {
+                            showMenu = false
+                            onEditClick()
+                        }
+                    )
 
-                    Spacer(modifier = Modifier.size(8.dp))
-
-                    Button(
-                        onClick = onDeleteClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Xóa",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Xóa",
-                            style = CustomTypography.TextSemiBold,
-                            fontSize = 14.sp,
-                            color = Color.White
-                        )
-                    }
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Xóa",
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Xóa",
+                                    style = CustomTypography.TextSemiBold,
+                                    fontSize = 14.sp,
+                                    color = Color.Red
+                                )
+                            }
+                        },
+                        onClick = {
+                            showMenu = false
+                            onDeleteClick()
+                        }
+                    )
                 }
             }
         }

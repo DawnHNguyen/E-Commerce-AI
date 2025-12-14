@@ -31,7 +31,18 @@ class ProductRemoteDataSource @Inject constructor(private val remoteService: Pro
     )
 
     suspend fun getProductDetail(productId: String) = remoteService.getProductDetail(productId)
-    suspend fun getProductsByShop(createdById: String, isPublic: Boolean? = null) = remoteService.getProductsByShop(createdById, isPublic)
+    suspend fun getProductsByShop(
+        createdById: String,
+        page: Int = 1,
+        limit: Int = 10,
+        sortBy: String = "createdAt",
+        sortOrder: String = "desc",
+        searchQuery: String? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        categoryId: String? = null,
+        brandId: String? = null
+    ) = remoteService.getProductsByShop(createdById, page, limit, sortBy, sortOrder, searchQuery, minPrice, maxPrice, categoryId, brandId)
     suspend fun deleteProduct(productId: String) = remoteService.deleteProduct(productId)
     suspend fun createProduct(request: CreateProductRequestDto) =
         remoteService.createProduct(request)

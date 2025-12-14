@@ -11,10 +11,10 @@ import retrofit2.http.Part
 
 interface FileUploadApi {
     @Multipart
-    @POST("/admin/products/upload-image")
+    @POST("/media/images/upload")
     suspend fun uploadFile(@Part file: MultipartBody.Part): Response<FileUploadResponse>
 
     @Multipart
-    @POST("/admin/products/upload-images")
+    @POST("/media/images/upload")
     suspend fun uploadMultipleFiles(@Part files: List<MultipartBody.Part>): Response<MultipleFileUploadResponse>
 }
