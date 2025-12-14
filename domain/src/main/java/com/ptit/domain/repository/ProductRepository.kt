@@ -22,7 +22,18 @@ interface ProductRepository {
     ): Resource<List<ProductDomainEntity>>
 
     suspend fun getProductDetail(productId: String): Resource<ProductDomainEntity>
-    suspend fun getProductsByShop(createdById: String, isPublic: Boolean? = null): Resource<List<ProductDomainEntity>>
+    suspend fun getProductsByShop(
+        createdById: String,
+        page: Int = 1,
+        limit: Int = 10,
+        sortBy: String = "createdAt",
+        sortOrder: String = "desc",
+        searchQuery: String? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        categoryId: String? = null,
+        brandId: String? = null
+    ): Resource<List<ProductDomainEntity>>
     suspend fun createProduct(request: CreateProductRequestDomainEntity): Resource<ProductDomainEntity>
     suspend fun deleteProduct(productId: String): Resource<Unit>
     suspend fun updateProduct(productId: String, request: UpdateProductRequestDomainEntity): Resource<ProductDomainEntity>

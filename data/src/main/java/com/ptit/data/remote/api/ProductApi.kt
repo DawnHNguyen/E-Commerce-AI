@@ -1,6 +1,5 @@
 package com.ptit.data.remote.api
 
-import com.ptit.common.const.SecureStorageKey
 import com.ptit.data.remote.dto.home.ListProductResponse
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.CreateCategoryBodyDto
@@ -11,11 +10,8 @@ import com.ptit.data.remote.dto.product.ProductDto
 import com.ptit.data.remote.dto.product.UpdateCategoryBodyDto
 import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import com.ptit.domain.utils.Resource
-import com.tencent.mmkv.MMKV
 import retrofit2.http.Body
 import retrofit2.http.DELETE
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -42,25 +38,31 @@ interface ProductApi {
         @Path("id_product") productId: String
     ): Resource<ProductDto>
 
-    @GET("products/manage")
+    @GET("manage-product/products")
     suspend fun getProductsByShop(
         @Query("createdById") createdById: String,
-        @Query("isPublic") isPublic: Boolean?
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10,
+        @Query("sortBy") sortBy: String = "createdAt",
+        @Query("sortOrder") sortOrder: String = "desc",
+        @Query("name") searchQuery: String? = null,
+        @Query("minPrice") minPrice: Int? = null,
+        @Query("maxPrice") maxPrice: Int? = null,
+        @Query("categoryId") categoryId: String? = null,
+        @Query("brandId") brandId: String? = null
     ): Resource<ListProductResponse>
 
-    @DELETE("products/{productId}")
+    @DELETE("manage-product/products/{productId}")
     suspend fun deleteProduct(
         @Path("productId") productId: String
     ): Resource<Unit>
 
-    @FormUrlEncoded
-    @POST("products")
+    @POST("manage-product/products")
     suspend fun createProduct(
         @Body product: CreateProductRequestDto
     ): Resource<ProductDto>
 
-    @FormUrlEncoded
-    @PUT("products/{productId}")
+    @PUT("manage-product/products/{productId}")
     suspend fun updateProduct(
         @Path("productId") productId: String,
         @Body product: UpdateProductRequestDto

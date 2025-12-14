@@ -1,5 +1,6 @@
 package com.ptit.data.repository
 
+import android.util.Log
 import com.ptit.data.mapping.toDomainEntity
 import com.ptit.data.remote.datasource.SellerRequestRemoteDataSource
 import com.ptit.data.remote.dto.seller_request.CreateSellerRequestBody
@@ -31,7 +32,22 @@ class SellerRequestRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMySellerRequest(): Resource<SellerRequestDomainEntity?> {
-        return remoteDataSource.getMySellerRequest().map { it.data?.toDomainEntity() }
+        val remoteResult = try {
+            remoteDataSource.getMySellerRequest()
+        } catch (t: Throwable) {
+            // If remote call itself throws for unexpected reasons, log and return safe null success
+            Log.w("SellerRequestRepository", "Remote call getMySellerRequest threw: $t")
+            return Resource.success(null)
+        }
+
+        return try {
+            // Map safely: if the remote returned a malformed type (ClassCastException) or mapping fails,
+            // don't crash the app — return success(null) so UI can show create-shop flow.
+            remoteResult.map { dto -> dto?.toDomainEntity() }
+        } catch (t: Throwable) {
+            Log.w("SellerRequestRepository", "Failed to map getMySellerRequest response, returning null safe value: $t")
+            Resource.success(null)
+        }
     }
 
     override suspend fun getSellerRequests(
@@ -54,4 +70,3 @@ class SellerRequestRepositoryImpl @Inject constructor(
         return remoteDataSource.rejectSellerRequest(requestId, body).map { it.data.toDomainEntity() }
     }
 }
-

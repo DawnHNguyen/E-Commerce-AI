@@ -28,35 +28,48 @@ class FileUploadRepositoryImpl @Inject constructor(
             val file = uriToFile(fileUri)
             val mimeType = getMimeType(fileUri)
             val requestFile = file.asRequestBody(mimeType?.toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+            // ✅ Changed from "image" to "files" to match backend API
+            val body = MultipartBody.Part.createFormData("files", file.name, requestFile)
 
             val response = fileUploadApi.uploadFile(body)
             if (response.isSuccessful && response.body() != null) {
-                Resource.success(response.body()!!.data)
+                // Backend returns array of {url: string}, get first item
+                val uploadedFiles = response.body()!!.data
+                if (uploadedFiles.isNotEmpty()) {
+                    Resource.success(uploadedFiles[0].url)
+                } else {
+                    Resource.error(BadRequestException(error=null, requestUrl = ""))
+                }
             } else {
                 Resource.error(BadRequestException(error=null, requestUrl = ""))
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             Resource.error(BadRequestException(error=null, requestUrl = ""))
         }
     }
 
-    override suspend fun uploadMultipleFiles(fileUris: List<Uri>): Resource<List<String>> = withContext(Dispatchers.IO) {
+    override suspend fun uploadMultipleFiles(fileUris: List<Uri>): Resource<List<String>> = withContext<Resource<List<String>>>(Dispatchers.IO) {
         try {
             val parts = fileUris.map { uri ->
                 val file = uriToFile(uri)
                 val mimeType = getMimeType(uri)
                 val requestFile = file.asRequestBody(mimeType?.toMediaTypeOrNull())
-                MultipartBody.Part.createFormData("images", file.name, requestFile)
+                // ✅ Changed from "images" to "files" to match backend API
+                MultipartBody.Part.createFormData("files", file.name, requestFile)
             }
 
             val response = fileUploadApi.uploadMultipleFiles(parts)
             if (response.isSuccessful && response.body() != null) {
-                Resource.success(response.body()!!.data)
+                // Backend returns array of {url: string}, extract URLs
+                val uploadedFiles = response.body()!!.data
+                val urls: List<String> = uploadedFiles.map { uploadedFile -> uploadedFile.url }
+                Resource.success(urls)
             } else {
                 Resource.error(BadRequestException(error=null, requestUrl = ""))
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             Resource.error(BadRequestException(error=null, requestUrl = ""))
         }
     }

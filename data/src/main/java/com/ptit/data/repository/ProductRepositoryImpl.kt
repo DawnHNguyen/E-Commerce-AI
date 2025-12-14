@@ -29,9 +29,17 @@ class ProductRepositoryImpl @Inject constructor(
 
     override suspend fun getProductsByShop(
         createdById: String,
-        isPublic: Boolean?
+        page: Int,
+        limit: Int,
+        sortBy: String,
+        sortOrder: String,
+        searchQuery: String?,
+        minPrice: Int?,
+        maxPrice: Int?,
+        categoryId: String?,
+        brandId: String?
     ): Resource<List<ProductDomainEntity>> =
-        remoteDataSource.getProductsByShop(createdById, isPublic).map { res ->
+        remoteDataSource.getProductsByShop(createdById, page, limit, sortBy, sortOrder, searchQuery, minPrice, maxPrice, categoryId, brandId).map { res ->
             // use wrapper mapping
             res.data?.map { it.toDomainEntity() } ?: emptyList()
         }
@@ -65,6 +73,8 @@ class ProductRepositoryImpl @Inject constructor(
     override suspend fun createProduct(request: CreateProductRequestDomainEntity): Resource<ProductDomainEntity> {
         val requestDto = CreateProductRequestDto(
             name = request.name,
+            description = request.description,
+            publishedAt = request.publishedAt,
             basePrice = request.basePrice,
             virtualPrice = request.virtualPrice,
             brandId = request.brandId,
@@ -78,14 +88,19 @@ class ProductRepositoryImpl @Inject constructor(
             },
             skus = request.skus.map { skuDomain ->
                 SKUDto(
-                    id = skuDomain.id,
-                    price = skuDomain.price,
-                    stock =  skuDomain.stock,
+                    id = null, // Server will generate ID
                     value = skuDomain.value,
+                    price = skuDomain.price,
+                    stock = skuDomain.stock,
                     image = skuDomain.image
                 )
             },
-            publishedAt = request.publishedAt,
+            specifications = request.specifications.map { specDomain ->
+                com.ptit.data.remote.dto.product.SpecificationDto(
+                    name = specDomain.name,
+                    value = specDomain.value
+                )
+            }
         )
         return remoteDataSource.createProduct(requestDto).map { it.toDomainEntity() }
     }
@@ -93,6 +108,8 @@ class ProductRepositoryImpl @Inject constructor(
     override suspend fun updateProduct(productId: String, request: UpdateProductRequestDomainEntity): Resource<ProductDomainEntity> {
         val requestDto = UpdateProductRequestDto(
             name = request.name,
+            description = request.description,
+            publishedAt = request.publishedAt,
             basePrice = request.basePrice,
             virtualPrice = request.virtualPrice,
             brandId = request.brandId,
@@ -106,14 +123,19 @@ class ProductRepositoryImpl @Inject constructor(
             },
             skus = request.skus.map { skuDomain ->
                 SKUDto(
-                    id = skuDomain.id,
-                    price = skuDomain.price,
-                    stock =  skuDomain.stock,
+                    id = null, // Server will handle ID
                     value = skuDomain.value,
+                    price = skuDomain.price,
+                    stock = skuDomain.stock,
                     image = skuDomain.image
                 )
             },
-            publishedAt = request.publishedAt,
+            specifications = request.specifications.map { specDomain ->
+                com.ptit.data.remote.dto.product.SpecificationDto(
+                    name = specDomain.name,
+                    value = specDomain.value
+                )
+            }
         )
         return remoteDataSource.updateProduct(productId, requestDto).map { it.toDomainEntity() }
     }

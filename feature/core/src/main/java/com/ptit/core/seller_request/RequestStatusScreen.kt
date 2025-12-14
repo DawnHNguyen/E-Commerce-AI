@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,19 +46,17 @@ fun RequestStatusScreen(
 
     val myRequestState by viewModel.myRequestState.collectAsStateWithLifecycle()
 
-    // Handle navigation based on request status
+    // Only navigate to shop when request is APPROVED. Do NOT auto-navigate to create when null;
+    // show a friendly card instead so user can choose to create the shop.
     LaunchedEffect(myRequestState) {
         when (val state = myRequestState) {
             is Resource.Success -> {
                 val request = state.data
-                if (request == null) {
-                    // No request found → Navigate to Create Request
-                    onNavigateToCreateRequest()
-                } else if (request.status.name == "APPROVED") {
+                if (request != null && request.status.name == "APPROVED") {
                     // Request approved → Navigate to Shop
                     onNavigateToShop()
                 }
-                // If PENDING or REJECTED, stay on this screen
+                // For null, PENDING or REJECTED, UI will render appropriate content
             }
             else -> {
                 // Loading or Error, do nothing
@@ -96,21 +97,40 @@ fun RequestStatusScreen(
             }
             is Resource.Success -> {
                 val request = state.data
-                // Only show content for PENDING or REJECTED status
-                // (APPROVED and null are handled by navigation)
-                if (request != null && (request.status.name == "PENDING" || request.status.name == "REJECTED")) {
-                    RequestStatusContent(
+                if (request == null) {
+                    // Show friendly No Shop UI with CTA to create
+                    NoShopCard(
                         modifier = Modifier.padding(paddingValues),
-                        shopName = request.shopName,
-                        shopDescription = request.shopDescription,
-                        businessLicense = request.businessLicense,
-                        taxCode = request.taxCode,
-                        status = request.status.name,
-                        rejectionReason = request.rejectionReason,
-                        createdAt = request.createdAt,
-                        onCreateNewRequest = onNavigateToCreateRequest
+                        onCreateShop = onNavigateToCreateRequest
                     )
+                } else {
+                    // Show the status badge at the top of the screen content, then the details
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(colorResource(R.color.colorSystem_background_level_0))
+                            .padding(paddingValues)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Status badge on top
+                        StatusBadge(status = request.status.name)
+
+                        // Then the rest of the content
+                        RequestStatusContent(
+                            modifier = Modifier.fillMaxSize(),
+                            shopName = request.shopName,
+                            shopDescription = request.shopDescription,
+                            businessLicense = request.businessLicense,
+                            taxCode = request.taxCode,
+                            status = request.status.name,
+                            rejectionReason = request.rejectionReason,
+                            createdAt = request.createdAt,
+                            onCreateNewRequest = onNavigateToCreateRequest
+                        )
+                    }
                 }
+                // APPROVED case handled by LaunchedEffect navigation above
             }
             is Resource.Error -> {
                 ErrorState(
@@ -120,6 +140,62 @@ fun RequestStatusScreen(
                 )
             }
             else -> {}
+        }
+    }
+}
+
+@Composable
+private fun NoShopCard(
+    modifier: Modifier = Modifier,
+    onCreateShop: () -> Unit
+) {
+    MaxSizeColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colorResource(R.color.colorSystem_background_level_0))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .padding(8.dp),
+            colors = CardDefaults.cardColors(containerColor = colorResource(R.color.colorSystem_background_level_2))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Storefront,
+                    contentDescription = "No shop",
+                    tint = colorResource(R.color.colorSystem_heading_button),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Bạn chưa có cửa hàng",
+                    style = CustomTypography.TextBold.copy(fontSize = 18.sp),
+                    color = colorResource(R.color.colorSystem_heading_button)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Tạo cửa hàng để bắt đầu bán hàng trên nền tảng.",
+                    style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
+                    color = colorResource(R.color.colorSystem_text_button),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                FilledButton(
+                    text = "Tạo cửa hàng",
+                    onClick = onCreateShop,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -136,17 +212,12 @@ private fun RequestStatusContent(
     createdAt: String,
     onCreateNewRequest: () -> Unit
 ) {
-    MaxSizeColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colorResource(R.color.colorSystem_background_level_0))
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Status Badge
-        StatusBadge(status = status)
-
         // Shop Information
         InfoCard(
             title = "Thông tin cửa hàng",
@@ -173,7 +244,21 @@ private fun RequestStatusContent(
             content = {
                 InfoRow(label = "Ngày gửi", value = formatDate(createdAt))
                 Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Trạng thái", value = getStatusDisplayName(status))
+
+                // Status row: highlight when PENDING
+                if (status == "PENDING") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFFF9C4))
+                            .padding(8.dp)
+                    ) {
+                        InfoRow(label = "Trạng thái", value = getStatusDisplayName(status))
+                    }
+                } else {
+                    InfoRow(label = "Trạng thái", value = getStatusDisplayName(status))
+                }
             }
         )
 
@@ -199,7 +284,7 @@ private fun RequestStatusContent(
             )
         }
 
-        // Status message
+        // Status message (keep these messages but they are also shown by StatusBadge on top)
         when (status) {
             "PENDING" -> {
                 InfoCard(
@@ -281,13 +366,17 @@ private fun InfoCard(
 
 @Composable
 private fun InfoRow(label: String, value: String) {
-    Column {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Text(
             text = label,
-            style = CustomTypography.TextMedium.copy(fontSize = 12.sp),
+            style = CustomTypography.TextBold.copy(fontSize = 12.sp, fontStyle = FontStyle.Italic),
             color = colorResource(R.color.colorSystem_text_button)
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = value,
             style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
@@ -295,7 +384,6 @@ private fun InfoRow(label: String, value: String) {
         )
     }
 }
-
 
 @Composable
 private fun ErrorState(
@@ -341,8 +429,7 @@ private fun formatDate(dateString: String): String {
         val date = inputFormat.parse(dateString)
         val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         date?.let { outputFormat.format(it) } ?: dateString
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         dateString
     }
 }
-

@@ -27,8 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,14 +77,13 @@ fun EditProfile(
     val isShowProgressBar = rememberState { false }
     val isShowAlertDialog = rememberState { false }
     val isShowAddAddressDialog = rememberState { false }
-    val selectedAvatarUri = rememberState<String?> { null }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             uri?.let {
-                selectedAvatarUri.value = it.toString()
-                viewModel.onAvatarChanged(it.toString())
+                // Upload avatar ngay khi chọn
+                viewModel.uploadAvatar(it)
             }
         }
     )
@@ -94,6 +91,33 @@ fun EditProfile(
     // Fetch addresses on first load
     LaunchedEffect(Unit) {
         viewModel.fetchAddresses()
+    }
+
+    // Handle upload avatar state
+    LaunchedEffect(Unit) {
+        lifecycleOwner.safeCollectFlow(viewModel.uploadAvatarState) {
+            it
+                .onLoading {
+                    isShowProgressBar.value = true
+                }
+                .onSuccess { _ ->
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Tải ảnh lên thành công",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    viewModel.resetUploadAvatarState()
+                }
+                .onError { error ->
+                    isShowProgressBar.value = false
+                    Toast.makeText(
+                        context,
+                        "Tải ảnh lên thất bại: ${error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -201,7 +225,7 @@ fun EditProfile(
             contentAlignment = Alignment.BottomEnd
         ) {
             GlideImage(
-                model = selectedAvatarUri.value ?: uiModel.value.avatar.takeIf { it.isNotEmpty() }
+                model = uiModel.value.avatar.takeIf { it.isNotEmpty() }
                 ?: "https://i.pinimg.com/564x/19/b8/d6/19b8d6e9b13eef23ec9c746968bb88b1.jpg",
                 contentDescription = "Ảnh đại diện",
                 modifier = Modifier

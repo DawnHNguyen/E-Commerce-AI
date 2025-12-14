@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ptit.domain.entity.brand.BrandDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.repository.FileUploadRepository
@@ -22,11 +23,21 @@ import javax.inject.Inject
 class ProductViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val fileUploadRepository: FileUploadRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val brandRepository: com.ptit.domain.repository.BrandRepository
 ) : ViewModel() {
 
     private val _categoryListState = MutableStateFlow<Resource<List<CategoryDomainEntity>>>(Resource.Idle)
     val categoryListState: StateFlow<Resource<List<CategoryDomainEntity>>> = _categoryListState
+
+    private val _categories = MutableStateFlow<List<CategoryDomainEntity>>(emptyList())
+    val categories: StateFlow<List<CategoryDomainEntity>> = _categories
+
+    private val _brandListState = MutableStateFlow<Resource<List<BrandDomainEntity>>>(Resource.Idle)
+    val brandListState: StateFlow<Resource<List<BrandDomainEntity>>> = _brandListState
+
+    private val _brands = MutableStateFlow<List<BrandDomainEntity>>(emptyList())
+    val brands: StateFlow<List<BrandDomainEntity>> = _brands
 
     // Existing product list states
     private val _productListState = MutableStateFlow<Resource<List<ProductDomainEntity>>>(Resource.Idle)
@@ -51,8 +62,8 @@ class ProductViewModel @Inject constructor(
     val deleteProductState: StateFlow<Resource<Unit>> = _deleteProductState
 
 
-    private val _userProfileState = MutableStateFlow<Resource<Unit>>(Resource.Idle)
-    val userProfileState: StateFlow<Resource<Unit>> = _userProfileState
+    private val _userProfileState = MutableStateFlow<Resource<com.ptit.domain.entity.common.UserDomainEntity?>>(Resource.Idle)
+    val userProfileState: StateFlow<Resource<com.ptit.domain.entity.common.UserDomainEntity?>> = _userProfileState
 
     // Fetch user profile and get user ID
     fun fetchUserIdAndProducts() {
@@ -61,12 +72,13 @@ class ProductViewModel @Inject constructor(
 
             when (val result = userRepository.getUserProfile()) {
                 is Resource.Success -> {
+                    _userProfileState.value = Resource.success(result.data)
                     val userId = result.data.id
-                    // Fetch products after getting user ID
+                    // Fetch products for this user (shop owner)
                     fetchProductList(createdById = userId)
                 }
                 is Resource.Error -> {
-
+                    _userProfileState.value = Resource.error(result.error)
                 }
                 is Resource.Loading -> {
                     _userProfileState.value = Resource.loading()
@@ -78,11 +90,25 @@ class ProductViewModel @Inject constructor(
         }
     }
     // Fetch list of products
-    fun fetchProductList(createdById: String, isPublic: Boolean? = null) {
+    fun fetchProductList(
+        createdById: String,
+        page: Int = 1,
+        limit: Int = 10,
+        sortBy: String = "createdAt",
+        sortOrder: String = "desc",
+        searchQuery: String? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        categoryId: String? = null,
+        brandId: String? = null
+    ) {
         viewModelScope.launch {
             _productListState.value = Resource.loading()
 
-            when (val result = productRepository.getProductsByShop(createdById, isPublic)) {
+            when (val result = productRepository.getProductsByShop(
+                createdById, page, limit, sortBy, sortOrder,
+                searchQuery, minPrice, maxPrice, categoryId, brandId
+            )) {
                 is Resource.Success -> {
                     _productListState.value = result
                     _productList.value = result.data
@@ -103,6 +129,7 @@ class ProductViewModel @Inject constructor(
                 is Resource.Success -> {
                     Log.d("ProductViewModel", "getCategories: ${result.data.data}")
                     _categoryListState.value = Resource.success(result.data.data)
+                    _categories.value = result.data.data
                 }
                 is Resource.Error -> {
                     _categoryListState.value = Resource.error(result.error)
@@ -112,6 +139,29 @@ class ProductViewModel @Inject constructor(
                 }
                 is Resource.Idle -> {
                     _categoryListState.value = Resource.idle()
+                }
+            }
+        }
+    }
+
+    fun getBrands() {
+        viewModelScope.launch {
+            _brandListState.value = Resource.loading()
+
+            when (val result = brandRepository.getBrands(page = 1, limit = 1000)) {
+                is Resource.Success -> {
+                    Log.d("ProductViewModel", "getBrands: ${result.data.data}")
+                    _brandListState.value = Resource.success(result.data.data)
+                    _brands.value = result.data.data
+                }
+                is Resource.Error -> {
+                    _brandListState.value = Resource.error(result.error)
+                }
+                is Resource.Loading -> {
+                    _brandListState.value = Resource.loading(result.data?.data)
+                }
+                is Resource.Idle -> {
+                    _brandListState.value = Resource.idle()
                 }
             }
         }
@@ -135,10 +185,48 @@ class ProductViewModel @Inject constructor(
     }
 
     // Create a new product
+    fun createProduct(request: com.ptit.domain.entity.product.CreateProductRequestDomainEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _saveProductState.value = Resource.loading()
+            Log.d("ProductViewModel", "Creating product: $request")
+
+            when (val result = productRepository.createProduct(request)) {
+                is Resource.Success -> {
+                    Log.d("ProductViewModel", "Product created successfully: ${result.data}")
+                    _saveProductState.value = result
+                    // Refresh product list after creation
+                    fetchUserIdAndProducts()
+                }
+                is Resource.Error -> {
+                    Log.e("ProductViewModel", "Error creating product: ${result.error.message}")
+                    _saveProductState.value = result
+                }
+                else -> {}
+            }
+        }
+    }
 
     // Update an existing product
+    fun updateProduct(productId: String, request: com.ptit.domain.entity.product.UpdateProductRequestDomainEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _saveProductState.value = Resource.loading()
+            Log.d("ProductViewModel", "Updating product $productId: $request")
 
-
+            when (val result = productRepository.updateProduct(productId, request)) {
+                is Resource.Success -> {
+                    Log.d("ProductViewModel", "Product updated successfully: ${result.data}")
+                    _saveProductState.value = result
+                    // Refresh product list after update
+                    fetchUserIdAndProducts()
+                }
+                is Resource.Error -> {
+                    Log.e("ProductViewModel", "Error updating product: ${result.error.message}")
+                    _saveProductState.value = result
+                }
+                else -> {}
+            }
+        }
+    }
 
     fun uploadProductImages(imageUris: List<Uri>) {
         if (_uploadImagesState.value is Resource.Loading) return
@@ -177,6 +265,26 @@ class ProductViewModel @Inject constructor(
                 Log.e("ProductViewModel", "Exception in deleteProduct", e)
             }
         }
+    }
+
+    // Reset save product state
+    fun resetSaveProductState() {
+        _saveProductState.value = Resource.Idle
+    }
+
+    // Reset delete product state
+    fun resetDeleteProductState() {
+        _deleteProductState.value = Resource.Idle
+    }
+
+    // Reset upload images state
+    fun resetUploadImagesState() {
+        _uploadImagesState.value = Resource.Idle
+    }
+
+    // Reset product details state
+    fun resetProductDetailsState() {
+        _productDetailsState.value = Resource.Idle
     }
 }
 
