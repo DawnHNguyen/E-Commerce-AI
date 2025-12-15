@@ -5,10 +5,16 @@ import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import comptitdatabase.GetAllChatSessions
 import comptitdatabase.TblChatMessage
+import com.ptit.domain.entity.chat.ChatCartItem
 import com.ptit.domain.entity.chat.ChatMessage
 import com.ptit.domain.entity.chat.ChatOrderItem
+import com.ptit.domain.entity.chat.ChatPaginationInfo
+import com.ptit.domain.entity.chat.ChatProductDetail
+import com.ptit.domain.entity.chat.ChatProductItem
 import com.ptit.domain.entity.chat.ChatSession
 import com.ptit.domain.entity.chat.ChatRole
+import com.ptit.domain.entity.chat.ChatSku
+import com.ptit.domain.entity.chat.ChatVariant
 import com.ptit.domain.entity.chat.UiTag
 
 data class UiTagDto(
@@ -122,6 +128,104 @@ object ChatMapping {
                         }
                         UiTag.DisplayOrderList(orders)
                     }
+                    "DISPLAY_PRODUCT_LIST" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val productsData = dto.data["products"] as? List<Map<String, Any>> ?: emptyList()
+                        val products = productsData.map { productMap ->
+                            ChatProductItem(
+                                id = productMap["id"] as? String ?: "",
+                                name = productMap["name"] as? String ?: "",
+                                basePrice = (productMap["basePrice"] as? Number)?.toInt() ?: 0,
+                                virtualPrice = (productMap["virtualPrice"] as? Number)?.toInt(),
+                                mainImage = productMap["mainImage"] as? String ?: "",
+                                rating = (productMap["rating"] as? Number)?.toFloat() ?: 0f,
+                                sold = (productMap["sold"] as? Number)?.toInt() ?: 0,
+                                shopName = productMap["shopName"] as? String
+                            )
+                        }
+                        @Suppress("UNCHECKED_CAST")
+                        val paginationMap = dto.data["pagination"] as? Map<String, Any> ?: emptyMap()
+                        val pagination = ChatPaginationInfo(
+                            currentPage = (paginationMap["currentPage"] as? Number)?.toInt() ?: 1,
+                            totalPages = (paginationMap["totalPages"] as? Number)?.toInt() ?: 1,
+                            totalItems = (paginationMap["totalItems"] as? Number)?.toInt() ?: 0,
+                            hasNextPage = paginationMap["hasNextPage"] as? Boolean ?: false,
+                            hasPreviousPage = paginationMap["hasPreviousPage"] as? Boolean ?: false,
+                            searchQuery = paginationMap["searchQuery"] as? String
+                        )
+                        UiTag.DisplayProductList(products, pagination)
+                    }
+                    "DISPLAY_PRODUCT_DETAIL" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val productMap = dto.data["product"] as? Map<String, Any> ?: emptyMap()
+                        @Suppress("UNCHECKED_CAST")
+                        val variantsData = productMap["variants"] as? List<Map<String, Any>> ?: emptyList()
+                        @Suppress("UNCHECKED_CAST")
+                        val skusData = productMap["skus"] as? List<Map<String, Any>> ?: emptyList()
+                        @Suppress("UNCHECKED_CAST")
+                        val imagesData = productMap["images"] as? List<String> ?: emptyList()
+
+                        val product = ChatProductDetail(
+                            id = productMap["id"] as? String ?: "",
+                            name = productMap["name"] as? String ?: "",
+                            basePrice = (productMap["basePrice"] as? Number)?.toInt() ?: 0,
+                            virtualPrice = (productMap["virtualPrice"] as? Number)?.toInt(),
+                            images = imagesData,
+                            description = productMap["description"] as? String ?: "",
+                            rating = (productMap["rating"] as? Number)?.toFloat() ?: 0f,
+                            sold = (productMap["sold"] as? Number)?.toInt() ?: 0,
+                            category = productMap["category"] as? String,
+                            brand = productMap["brand"] as? String,
+                            shopName = productMap["shopName"] as? String,
+                            shopId = productMap["shopId"] as? String,
+                            variants = variantsData.map { variantMap ->
+                                @Suppress("UNCHECKED_CAST")
+                                ChatVariant(
+                                    name = variantMap["name"] as? String ?: "",
+                                    options = variantMap["options"] as? List<String> ?: emptyList()
+                                )
+                            },
+                            skus = skusData.map { skuMap ->
+                                ChatSku(
+                                    id = skuMap["id"] as? String ?: "",
+                                    value = skuMap["value"] as? String ?: "",
+                                    price = (skuMap["price"] as? Number)?.toInt() ?: 0,
+                                    stock = (skuMap["stock"] as? Number)?.toInt() ?: 0,
+                                    image = skuMap["image"] as? String ?: ""
+                                )
+                            }
+                        )
+                        UiTag.DisplayProductDetail(product)
+                    }
+                    "DISPLAY_CART" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val itemsData = dto.data["items"] as? List<Map<String, Any>> ?: emptyList()
+                        val items = itemsData.map { itemMap ->
+                            ChatCartItem(
+                                cartItemId = itemMap["cartItemId"] as? String ?: "",
+                                productId = itemMap["productId"] as? String,
+                                productName = itemMap["productName"] as? String ?: "",
+                                skuId = itemMap["skuId"] as? String ?: "",
+                                skuValue = itemMap["skuValue"] as? String,
+                                quantity = (itemMap["quantity"] as? Number)?.toInt() ?: 0,
+                                price = (itemMap["price"] as? Number)?.toInt() ?: 0,
+                                image = itemMap["image"] as? String ?: "",
+                                shopName = itemMap["shopName"] as? String
+                            )
+                        }
+                        val totalAmount = (dto.data["totalAmount"] as? Number)?.toInt() ?: 0
+                        val totalItems = (dto.data["totalItems"] as? Number)?.toInt() ?: 0
+                        UiTag.DisplayCart(items, totalAmount, totalItems)
+                    }
+                    "ADD_TO_CART_SUCCESS" -> {
+                        val productName = dto.data["productName"] as? String ?: ""
+                        val quantity = (dto.data["quantity"] as? Number)?.toInt() ?: 1
+                        UiTag.AddToCartSuccess(productName, quantity)
+                    }
+                    "REMOVE_FROM_CART_SUCCESS" -> {
+                        val productName = dto.data["productName"] as? String ?: ""
+                        UiTag.RemoveFromCartSuccess(productName)
+                    }
                     else -> null
                 }
             }.filterNotNull()
@@ -157,6 +261,96 @@ object ChatMapping {
                             "itemCount" to order.itemCount
                         )
                     })
+                )
+                is UiTag.DisplayProductList -> UiTagDto(
+                    type = "DISPLAY_PRODUCT_LIST",
+                    data = mapOf(
+                        "products" to tag.products.map { product ->
+                            mapOf(
+                                "id" to product.id,
+                                "name" to product.name,
+                                "basePrice" to product.basePrice,
+                                "virtualPrice" to product.virtualPrice,
+                                "mainImage" to product.mainImage,
+                                "rating" to product.rating,
+                                "sold" to product.sold,
+                                "shopName" to product.shopName
+                            )
+                        },
+                        "pagination" to mapOf(
+                            "currentPage" to tag.pagination.currentPage,
+                            "totalPages" to tag.pagination.totalPages,
+                            "totalItems" to tag.pagination.totalItems,
+                            "hasNextPage" to tag.pagination.hasNextPage,
+                            "hasPreviousPage" to tag.pagination.hasPreviousPage,
+                            "searchQuery" to tag.pagination.searchQuery
+                        )
+                    )
+                )
+                is UiTag.DisplayProductDetail -> UiTagDto(
+                    type = "DISPLAY_PRODUCT_DETAIL",
+                    data = mapOf(
+                        "product" to mapOf(
+                            "id" to tag.product.id,
+                            "name" to tag.product.name,
+                            "basePrice" to tag.product.basePrice,
+                            "virtualPrice" to tag.product.virtualPrice,
+                            "images" to tag.product.images,
+                            "description" to tag.product.description,
+                            "rating" to tag.product.rating,
+                            "sold" to tag.product.sold,
+                            "category" to tag.product.category,
+                            "brand" to tag.product.brand,
+                            "shopName" to tag.product.shopName,
+                            "shopId" to tag.product.shopId,
+                            "variants" to tag.product.variants.map { variant ->
+                                mapOf(
+                                    "name" to variant.name,
+                                    "options" to variant.options
+                                )
+                            },
+                            "skus" to tag.product.skus.map { sku ->
+                                mapOf(
+                                    "id" to sku.id,
+                                    "value" to sku.value,
+                                    "price" to sku.price,
+                                    "stock" to sku.stock,
+                                    "image" to sku.image
+                                )
+                            }
+                        )
+                    )
+                )
+                is UiTag.DisplayCart -> UiTagDto(
+                    type = "DISPLAY_CART",
+                    data = mapOf(
+                        "items" to tag.items.map { item ->
+                            mapOf(
+                                "cartItemId" to item.cartItemId,
+                                "productId" to item.productId,
+                                "productName" to item.productName,
+                                "skuId" to item.skuId,
+                                "skuValue" to item.skuValue,
+                                "quantity" to item.quantity,
+                                "price" to item.price,
+                                "image" to item.image,
+                                "shopName" to item.shopName
+                            )
+                        },
+                        "totalAmount" to tag.totalAmount,
+                        "totalItems" to tag.totalItems
+                    )
+                )
+                is UiTag.AddToCartSuccess -> UiTagDto(
+                    type = "ADD_TO_CART_SUCCESS",
+                    data = mapOf(
+                        "productName" to tag.productName,
+                        "quantity" to tag.quantity
+                    )
+                )
+                is UiTag.RemoveFromCartSuccess -> UiTagDto(
+                    type = "REMOVE_FROM_CART_SUCCESS",
+                    data = mapOf("productName" to tag.productName)
                 )
             }
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,9 +28,17 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,10 +47,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -56,21 +68,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.domain.entity.chat.ChatCartItem
 import com.ptit.domain.entity.chat.ChatMessage
 import com.ptit.domain.entity.chat.ChatOrderItem
+import com.ptit.domain.entity.chat.ChatPaginationInfo
+import com.ptit.domain.entity.chat.ChatProductDetail
+import com.ptit.domain.entity.chat.ChatProductItem
 import com.ptit.domain.entity.chat.ChatRole
 import com.ptit.domain.entity.chat.UiTag
 import kotlinx.coroutines.launch
@@ -84,6 +104,7 @@ fun ChatScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddPayment: () -> Unit,
     onNavigateToOrderDetail: (orderId: String) -> Unit,
+    onNavigateToCart: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     LocalBottomNavigationVisibility.current.value = false
@@ -235,7 +256,15 @@ fun ChatScreen(
                         onShowOrderList = { orders ->
                             currentOrderList = orders
                             showOrderSheet = true
-                        }
+                        },
+                        onProductClick = { product ->
+                            viewModel.sendMessage("Xem chi tiết sản phẩm ${product.id}")
+                        },
+                        onPaginationClick = { searchQuery: String?, page: Int ->
+                            val query = searchQuery?.replace(" ", "_") ?: ""
+                            viewModel.sendMessage("Xem trang $page kết quả tìm kiếm $query")
+                        },
+                        onViewCart = onNavigateToCart
                     )
                 }
 
@@ -297,7 +326,7 @@ private fun WelcomeMessage() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tôi có thể giúp bạn kiểm tra đơn hàng hoặc quản lý phương thức thanh toán.",
+            text = "Tôi có thể giúp bạn tìm kiếm sản phẩm, quản lý giỏ hàng, kiểm tra đơn hàng và quản lý thanh toán.",
             style = CustomTypography.TextRegular,
             color = colorResource(id = R.color.colorSystem_greyscale_500),
             modifier = Modifier.padding(horizontal = 32.dp)
@@ -311,7 +340,10 @@ private fun ChatMessageItem(
     message: ChatMessage,
     onQuickReplyClick: (String) -> Unit,
     onNavigateToAddPayment: () -> Unit,
-    onShowOrderList: (List<ChatOrderItem>) -> Unit
+    onShowOrderList: (List<ChatOrderItem>) -> Unit,
+    onProductClick: (ChatProductItem) -> Unit,
+    onPaginationClick: (String?, Int) -> Unit, // searchQuery, page
+    onViewCart: () -> Unit
 ) {
     val isUser = message.role == ChatRole.USER
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -389,6 +421,44 @@ private fun ChatMessageItem(
                     onClick = { onShowOrderList(tag.orders) }
                 )
             }
+        }
+
+        // Display product list
+        message.tags.filterIsInstance<UiTag.DisplayProductList>().firstOrNull()?.let { tag ->
+            if (tag.products.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ProductListSection(
+                    products = tag.products,
+                    pagination = tag.pagination,
+                    onProductClick = onProductClick,
+                    onPaginationClick = onPaginationClick
+                )
+            }
+        }
+
+        // Display product detail
+        message.tags.filterIsInstance<UiTag.DisplayProductDetail>().firstOrNull()?.let { tag ->
+            Spacer(modifier = Modifier.height(8.dp))
+            ProductDetailCard(
+                product = tag.product,
+                onAddToCart = { skuId, quantity ->
+                    onQuickReplyClick("Thêm vào giỏ hàng SKU $skuId số lượng $quantity")
+                }
+            )
+        }
+
+        // Display cart
+        message.tags.filterIsInstance<UiTag.DisplayCart>().firstOrNull()?.let { tag ->
+            Spacer(modifier = Modifier.height(8.dp))
+            CartSection(
+                items = tag.items,
+                totalAmount = tag.totalAmount,
+                totalItems = tag.totalItems,
+                onRemoveItem = { cartItemId ->
+                    onQuickReplyClick("Xóa sản phẩm $cartItemId khỏi giỏ hàng")
+                },
+                onViewCart = onViewCart
+            )
         }
     }
 }
@@ -794,5 +864,588 @@ private fun androidx.compose.ui.text.AnnotatedString.Builder.parseInlineMarkdown
     // Add remaining text
     if (currentIndex < text.length) {
         append(text.substring(currentIndex))
+    }
+}
+
+// ==================== PRODUCT COMPONENTS ====================
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun ProductListSection(
+    products: List<ChatProductItem>,
+    pagination: ChatPaginationInfo,
+    onProductClick: (ChatProductItem) -> Unit,
+    onPaginationClick: (String?, Int) -> Unit
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Product horizontal list
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(products) { product ->
+                ProductCard(
+                    product = product,
+                    currencyFormat = currencyFormat,
+                    onClick = { onProductClick(product) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Pagination controls
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Previous button
+            OutlinedButton(
+                onClick = { onPaginationClick(pagination.searchQuery, pagination.currentPage - 1) },
+                enabled = pagination.hasPreviousPage,
+                modifier = Modifier.size(40.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = "Trang trước"
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                text = "Trang ${pagination.currentPage}/${pagination.totalPages}",
+                style = CustomTypography.TextMedium
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Next button
+            OutlinedButton(
+                onClick = { onPaginationClick(pagination.searchQuery, pagination.currentPage + 1) },
+                enabled = pagination.hasNextPage,
+                modifier = Modifier.size(40.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "Trang sau"
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun ProductCard(
+    product: ChatProductItem,
+    currencyFormat: NumberFormat,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            // Product image
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .background(colorResource(id = R.color.colorSystem_greyscale_100))
+            ) {
+                if (product.mainImage.isNotEmpty()) {
+                    GlideImage(
+                        model = product.mainImage,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Discount badge
+                if (product.hasDiscount) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(colorResource(id = R.color.colorSystem_tint_red))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "-${product.discountPercent}%",
+                            style = CustomTypography.TextSmall,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = product.name,
+                    style = CustomTypography.TextMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Price
+                Text(
+                    text = currencyFormat.format(product.basePrice),
+                    style = CustomTypography.TextSemiBold,
+                    color = colorResource(id = R.color.colorSystem_tint_red)
+                )
+
+                if (product.hasDiscount && product.virtualPrice != null) {
+                    Text(
+                        text = currencyFormat.format(product.virtualPrice),
+                        style = CustomTypography.TextSmall.copy(textDecoration = TextDecoration.LineThrough),
+                        color = colorResource(id = R.color.colorSystem_greyscale_400)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Rating and sold
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = colorResource(id = R.color.colorSystem_tint_yellow)
+                    )
+                    Text(
+                        text = " ${product.rating}",
+                        style = CustomTypography.TextSmall,
+                        color = colorResource(id = R.color.colorSystem_greyscale_500)
+                    )
+                    Text(
+                        text = " | Đã bán ${product.sold}",
+                        style = CustomTypography.TextSmall,
+                        color = colorResource(id = R.color.colorSystem_greyscale_500)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun ProductDetailCard(
+    product: ChatProductDetail,
+    onAddToCart: (skuId: String, quantity: Int) -> Unit
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
+    var selectedSkuIndex by remember { mutableStateOf(0) }
+    var quantity by remember { mutableStateOf(1) }
+
+    val selectedSku = product.skus.getOrNull(selectedSkuIndex)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Product images
+            if (product.images.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(product.images) { imageUrl ->
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colorResource(id = R.color.colorSystem_greyscale_100))
+                        ) {
+                            GlideImage(
+                                model = imageUrl,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Product name
+            Text(
+                text = product.name,
+                style = CustomTypography.HeadingH5,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Price
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = currencyFormat.format(selectedSku?.price ?: product.basePrice),
+                    style = CustomTypography.HeadingH5,
+                    color = colorResource(id = R.color.colorSystem_tint_red)
+                )
+                if (product.hasDiscount && product.virtualPrice != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = currencyFormat.format(product.virtualPrice),
+                        style = CustomTypography.TextMedium.copy(textDecoration = TextDecoration.LineThrough),
+                        color = colorResource(id = R.color.colorSystem_greyscale_400)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "-${product.discountPercent}%",
+                        style = CustomTypography.TextSmall,
+                        color = colorResource(id = R.color.colorSystem_tint_red)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Rating, sold, shop
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = colorResource(id = R.color.colorSystem_tint_yellow)
+                )
+                Text(
+                    text = " ${product.rating}/5",
+                    style = CustomTypography.TextRegular
+                )
+                Text(
+                    text = " | Đã bán ${product.sold}",
+                    style = CustomTypography.TextRegular,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500)
+                )
+            }
+
+            product.shopName?.let { shopName ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Shop: $shopName",
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500)
+                )
+            }
+
+            // Description
+            if (product.description.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = product.description,
+                    style = CustomTypography.TextRegular,
+                    color = colorResource(id = R.color.colorSystem_greyscale_600),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // SKU selection
+            if (product.skus.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Phân loại:",
+                    style = CustomTypography.TextSemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(product.skus.size) { index ->
+                        val sku = product.skus[index]
+                        val isSelected = index == selectedSkuIndex
+                        Card(
+                            modifier = Modifier.clickable { selectedSkuIndex = index },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected)
+                                    colorResource(id = R.color.colorSystem_heading_button)
+                                else
+                                    colorResource(id = R.color.colorSystem_greyscale_100)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = sku.value,
+                                    style = CustomTypography.TextSmall,
+                                    color = if (isSelected) Color.White else Color.Black
+                                )
+                                Text(
+                                    text = currencyFormat.format(sku.price),
+                                    style = CustomTypography.TextSmall,
+                                    color = if (isSelected) Color.White else colorResource(id = R.color.colorSystem_tint_red)
+                                )
+                                Text(
+                                    text = "Còn ${sku.stock}",
+                                    style = CustomTypography.TextSmall,
+                                    color = if (isSelected) Color.White.copy(alpha = 0.7f) else colorResource(id = R.color.colorSystem_greyscale_500)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Quantity selector
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Số lượng:",
+                    style = CustomTypography.TextSemiBold
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                IconButton(
+                    onClick = { if (quantity > 1) quantity-- },
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(colorResource(id = R.color.colorSystem_greyscale_100))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Remove,
+                        contentDescription = "Giảm",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = quantity.toString(),
+                    style = CustomTypography.TextMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                IconButton(
+                    onClick = {
+                        val maxStock = selectedSku?.stock ?: 99
+                        if (quantity < maxStock) quantity++
+                    },
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(colorResource(id = R.color.colorSystem_greyscale_100))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Tăng",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Add to cart button
+            Spacer(modifier = Modifier.height(12.dp))
+            ActionButton(
+                text = "Thêm vào giỏ hàng",
+                onClick = {
+                    selectedSku?.let { sku ->
+                        onAddToCart(sku.id, quantity)
+                    }
+                }
+            )
+        }
+    }
+}
+
+// ==================== CART COMPONENTS ====================
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun CartSection(
+    items: List<ChatCartItem>,
+    totalAmount: Int,
+    totalItems: Int,
+    onRemoveItem: (String) -> Unit,
+    onViewCart: () -> Unit
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Giỏ hàng ($totalItems)",
+                        style = CustomTypography.TextSemiBold
+                    )
+                }
+                Text(
+                    text = currencyFormat.format(totalAmount),
+                    style = CustomTypography.TextSemiBold,
+                    color = colorResource(id = R.color.colorSystem_tint_red)
+                )
+            }
+
+            if (items.isEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Giỏ hàng của bạn đang trống",
+                    style = CustomTypography.TextRegular,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Cart items (show max 3)
+                items.take(3).forEach { item ->
+                    CartItemRow(
+                        item = item,
+                        currencyFormat = currencyFormat,
+                        onRemove = { onRemoveItem(item.cartItemId) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (items.size > 3) {
+                    Text(
+                        text = "và ${items.size - 3} sản phẩm khác...",
+                        style = CustomTypography.TextSmall,
+                        color = colorResource(id = R.color.colorSystem_greyscale_500)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // View cart button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onViewCart) {
+                        Text(
+                            text = "Xem giỏ hàng đầy đủ",
+                            style = CustomTypography.TextMedium,
+                            color = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun CartItemRow(
+    item: ChatCartItem,
+    currencyFormat: NumberFormat,
+    onRemove: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(colorResource(id = R.color.colorSystem_greyscale_100))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Product image
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(colorResource(id = R.color.colorSystem_greyscale_100))
+        ) {
+            if (item.image.isNotEmpty()) {
+                GlideImage(
+                    model = item.image,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Product info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.productName,
+                style = CustomTypography.TextMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            item.skuValue?.let { skuValue ->
+                Text(
+                    text = skuValue,
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500)
+                )
+            }
+            Text(
+                text = "${item.quantity} x ${currencyFormat.format(item.price)}",
+                style = CustomTypography.TextSmall,
+                color = colorResource(id = R.color.colorSystem_greyscale_600)
+            )
+        }
+
+        // Total and remove button
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = currencyFormat.format(item.price * item.quantity),
+                style = CustomTypography.TextSemiBold,
+                color = colorResource(id = R.color.colorSystem_tint_red)
+            )
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Xóa",
+                    modifier = Modifier.size(16.dp),
+                    tint = colorResource(id = R.color.colorSystem_greyscale_400)
+                )
+            }
+        }
     }
 }

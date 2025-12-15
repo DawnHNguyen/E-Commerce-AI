@@ -229,6 +229,9 @@ class MainActivity : FragmentActivity() {
                                     },
                                     onNavigateToOrderDetail = { orderId ->
                                         navController.navigate(OrderDetailRoute(orderId = orderId))
+                                    },
+                                    onNavigateToCart = {
+                                        navController.navigate(BottomNavigationScreen.CartScreen)
                                     }
                                 )
                             }
