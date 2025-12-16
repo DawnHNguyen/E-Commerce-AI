@@ -120,6 +120,48 @@ data class ChatPaginationInfo(
     val searchQuery: String?
 )
 
+/**
+ * Delivery address for checkout (matching CreateOrderScreen flow)
+ */
+data class ChatDeliveryAddress(
+    val recipientName: String,
+    val phone: String,
+    // Structured address data for GHN shipping
+    val provinceId: Int?,
+    val provinceName: String?,
+    val districtId: Int?,
+    val districtName: String?,
+    val wardCode: String?,
+    val wardName: String?,
+    val detailAddress: String?,  // Street address
+    val isDefault: Boolean
+) {
+    /** Combined full address for display */
+    val fullAddress: String
+        get() = buildString {
+            if (!detailAddress.isNullOrBlank()) append("$detailAddress, ")
+            if (!wardName.isNullOrBlank()) append("$wardName, ")
+            if (!districtName.isNullOrBlank()) append("$districtName, ")
+            if (!provinceName.isNullOrBlank()) append(provinceName)
+        }.trimEnd(',', ' ')
+
+    /** Check if address is complete for shipping */
+    val isComplete: Boolean
+        get() = provinceId != null && districtId != null && wardCode != null && !detailAddress.isNullOrBlank()
+}
+
+/**
+ * Checkout summary for order confirmation
+ */
+data class ChatCheckoutSummary(
+    val items: List<ChatCartItem>,
+    val address: ChatDeliveryAddress?,
+    val subtotal: Int,
+    val shippingFee: Int,
+    val total: Int,
+    val hasPaymentMethod: Boolean
+)
+
 sealed class UiTag {
     data object DisplayRecentOrders : UiTag()
     data object DisplayPaymentMethods : UiTag()
@@ -142,4 +184,8 @@ sealed class UiTag {
     ) : UiTag()
     data class AddToCartSuccess(val productName: String, val quantity: Int) : UiTag()
     data class RemoveFromCartSuccess(val productName: String) : UiTag()
+
+    // Checkout-related tags
+    data class DisplayCheckoutSummary(val summary: ChatCheckoutSummary) : UiTag()
+    data class OrderCreated(val orderId: String, val orderCode: String?) : UiTag()
 }

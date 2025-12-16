@@ -6,6 +6,8 @@ import com.google.gson.reflect.TypeToken
 import comptitdatabase.GetAllChatSessions
 import comptitdatabase.TblChatMessage
 import com.ptit.domain.entity.chat.ChatCartItem
+import com.ptit.domain.entity.chat.ChatCheckoutSummary
+import com.ptit.domain.entity.chat.ChatDeliveryAddress
 import com.ptit.domain.entity.chat.ChatMessage
 import com.ptit.domain.entity.chat.ChatOrderItem
 import com.ptit.domain.entity.chat.ChatPaginationInfo
@@ -226,6 +228,58 @@ object ChatMapping {
                         val productName = dto.data["productName"] as? String ?: ""
                         UiTag.RemoveFromCartSuccess(productName)
                     }
+                    "DISPLAY_CHECKOUT_SUMMARY" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val summaryMap = dto.data["summary"] as? Map<String, Any> ?: emptyMap()
+                        @Suppress("UNCHECKED_CAST")
+                        val itemsData = summaryMap["items"] as? List<Map<String, Any>> ?: emptyList()
+                        @Suppress("UNCHECKED_CAST")
+                        val addressMap = summaryMap["address"] as? Map<String, Any>
+
+                        val items = itemsData.map { itemMap ->
+                            ChatCartItem(
+                                cartItemId = itemMap["cartItemId"] as? String ?: "",
+                                productId = itemMap["productId"] as? String,
+                                productName = itemMap["productName"] as? String ?: "",
+                                skuId = itemMap["skuId"] as? String ?: "",
+                                skuValue = itemMap["skuValue"] as? String,
+                                quantity = (itemMap["quantity"] as? Number)?.toInt() ?: 0,
+                                price = (itemMap["price"] as? Number)?.toInt() ?: 0,
+                                image = itemMap["image"] as? String ?: "",
+                                shopName = itemMap["shopName"] as? String
+                            )
+                        }
+
+                        val address = addressMap?.let {
+                            ChatDeliveryAddress(
+                                recipientName = it["recipientName"] as? String ?: "",
+                                phone = it["phone"] as? String ?: "",
+                                provinceId = (it["provinceId"] as? Number)?.toInt(),
+                                provinceName = it["provinceName"] as? String,
+                                districtId = (it["districtId"] as? Number)?.toInt(),
+                                districtName = it["districtName"] as? String,
+                                wardCode = it["wardCode"] as? String,
+                                wardName = it["wardName"] as? String,
+                                detailAddress = it["detailAddress"] as? String,
+                                isDefault = it["isDefault"] as? Boolean ?: false
+                            )
+                        }
+
+                        val summary = ChatCheckoutSummary(
+                            items = items,
+                            address = address,
+                            subtotal = (summaryMap["subtotal"] as? Number)?.toInt() ?: 0,
+                            shippingFee = (summaryMap["shippingFee"] as? Number)?.toInt() ?: 0,
+                            total = (summaryMap["total"] as? Number)?.toInt() ?: 0,
+                            hasPaymentMethod = summaryMap["hasPaymentMethod"] as? Boolean ?: false
+                        )
+                        UiTag.DisplayCheckoutSummary(summary)
+                    }
+                    "ORDER_CREATED" -> {
+                        val orderId = dto.data["orderId"] as? String ?: ""
+                        val orderCode = dto.data["orderCode"] as? String
+                        UiTag.OrderCreated(orderId, orderCode)
+                    }
                     else -> null
                 }
             }.filterNotNull()
@@ -352,6 +406,52 @@ object ChatMapping {
                     type = "REMOVE_FROM_CART_SUCCESS",
                     data = mapOf("productName" to tag.productName)
                 )
+                is UiTag.DisplayCheckoutSummary -> {
+                    val addressMap: Map<String, Any?>? = tag.summary.address?.let { address ->
+                        mapOf(
+                            "recipientName" to address.recipientName,
+                            "phone" to address.phone,
+                            "provinceId" to address.provinceId,
+                            "provinceName" to address.provinceName,
+                            "districtId" to address.districtId,
+                            "districtName" to address.districtName,
+                            "wardCode" to address.wardCode,
+                            "wardName" to address.wardName,
+                            "detailAddress" to address.detailAddress,
+                            "isDefault" to address.isDefault
+                        )
+                    }
+                    UiTagDto(
+                        type = "DISPLAY_CHECKOUT_SUMMARY",
+                        data = mapOf(
+                            "summary" to mapOf(
+                                "items" to tag.summary.items.map { item ->
+                                    mapOf(
+                                        "cartItemId" to item.cartItemId,
+                                        "productId" to item.productId,
+                                        "productName" to item.productName,
+                                        "skuId" to item.skuId,
+                                        "skuValue" to item.skuValue,
+                                        "quantity" to item.quantity,
+                                        "price" to item.price,
+                                        "image" to item.image,
+                                        "shopName" to item.shopName
+                                    )
+                                },
+                                "address" to addressMap,
+                                "subtotal" to tag.summary.subtotal,
+                                "shippingFee" to tag.summary.shippingFee,
+                                "total" to tag.summary.total,
+                                "hasPaymentMethod" to tag.summary.hasPaymentMethod
+                            )
+                        )
+                    )
+                }
+                is UiTag.OrderCreated -> {
+                    val data = mutableMapOf<String, Any>("orderId" to tag.orderId)
+                    tag.orderCode?.let { data["orderCode"] = it }
+                    UiTagDto(type = "ORDER_CREATED", data = data)
+                }
             }
         }
 

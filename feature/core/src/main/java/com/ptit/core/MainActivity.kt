@@ -232,6 +232,11 @@ class MainActivity : FragmentActivity() {
                                     },
                                     onNavigateToCart = {
                                         navController.navigate(BottomNavigationScreen.CartScreen)
+                                    },
+                                    onNavigateToCheckout = {
+                                        // Navigate to cart screen for checkout
+                                        // User can select items and proceed from there
+                                        navController.navigate(BottomNavigationScreen.CartScreen)
                                     }
                                 )
                             }

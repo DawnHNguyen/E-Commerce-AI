@@ -9,6 +9,8 @@ import com.ptit.data.mapping.ChatMapping.toDomain
 import com.ptit.data.remote.datasource.GeminiRemoteDataSource
 import com.ptit.domain.entity.cart.DeleteCartRequestDomainEntity
 import com.ptit.domain.entity.chat.ChatCartItem
+import com.ptit.domain.entity.chat.ChatCheckoutSummary
+import com.ptit.domain.entity.chat.ChatDeliveryAddress
 import com.ptit.domain.entity.chat.ChatMessage
 import com.ptit.domain.entity.chat.ChatOrderItem
 import com.ptit.domain.entity.chat.ChatPaginationInfo
@@ -21,11 +23,18 @@ import com.ptit.domain.entity.chat.ChatVariant
 import com.ptit.domain.entity.chat.UiTag
 import com.ptit.data.mapping.toDomainEntity
 import com.ptit.data.remote.datasource.ProductRemoteDataSource
+import com.ptit.domain.entity.shipping.CalculateShippingFeeRequestDomainEntity
+import com.ptit.domain.entity.shipping.DistrictEntity
+import com.ptit.domain.entity.shipping.ProvinceEntity
+import com.ptit.domain.entity.shipping.WardEntity
+import com.ptit.domain.repository.AddressRepository
 import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.ChatRepository
 import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.PaymentMethodRepository
 import com.ptit.domain.repository.ProductRepository
+import com.ptit.domain.repository.ShippingRepository
+import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import com.ptit.domain.utils.UnknownException
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +55,10 @@ class ChatRepositoryImpl @Inject constructor(
     private val paymentMethodRepository: PaymentMethodRepository,
     private val productRepository: ProductRepository,
     private val productRemoteDataSource: ProductRemoteDataSource,
-    private val cartRepository: CartRepository
+    private val cartRepository: CartRepository,
+    private val addressRepository: AddressRepository,
+    private val userRepository: UserRepository,
+    private val shippingRepository: ShippingRepository
 ) : ChatRepository {
 
     private val gson = Gson()
@@ -54,6 +66,75 @@ class ChatRepositoryImpl @Inject constructor(
     // Store last search context for pagination
     private var lastSearchQuery: String? = null
     private var lastSearchLimit: Int = 5
+
+    // Store temporary delivery address for checkout
+    private var tempDeliveryAddress: ChatDeliveryAddress? = null
+
+    // Cache user name and phone from profile
+    private var cachedUserName: String? = null
+    private var cachedUserPhone: String? = null
+
+    // ==================== ADDRESS SELECTION METHODS ====================
+
+    override suspend fun getProvinces(): Resource<List<ProvinceEntity>> {
+        return shippingRepository.getProvinces()
+    }
+
+    override suspend fun getDistricts(provinceId: Int): Resource<List<DistrictEntity>> {
+        return shippingRepository.getDistricts(provinceId)
+    }
+
+    override suspend fun getWards(districtId: Int): Resource<List<WardEntity>> {
+        return shippingRepository.getWards(districtId)
+    }
+
+    override fun updateDeliveryAddress(address: ChatDeliveryAddress) {
+        tempDeliveryAddress = address
+    }
+
+    override fun getDeliveryAddress(): ChatDeliveryAddress? {
+        return tempDeliveryAddress
+    }
+
+    override fun getUserNameAndPhone(): Pair<String, String>? {
+        // Return cached values if available
+        if (cachedUserName != null && cachedUserPhone != null) {
+            return Pair(cachedUserName!!, cachedUserPhone!!)
+        }
+        return null
+    }
+
+    override suspend fun calculateShippingFee(): Int = withContext(Dispatchers.IO) {
+        val address = tempDeliveryAddress ?: return@withContext 0
+
+        // Check if address is complete
+        if (!address.isComplete) {
+            return@withContext 0
+        }
+
+        // Get cart to calculate weight
+        val cartResult = fetchCart() ?: return@withContext 30000 // Default fee if can't fetch cart
+
+        // Calculate total items for weight estimation
+        val totalItems = cartResult.third
+        val estimatedWeight = (totalItems * 200).toDouble() // 200g per item
+
+        val request = CalculateShippingFeeRequestDomainEntity(
+            height = 10.0,
+            weight = estimatedWeight,
+            length = 20.0,
+            width = 20.0,
+            wardCode = address.wardCode!!,
+            districtId = address.districtId!!,
+            provinceId = address.provinceId!!,
+            serviceTypeId = 2
+        )
+
+        when (val result = shippingRepository.calculateShippingFee(request)) {
+            is Resource.Success -> result.data.total
+            else -> 30000 // Default fee on error
+        }
+    }
 
     // Session management
     override fun getAllSessions(): Flow<List<ChatSession>> {
@@ -181,6 +262,72 @@ class ChatRepositoryImpl @Inject constructor(
                         tags = tagsJson,
                         isPending = false
                     )
+                    return
+                }
+
+                // Handle navigate_to_checkout function - show checkout summary with order details
+                if (functionCallData.name == "navigate_to_checkout") {
+                    val checkoutSummary = prepareCheckoutSummary()
+                    if (checkoutSummary != null && checkoutSummary.items.isNotEmpty()) {
+                        val tags = listOf(UiTag.DisplayCheckoutSummary(checkoutSummary))
+                        val tagsJson = ChatMapping.serializeTagsToString(tags)
+
+                        val address = checkoutSummary.address
+                        val message = buildString {
+                            append("📦 Xác nhận đơn hàng\n\n")
+                            append("Bạn có ${checkoutSummary.items.size} sản phẩm trong giỏ hàng.\n")
+                            if (address != null) {
+                                append("📍 Giao đến: ${address.fullAddress}\n")
+                            } else {
+                                append("⚠️ Chưa có địa chỉ giao hàng. Vui lòng thêm địa chỉ trước khi đặt hàng.\n")
+                            }
+                            if (!checkoutSummary.hasPaymentMethod) {
+                                append("⚠️ Chưa có phương thức thanh toán. Vui lòng thêm thẻ thanh toán.\n")
+                            }
+                        }
+
+                        localDataSource.insertChatMessage(
+                            sessionId = sessionId,
+                            role = ChatRole.MODEL.toString(),
+                            content = message,
+                            tags = tagsJson,
+                            isPending = false
+                        )
+                    } else {
+                        localDataSource.insertChatMessage(
+                            sessionId = sessionId,
+                            role = ChatRole.MODEL.toString(),
+                            content = "Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm vào giỏ hàng trước khi đặt hàng.",
+                            tags = "",
+                            isPending = false
+                        )
+                    }
+                    return
+                }
+
+                // Handle confirm_order function - create order and navigate to payment
+                if (functionCallData.name == "confirm_order") {
+                    val orderResult = createOrderFromCart()
+                    if (orderResult != null) {
+                        val tags = listOf(UiTag.OrderCreated(orderResult.first, orderResult.second))
+                        val tagsJson = ChatMapping.serializeTagsToString(tags)
+
+                        localDataSource.insertChatMessage(
+                            sessionId = sessionId,
+                            role = ChatRole.MODEL.toString(),
+                            content = "✅ Đơn hàng đã được tạo thành công!\n\nMã đơn: ${orderResult.second ?: orderResult.first}\n\nVui lòng xác nhận thanh toán để hoàn tất đơn hàng.",
+                            tags = tagsJson,
+                            isPending = false
+                        )
+                    } else {
+                        localDataSource.insertChatMessage(
+                            sessionId = sessionId,
+                            role = ChatRole.MODEL.toString(),
+                            content = "❌ Không thể tạo đơn hàng. Vui lòng kiểm tra lại giỏ hàng và địa chỉ giao hàng.",
+                            tags = "",
+                            isPending = false
+                        )
+                    }
                     return
                 }
 
@@ -785,6 +932,143 @@ class ChatRepositoryImpl @Inject constructor(
                     "error" to "Đang xử lý..."
                 ))
             }
+        }
+    }
+
+    // ==================== CHECKOUT FUNCTIONS ====================
+
+    private suspend fun prepareCheckoutSummary(): ChatCheckoutSummary? = withContext(Dispatchers.IO) {
+        // Fetch cart items
+        val cartResult = fetchCart() ?: return@withContext null
+        val (items, subtotal, _) = cartResult
+
+        if (items.isEmpty()) return@withContext null
+
+        // Load user profile to cache name and phone (auto-fill)
+        if (cachedUserName == null || cachedUserPhone == null) {
+            when (val userResult = userRepository.getUserProfile()) {
+                is Resource.Success -> {
+                    cachedUserName = userResult.data.name
+                    cachedUserPhone = userResult.data.phoneNumber
+                }
+                else -> { /* Ignore error, user will need to input manually */ }
+            }
+        }
+
+        // Use temporary address if available
+        val address: ChatDeliveryAddress? = tempDeliveryAddress
+
+        // Calculate shipping fee if address is complete
+        val shippingFee = if (address?.isComplete == true) {
+            calculateShippingFee()
+        } else {
+            0 // No shipping fee until address is complete
+        }
+
+        // Check if user has payment method
+        val hasPaymentMethod = try {
+            val methods = paymentMethodRepository.getPaymentMethods().first()
+            methods.isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+
+        val total = subtotal + shippingFee
+
+        ChatCheckoutSummary(
+            items = items,
+            address = address,
+            subtotal = subtotal,
+            shippingFee = shippingFee,
+            total = total,
+            hasPaymentMethod = hasPaymentMethod
+        )
+    }
+
+    // Store checkout data for order creation
+    private var pendingCheckoutData: ChatCheckoutSummary? = null
+
+    private suspend fun createOrderFromCart(): Pair<String, String?>? = withContext(Dispatchers.IO) {
+        // Get checkout summary (cached or fetch new)
+        val checkoutData = pendingCheckoutData ?: prepareCheckoutSummary() ?: return@withContext null
+
+        // Check if we have necessary data
+        if (checkoutData.items.isEmpty()) return@withContext null
+        val address = checkoutData.address ?: return@withContext null
+
+        // Validate address is complete with IDs
+        if (!address.isComplete) {
+            return@withContext null
+        }
+
+        // Group items by shop
+        val itemsByShop = checkoutData.items.groupBy { it.shopName ?: "unknown" }
+
+        // Calculate weight for shipping
+        val totalItems = checkoutData.items.sumOf { it.quantity }
+        val estimatedWeight = (totalItems * 200).toDouble() // 200g per item
+
+        // Build order request
+        val shopRequests = itemsByShop.map { (_, shopItems) ->
+            // Get shopId from first item (items from same shop should have same shopId)
+            val firstItem = shopItems.first()
+            val shopId = getShopIdFromProductId(firstItem.productId)
+
+            com.ptit.domain.entity.order.ShopOrderRequestDomainEntity(
+                shopId = shopId ?: return@withContext null,
+                receiver = com.ptit.domain.entity.order.ReceiverDomainEntity(
+                    name = address.recipientName,
+                    phone = address.phone,
+                    address = address.detailAddress ?: "",
+                    provinceId = address.provinceId,
+                    districtId = address.districtId,
+                    wardCode = address.wardCode
+                ),
+                cartItemIds = shopItems.map { it.cartItemId },
+                discountCodes = null,
+                shippingInfo = com.ptit.domain.entity.order.ShippingInfoDomainEntity(
+                    serviceId = null,
+                    serviceTypeId = 2,
+                    weight = estimatedWeight,
+                    length = 20.0,
+                    width = 20.0,
+                    height = 10.0,
+                    shippingFee = checkoutData.shippingFee.toDouble(),
+                    note = null,
+                    paymentTypeId = 1,
+                    configFeeId = null,
+                    extraCostId = null,
+                    requiredNote = null,
+                    coupon = null,
+                    pickShift = null
+                ),
+                isCod = false // Online payment
+            )
+        }
+
+        val createOrderRequest = com.ptit.domain.entity.order.CreateOrderRequestDomainEntity(
+            shops = shopRequests,
+            platformDiscountCodes = null
+        )
+
+        // Create order
+        when (val result = orderRepository.createOrder(createOrderRequest)) {
+            is Resource.Success -> {
+                val response = result.data
+                val firstOrder = response.orders.firstOrNull()
+                pendingCheckoutData = null // Clear cached data
+                tempDeliveryAddress = null // Clear temp address after order
+                Pair(firstOrder?.id ?: "", firstOrder?.orderCode)
+            }
+            else -> null
+        }
+    }
+
+    private suspend fun getShopIdFromProductId(productId: String?): String? {
+        if (productId == null) return null
+        return when (val result = productRepository.getProductDetail(productId)) {
+            is Resource.Success -> result.data.createdById
+            else -> null
         }
     }
 }

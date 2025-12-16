@@ -42,7 +42,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,7 +88,10 @@ import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.common.presentation.component.FilledButton
 import com.ptit.domain.entity.chat.ChatCartItem
+import com.ptit.domain.entity.chat.ChatCheckoutSummary
+import com.ptit.domain.entity.chat.ChatDeliveryAddress
 import com.ptit.domain.entity.chat.ChatMessage
 import com.ptit.domain.entity.chat.ChatOrderItem
 import com.ptit.domain.entity.chat.ChatPaginationInfo
@@ -93,6 +99,9 @@ import com.ptit.domain.entity.chat.ChatProductDetail
 import com.ptit.domain.entity.chat.ChatProductItem
 import com.ptit.domain.entity.chat.ChatRole
 import com.ptit.domain.entity.chat.UiTag
+import com.ptit.domain.entity.shipping.DistrictEntity
+import com.ptit.domain.entity.shipping.ProvinceEntity
+import com.ptit.domain.entity.shipping.WardEntity
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
@@ -105,10 +114,12 @@ fun ChatScreen(
     onNavigateToAddPayment: () -> Unit,
     onNavigateToOrderDetail: (orderId: String) -> Unit,
     onNavigateToCart: () -> Unit,
+    onNavigateToCheckout: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     LocalBottomNavigationVisibility.current.value = false
     val uiState by viewModel.uiState.collectAsState()
+    val addressState by viewModel.addressState.collectAsState()
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
 
@@ -117,6 +128,10 @@ fun ChatScreen(
     val scope = rememberCoroutineScope()
     var showOrderSheet by remember { mutableStateOf(false) }
     var currentOrderList by remember { mutableStateOf<List<ChatOrderItem>>(emptyList()) }
+
+    // Address input bottom sheet state
+    val addressSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showAddressSheet by remember { mutableStateOf(false) }
 
     // Initialize with session ID
     LaunchedEffect(sessionId) {
@@ -135,6 +150,7 @@ fun ChatScreen(
         uiState.navigationEvent?.let { event ->
             when (event) {
                 is NavigationEvent.AddPayment -> onNavigateToAddPayment()
+                is NavigationEvent.Checkout -> onNavigateToCheckout()
                 is NavigationEvent.OrderDetail -> onNavigateToOrderDetail(event.orderId)
             }
             viewModel.clearNavigationEvent()
@@ -167,6 +183,46 @@ fun ChatScreen(
                         showOrderSheet = false
                         // Send order ID to chat for checking status
                         viewModel.sendMessage("Kiểm tra đơn hàng ${order.orderCode ?: order.id}")
+                    }
+                }
+            )
+        }
+    }
+
+    // Address Input Bottom Sheet - matching CreateOrderScreen flow
+    if (showAddressSheet) {
+        // Initialize address input when sheet opens
+        LaunchedEffect(Unit) {
+            viewModel.initAddressInput()
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = {
+                showAddressSheet = false
+                viewModel.resetAddressState()
+            },
+            sheetState = addressSheetState
+        ) {
+            AddressInputBottomSheet(
+                addressState = addressState,
+                onRecipientNameChange = viewModel::updateRecipientName,
+                onPhoneChange = viewModel::updatePhone,
+                onProvinceSelect = viewModel::selectProvince,
+                onDistrictSelect = viewModel::selectDistrict,
+                onWardSelect = viewModel::selectWard,
+                onDetailAddressChange = viewModel::updateDetailAddress,
+                onSave = {
+                    scope.launch {
+                        addressSheetState.hide()
+                        showAddressSheet = false
+                        viewModel.saveAddressAndCheckout()
+                    }
+                },
+                onCancel = {
+                    scope.launch {
+                        addressSheetState.hide()
+                        showAddressSheet = false
+                        viewModel.resetAddressState()
                     }
                 }
             )
@@ -253,6 +309,7 @@ fun ChatScreen(
                             viewModel.sendMessage(reply)
                         },
                         onNavigateToAddPayment = onNavigateToAddPayment,
+                        onShowAddressInput = { showAddressSheet = true },
                         onShowOrderList = { orders ->
                             currentOrderList = orders
                             showOrderSheet = true
@@ -264,7 +321,11 @@ fun ChatScreen(
                             val query = searchQuery?.replace(" ", "_") ?: ""
                             viewModel.sendMessage("Xem trang $page kết quả tìm kiếm $query")
                         },
-                        onViewCart = onNavigateToCart
+                        onViewCart = onNavigateToCart,
+                        onConfirmOrder = {
+                            viewModel.sendMessage("Xác nhận đặt hàng")
+                        },
+                        onNavigateToOrderDetail = onNavigateToOrderDetail
                     )
                 }
 
@@ -340,10 +401,13 @@ private fun ChatMessageItem(
     message: ChatMessage,
     onQuickReplyClick: (String) -> Unit,
     onNavigateToAddPayment: () -> Unit,
+    onShowAddressInput: () -> Unit,
     onShowOrderList: (List<ChatOrderItem>) -> Unit,
     onProductClick: (ChatProductItem) -> Unit,
     onPaginationClick: (String?, Int) -> Unit, // searchQuery, page
-    onViewCart: () -> Unit
+    onViewCart: () -> Unit,
+    onConfirmOrder: () -> Unit,
+    onNavigateToOrderDetail: (String) -> Unit
 ) {
     val isUser = message.role == ChatRole.USER
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -458,6 +522,27 @@ private fun ChatMessageItem(
                     onQuickReplyClick("Xóa sản phẩm $cartItemId khỏi giỏ hàng")
                 },
                 onViewCart = onViewCart
+            )
+        }
+
+        // Display checkout summary
+        message.tags.filterIsInstance<UiTag.DisplayCheckoutSummary>().firstOrNull()?.let { tag ->
+            Spacer(modifier = Modifier.height(8.dp))
+            CheckoutSummaryCard(
+                summary = tag.summary,
+                onConfirmOrder = onConfirmOrder,
+                onNavigateToAddPayment = onNavigateToAddPayment,
+                onShowAddressInput = onShowAddressInput
+            )
+        }
+
+        // Handle order created - navigate to payment
+        message.tags.filterIsInstance<UiTag.OrderCreated>().firstOrNull()?.let { tag ->
+            Spacer(modifier = Modifier.height(8.dp))
+            OrderCreatedCard(
+                orderId = tag.orderId,
+                orderCode = tag.orderCode,
+                onPayNow = { onNavigateToOrderDetail(tag.orderId) }
             )
         }
     }
@@ -1444,6 +1529,592 @@ private fun CartItemRow(
                     contentDescription = "Xóa",
                     modifier = Modifier.size(16.dp),
                     tint = colorResource(id = R.color.colorSystem_greyscale_400)
+                )
+            }
+        }
+    }
+}
+
+// ==================== CHECKOUT COMPONENTS ====================
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun CheckoutSummaryCard(
+    summary: ChatCheckoutSummary,
+    onConfirmOrder: () -> Unit,
+    onNavigateToAddPayment: () -> Unit,
+    onShowAddressInput: () -> Unit
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Receipt,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = colorResource(id = R.color.colorSystem_heading_button)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Xác nhận đơn hàng",
+                    style = CustomTypography.TextBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Items summary
+            Text(
+                text = "Sản phẩm (${summary.items.size})",
+                style = CustomTypography.TextSemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            summary.items.take(3).forEach { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.productName,
+                            style = CustomTypography.TextMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "x${item.quantity}",
+                            style = CustomTypography.TextSmall,
+                            color = colorResource(id = R.color.colorSystem_greyscale_500)
+                        )
+                    }
+                    Text(
+                        text = currencyFormat.format(item.price * item.quantity),
+                        style = CustomTypography.TextMedium
+                    )
+                }
+            }
+
+            if (summary.items.size > 3) {
+                Text(
+                    text = "và ${summary.items.size - 3} sản phẩm khác...",
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Delivery address
+            Text(
+                text = "Địa chỉ giao hàng",
+                style = CustomTypography.TextSemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            val address = summary.address
+            if (address != null) {
+                Text(
+                    text = address.recipientName,
+                    style = CustomTypography.TextMedium
+                )
+                Text(
+                    text = address.phone,
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_600)
+                )
+                Text(
+                    text = address.fullAddress,
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_600)
+                )
+            } else {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onShowAddressInput),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorResource(id = R.color.colorSystem_tint_red).copy(alpha = 0.1f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = colorResource(id = R.color.colorSystem_tint_red)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Thêm địa chỉ giao hàng",
+                            style = CustomTypography.TextMedium,
+                            color = colorResource(id = R.color.colorSystem_tint_red)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Price breakdown
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Tạm tính:", style = CustomTypography.TextRegular)
+                Text(text = currencyFormat.format(summary.subtotal), style = CustomTypography.TextMedium)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Phí vận chuyển:", style = CustomTypography.TextRegular)
+                Text(text = currencyFormat.format(summary.shippingFee), style = CustomTypography.TextMedium)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Tổng cộng:", style = CustomTypography.TextBold)
+                Text(
+                    text = currencyFormat.format(summary.total),
+                    style = CustomTypography.TextBold,
+                    color = colorResource(id = R.color.colorSystem_tint_red)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action buttons
+            if (!summary.hasPaymentMethod) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToAddPayment),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorResource(id = R.color.colorSystem_greyscale_100)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Thêm phương thức thanh toán",
+                            style = CustomTypography.TextMedium,
+                            color = colorResource(id = R.color.colorSystem_heading_button)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Confirm button
+            val canConfirm = summary.address != null && summary.hasPaymentMethod
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = canConfirm, onClick = onConfirmOrder),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (canConfirm)
+                        colorResource(id = R.color.colorSystem_heading_button)
+                    else
+                        colorResource(id = R.color.colorSystem_greyscale_300)
+                )
+            ) {
+                Text(
+                    text = "Xác nhận đặt hàng",
+                    style = CustomTypography.TextBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+
+            if (!canConfirm) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (summary.address == null) "Vui lòng thêm địa chỉ giao hàng"
+                           else "Vui lòng thêm phương thức thanh toán",
+                    style = CustomTypography.TextSmall,
+                    color = colorResource(id = R.color.colorSystem_greyscale_500),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderCreatedCard(
+    orderId: String,
+    orderCode: String?,
+    onPayNow: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorResource(id = R.color.colorSystem_tint_green).copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Receipt,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = colorResource(id = R.color.colorSystem_success)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Đơn hàng đã được tạo!",
+                style = CustomTypography.TextBold,
+                color = colorResource(id = R.color.colorSystem_success)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Mã đơn: ${orderCode ?: orderId}",
+                style = CustomTypography.TextMedium,
+                color = colorResource(id = R.color.colorSystem_greyscale_600)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onPayNow),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = colorResource(id = R.color.colorSystem_heading_button)
+                )
+            ) {
+                Text(
+                    text = "Thanh toán ngay",
+                    style = CustomTypography.TextBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Address Input Bottom Sheet matching CreateOrderScreen flow
+ * - Auto-filled name and phone from user profile
+ * - Province/District/Ward dropdowns with API calls
+ * - Detail address text field
+ * - Shipping fee calculation when address is complete
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddressInputBottomSheet(
+    addressState: AddressInputState,
+    onRecipientNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onProvinceSelect: (ProvinceEntity?) -> Unit,
+    onDistrictSelect: (DistrictEntity?) -> Unit,
+    onWardSelect: (WardEntity?) -> Unit,
+    onDetailAddressChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Địa chỉ giao hàng",
+            style = CustomTypography.TextBold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Recipient Name and Phone in a row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = addressState.recipientName,
+                onValueChange = onRecipientNameChange,
+                label = { Text("Tên người nhận") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
+                    focusedLabelColor = colorResource(id = R.color.colorSystem_heading_button)
+                )
+            )
+
+            OutlinedTextField(
+                value = addressState.phone,
+                onValueChange = onPhoneChange,
+                label = { Text("Số điện thoại") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
+                    focusedLabelColor = colorResource(id = R.color.colorSystem_heading_button)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Province Dropdown
+        AddressDropdown(
+            label = "Tỉnh/Thành phố",
+            items = addressState.provinces,
+            selectedItem = addressState.selectedProvince,
+            isLoading = addressState.provincesLoading,
+            enabled = !addressState.provincesLoading,
+            onItemSelected = onProvinceSelect,
+            itemNameSelector = { it.name }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // District Dropdown
+        AddressDropdown(
+            label = "Quận/Huyện",
+            items = addressState.districts,
+            selectedItem = addressState.selectedDistrict,
+            isLoading = addressState.districtsLoading,
+            enabled = addressState.selectedProvince != null && !addressState.districtsLoading,
+            onItemSelected = onDistrictSelect,
+            itemNameSelector = { it.name }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Ward Dropdown
+        AddressDropdown(
+            label = "Phường/Xã",
+            items = addressState.wards,
+            selectedItem = addressState.selectedWard,
+            isLoading = addressState.wardsLoading,
+            enabled = addressState.selectedDistrict != null && !addressState.wardsLoading,
+            onItemSelected = onWardSelect,
+            itemNameSelector = { it.name }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Detail Address
+        OutlinedTextField(
+            value = addressState.detailAddress,
+            onValueChange = onDetailAddressChange,
+            label = { Text("Địa chỉ cụ thể (số nhà, tên đường...)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+            maxLines = 3,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
+                focusedLabelColor = colorResource(id = R.color.colorSystem_heading_button)
+            )
+        )
+
+        // Show shipping fee when address is complete
+        if (addressState.isAddressComplete) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Phí vận chuyển:",
+                    style = CustomTypography.TextMedium
+                )
+                if (addressState.isCalculatingShippingFee) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (addressState.shippingFee > 0)
+                            currencyFormat.format(addressState.shippingFee)
+                        else "Đang tính...",
+                        style = CustomTypography.TextSemiBold,
+                        color = colorResource(id = R.color.colorSystem_heading_button)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Hủy")
+            }
+
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = addressState.isFormValid, onClick = onSave),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (addressState.isFormValid)
+                        colorResource(id = R.color.colorSystem_heading_button)
+                    else
+                        colorResource(id = R.color.colorSystem_greyscale_300)
+                )
+            ) {
+                Text(
+                    text = "Lưu địa chỉ",
+                    style = CustomTypography.TextSemiBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+/**
+ * Dropdown component for Province/District/Ward selection
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> AddressDropdown(
+    label: String,
+    items: List<T>,
+    selectedItem: T?,
+    isLoading: Boolean,
+    enabled: Boolean,
+    onItemSelected: (T?) -> Unit,
+    itemNameSelector: (T) -> String
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+
+    // Update search text when selected item changes
+    LaunchedEffect(selectedItem) {
+        searchText = selectedItem?.let(itemNameSelector) ?: ""
+    }
+
+    // Filter items based on search
+    val filteredItems = remember(items, searchText) {
+        items.filter { itemNameSelector(it).contains(searchText, ignoreCase = true) }
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded && filteredItems.isNotEmpty(),
+        onExpandedChange = { if (enabled) expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+            readOnly = isLoading,
+            enabled = enabled,
+            value = searchText,
+            onValueChange = { newValue ->
+                searchText = newValue
+                if (newValue.isNotEmpty() && !expanded) {
+                    expanded = true
+                }
+                if (selectedItem != null && itemNameSelector(selectedItem) != newValue) {
+                    onItemSelected(null)
+                }
+            },
+            label = { Text(label) },
+            placeholder = { Text(if (isLoading) "Đang tải..." else "Chọn $label") },
+            trailingIcon = {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colorResource(id = R.color.colorSystem_heading_button),
+                focusedLabelColor = colorResource(id = R.color.colorSystem_heading_button)
+            )
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded && filteredItems.isNotEmpty(),
+            onDismissRequest = { expanded = false }
+        ) {
+            filteredItems.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(itemNameSelector(item)) },
+                    onClick = {
+                        onItemSelected(item)
+                        searchText = itemNameSelector(item)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
