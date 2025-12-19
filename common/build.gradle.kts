@@ -57,6 +57,9 @@ dependencies {
 
     implementation(libs.kotlinx.collection.immutable)
 
+    // For dependency injection annotations
+    implementation("javax.inject:javax.inject:1")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)

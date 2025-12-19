@@ -4,7 +4,8 @@ data class ProductSKUSnapshotDomainEntity(
     val id: String,
     val productId: String?,
     val productName: String,
-    val skuPrice: Int,
+    val skuPrice: Int, // Giá bán (sau giảm)
+    val originalPrice: Int?, // Giá gốc (trước giảm)
     val image: String,
     val skuValue: String,
     val skuId: String?,

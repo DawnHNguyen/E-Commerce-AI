@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -48,7 +48,7 @@ fun SharedSnapshotItemRow(
     SharedOrderItemRowContent(
         name = snapshot.productName,
         image = snapshot.image,
-        basePrice = 0,
+        basePrice = snapshot.originalPrice ?: 0, // Hiển thị giá gốc nếu có
         price = snapshot.skuPrice,
         quantity = snapshot.quantity,
         onClick = onClick
@@ -68,14 +68,26 @@ private fun SharedOrderItemRowContent(
     // Tạo biến giá trị đã định dạng
     val formattedPrice = price.toPriceFormat()
 
-    // Xử lý basePrice (virtualPrice):
-    val formattedBasePrice = if (basePrice is Int && basePrice > 0) {
-        basePrice.toPriceFormat()
-    } else if (basePrice is String) {
-        basePrice // Nếu nó đã được format từ SharedCartItemRow
-    } else {
-        null // Nếu là 0 hoặc kiểu khác
+    // Xử lý basePrice (giá gốc):
+    val basePriceInt = when (basePrice) {
+        is Int -> basePrice
+        is String -> null // Đã format rồi, không cần convert
+        else -> null
     }
+
+    val formattedBasePrice = when (basePrice) {
+        is Int -> if (basePrice > 0) basePrice.toPriceFormat() else null
+        is String -> if (basePrice.isNotEmpty() && basePrice != "0đ") basePrice else null
+        else -> null
+    }
+
+    // Kiểm tra có hiển thị giá gốc không: phải khác 0 và khác giá bán
+    val showBasePrice = when {
+        formattedBasePrice == null -> false
+        basePriceInt != null -> basePriceInt > price // Có giảm giá
+        else -> formattedBasePrice != formattedPrice // String comparison
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,19 +120,20 @@ private fun SharedOrderItemRowContent(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                if (basePrice != price && basePrice != 0) {
+                // Hiển thị giá gốc (gạch ngang) nếu có giảm giá
+                if (showBasePrice) {
                     Text(
-                        text = formattedBasePrice.toString(),
+                        text = formattedBasePrice!!,
                         style = CustomTypography.TextRegular.copy(
                             textDecoration = TextDecoration.LineThrough,
                             fontSize = 12.sp
                         ),
                         color = colorResource(R.color.colorSystem_greyscale_600)
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
-
+                // Hiển thị giá bán (giá sau giảm hoặc giá thực)
                 Text(
                     text = formattedPrice,
                     style = CustomTypography.TextSemiBold,
@@ -140,7 +153,12 @@ private fun SharedOrderItemRowContent(
 }
 
 @Composable
-fun SharedTotalAmountSection(subtotal: String, shippingFee: String, totalPrice: String) {
+fun SharedTotalAmountSection(
+    subtotal: String,
+    shippingFee: String,
+    totalPrice: String,
+    discount: String? = null
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -181,7 +199,27 @@ fun SharedTotalAmountSection(subtotal: String, shippingFee: String, totalPrice: 
             )
         }
 
-        Divider(
+        // Voucher discount row (if applicable)
+        if (discount != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Giảm giá:",
+                    style = CustomTypography.TextRegular,
+                    color = colorResource(R.color.colorSystem_normal_text)
+                )
+
+                Text(
+                    text = "-$discount",
+                    style = CustomTypography.TextRegular,
+                    color = colorResource(R.color.colorSystem_error)
+                )
+            }
+        }
+
+        HorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
             color = colorResource(R.color.colorSystem_greyscale_400)
         )

@@ -51,6 +51,12 @@ object RemoteModule {
         @Named("RecommendRetrofit") retrofit: Retrofit,
     ): RecommendApi = retrofit.create(RecommendApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideRecommendationApi(
+        @NoAuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.RecommendationApi = retrofit.create(com.ptit.data.remote.api.RecommendationApi::class.java)
+
     @Singleton
     @Provides
     fun provideHttpLogging() = HttpLoggingInterceptor().apply {
@@ -60,8 +66,12 @@ object RemoteModule {
     @Singleton
     @Provides
     fun provideRefreshTokenAuthenticator(
-        remoteService: NoAuthInterceptApi
-    ): RefreshTokenAuthenticator = RefreshTokenAuthenticator(remoteService = remoteService)
+        remoteService: NoAuthInterceptApi,
+        tokenManager: com.ptit.data.remote.util.TokenManager
+    ): RefreshTokenAuthenticator = RefreshTokenAuthenticator(
+        remoteService = remoteService,
+        tokenManager = tokenManager
+    )
 
     @Singleton
     @Provides
@@ -214,4 +224,10 @@ object RemoteModule {
     fun provideBrandApi(
         @AuthInterceptorRemoteService retrofit: Retrofit,
     ): com.ptit.data.remote.api.BrandApi = retrofit.create(com.ptit.data.remote.api.BrandApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideDiscountApi(
+        @AuthInterceptorRemoteService retrofit: Retrofit,
+    ): com.ptit.data.remote.api.DiscountApi = retrofit.create(com.ptit.data.remote.api.DiscountApi::class.java)
 }

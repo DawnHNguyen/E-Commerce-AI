@@ -72,7 +72,6 @@ import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
 import com.ptit.core.order_history.OrderHistoryScreen
 import com.ptit.core.overview.OverviewScreen
-import com.ptit.core.product.ProductForm
 import com.ptit.core.product.ProductListScreen
 import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.review.CreateReviewScreen
@@ -90,6 +89,8 @@ import com.ptit.navigation.destination.CreateOrderRoute
 import com.ptit.navigation.destination.CreateReviewRoute
 import com.ptit.navigation.destination.AllReviewsRoute
 import com.ptit.navigation.destination.CreateSellerRequestRoute
+import com.ptit.navigation.destination.DiscountListRoute
+import com.ptit.navigation.destination.DiscountFormRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.AddAddressRoute
 import com.ptit.navigation.destination.ChangePasswordRoute
@@ -102,6 +103,7 @@ import com.ptit.navigation.destination.ProductFormRoute
 import com.ptit.navigation.destination.ProductListRoute
 import com.ptit.navigation.destination.ProductsByCategoryRoute
 import com.ptit.navigation.destination.ProfileRoute
+import com.ptit.navigation.destination.RecommendationsRoute
 import com.ptit.navigation.destination.SearchRoute
 import com.ptit.navigation.destination.ShopDetailRoute
 import com.ptit.navigation.destination.ShopEntryRoute
@@ -172,6 +174,18 @@ class MainActivity : FragmentActivity() {
                                 navigateToSearch = {
                                     navController.navigate(SearchRoute)
                                 },
+                                navigateToProductDetail = { productId ->
+                                    navController.navigate(ProductDetailRoute(productId = productId))
+                                },
+                                navigateToAllProducts = {
+                                    navController.navigate(RecommendationsRoute)
+                                }
+                            )
+                        }
+
+                        composable<RecommendationsRoute> {
+                            com.ptit.core.recommendation.RecommendationsScreen(
+                                navigateBack = navController::navigateUp,
                                 navigateToProductDetail = { productId ->
                                     navController.navigate(ProductDetailRoute(productId = productId))
                                 }
@@ -509,7 +523,7 @@ class MainActivity : FragmentActivity() {
                                     navController.navigate(OrderHistoryRoute)
                                 },
                                 onNavigateToPromotions = {
-                                    // TODO: Implement promotions management screen
+                                    navController.navigate(DiscountListRoute)
                                 },
                                 onNavigateToOverview = {
                                     navController.navigate(OverviewRoute)
@@ -535,6 +549,29 @@ class MainActivity : FragmentActivity() {
                             com.ptit.core.product.ProductFormNew(
                                 onNavigateBack = navController::navigateUp,
                                 productId = productId
+                            )
+                        }
+
+                        composable<DiscountListRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<DiscountListRoute>()
+                            val shopId = args.shopId
+                            com.ptit.core.discount.DiscountListScreen(
+                                onNavigateBack = navController::navigateUp,
+                                onNavigateToDiscountForm = { discountId, shopIdParam ->
+                                    navController.navigate(DiscountFormRoute(discountId, shopIdParam))
+                                },
+                                shopId = shopId
+                            )
+                        }
+
+                        composable<DiscountFormRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<DiscountFormRoute>()
+                            val discountId = args.discountId
+                            val shopId = args.shopId
+                            com.ptit.core.discount.DiscountFormScreen(
+                                onNavigateBack = navController::navigateUp,
+                                discountId = discountId,
+                                shopId = shopId
                             )
                         }
 

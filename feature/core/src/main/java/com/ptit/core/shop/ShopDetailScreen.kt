@@ -38,7 +38,7 @@ fun ShopDetailScreen(
     onNavigateToProductList: () -> Unit,
     onNavigateToCategories: () -> Unit = {},
     onNavigateToOrders: () -> Unit = {},
-    onNavigateToPromotions: () -> Unit = {},
+    onNavigateToPromotions: (String) -> Unit = {},
     onNavigateToOverview: () -> Unit = {}
 ) {
     val myRequestState by sellerRequestViewModel.myRequestState.collectAsStateWithLifecycle()
@@ -289,7 +289,10 @@ fun ShopDetailScreen(
                         MenuCard(
                             icon = Icons.Default.LocalOffer,
                             title = "Khuyến mãi",
-                            onClick = onNavigateToPromotions,
+                            onClick = {
+                                val actualShopId = sellerRequest?.id ?: shopId ?: ""
+                                onNavigateToPromotions(actualShopId)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                         MenuCard(
