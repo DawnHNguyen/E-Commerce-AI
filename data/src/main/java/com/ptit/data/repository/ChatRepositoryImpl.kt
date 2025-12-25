@@ -112,12 +112,17 @@ class ChatRepositoryImpl @Inject constructor(
             return@withContext 0
         }
 
-        // Get cart to calculate weight
+        // Get cart to calculate weight - same approach as CreateOrderViewModel
         val cartResult = fetchCart() ?: return@withContext 30000 // Default fee if can't fetch cart
+        val cartItems = cartResult.first
 
-        // Calculate total items for weight estimation
-        val totalItems = cartResult.third
-        val estimatedWeight = (totalItems * 200).toDouble() // 200g per item
+        if (cartItems.isEmpty()) {
+            return@withContext 0 // No items to ship
+        }
+
+        // Calculate total weight from sum of quantities (same as CreateOrderViewModel.calculateTotalWeight)
+        val totalQuantity = cartItems.sumOf { it.quantity }
+        val estimatedWeight = (totalQuantity * 200).coerceAtLeast(200).toDouble() // 200g per item, min 200g
 
         val request = CalculateShippingFeeRequestDomainEntity(
             height = 10.0,
