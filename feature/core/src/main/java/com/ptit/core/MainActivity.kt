@@ -323,9 +323,7 @@ class MainActivity : FragmentActivity() {
                                 navigateToPaymentMethod = {
                                     navController.navigate(ListPaymentMethodRoute)
                                 },
-                                backToCart = {
-                                    navController.popBackStack(BottomNavigationScreen.CartScreen, false)
-                                },
+
                                 navigateToCreateReview = { orderId, productId, productName, productImage, productPrice, productSkuValue ->
                                     navController.navigate(
                                         CreateReviewRoute(

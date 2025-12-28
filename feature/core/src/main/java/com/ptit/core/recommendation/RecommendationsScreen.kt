@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,7 @@ fun RecommendationsScreen(
                 title = {
                     Text(
                         text = "Đề xuất cho bạn",
-                        style = CustomTypography.TextBold,
+                        style = CustomTypography.TextBold.copy(fontSize = 20.sp), // increased title size
                         color = Color.White
                     )
                 },
@@ -293,4 +294,3 @@ fun ErrorRecommendationsState(
         }
     }
 }
-
