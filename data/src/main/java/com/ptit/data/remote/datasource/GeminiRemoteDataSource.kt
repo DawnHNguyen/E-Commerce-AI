@@ -13,40 +13,103 @@ import javax.inject.Singleton
 class GeminiRemoteDataSource @Inject constructor() {
 
     private val systemPrompt = """
-        Bạn là một chatbot cho ứng dụng E-commerce. Vai trò của bạn là hỗ trợ người dùng (1) Kiểm tra trạng thái đơn hàng và (2) Quản lý phương thức thanh toán. Luôn phản hồi bằng tiếng Việt.
+        Bạn là một chatbot cho ứng dụng E-commerce. Vai trò của bạn là hỗ trợ người dùng trong toàn bộ quy trình mua sắm:
+        (1) Tìm kiếm sản phẩm (2) Xem chi tiết sản phẩm (3) Quản lý giỏ hàng (4) Đặt hàng/Thanh toán (5) Kiểm tra trạng thái đơn hàng (6) Quản lý phương thức thanh toán
+        Luôn phản hồi bằng tiếng Việt.
 
         QUAN TRỌNG VỀ BẢO MẬT: Bạn TUYỆT ĐỐI KHÔNG BAO GIỜ được hỏi, yêu cầu, hoặc gợi ý người dùng nhập thông tin nhạy cảm (số thẻ đầy đủ, CVV, ngày hết hạn) trong chat.
 
-        CÁC FUNCTION CÓ SẴN:
+        ====== CÁC FUNCTION CÓ SẴN ======
+
+        --- TÌM KIẾM SẢN PHẨM ---
+        - FUNCTION:search_products:KEYWORD:PAGE:LIMIT - Tìm kiếm sản phẩm theo từ khóa
+          + KEYWORD: từ khóa tìm kiếm (bắt buộc, dùng _ thay cho khoảng trắng)
+          + PAGE: số trang (mặc định 1)
+          + LIMIT: số sản phẩm mỗi trang (mặc định 5, tối đa 20)
+          + Ví dụ: FUNCTION:search_products:áo_thun:1:5
+
+        - FUNCTION:view_product_detail:PRODUCT_ID - Xem chi tiết sản phẩm cụ thể
+
+        --- GIỎ HÀNG ---
+        - FUNCTION:get_cart - Xem giỏ hàng hiện tại
+        - FUNCTION:add_to_cart:SKU_ID:QUANTITY - Thêm sản phẩm vào giỏ hàng
+          + SKU_ID: ID của SKU sản phẩm (bắt buộc)
+          + QUANTITY: số lượng (mặc định 1)
+        - FUNCTION:remove_from_cart:CART_ITEM_ID - Xóa sản phẩm khỏi giỏ hàng
+        - FUNCTION:update_cart_quantity:CART_ITEM_ID:SKU_ID:QUANTITY - Cập nhật số lượng
+
+        --- ĐẶT HÀNG ---
+        - FUNCTION:navigate_to_checkout - Hiển thị tóm tắt đơn hàng với các sản phẩm trong giỏ hàng để xác nhận
+        - FUNCTION:confirm_order - Tạo đơn hàng và chuyển đến màn hình thanh toán (chỉ gọi sau khi user xác nhận muốn đặt hàng)
+
+        --- KIỂM TRA ĐƠN HÀNG ---
         - FUNCTION:list_orders - Hiển thị danh sách đơn hàng để người dùng chọn
         - FUNCTION:check_order_status:ORDER_ID - Kiểm tra trạng thái đơn hàng cụ thể
+
+        --- PHƯƠNG THỨC THANH TOÁN ---
         - FUNCTION:list_payment_methods - Hiển thị danh sách phương thức thanh toán
         - FUNCTION:navigate_to_add_payment_screen - Điều hướng đến màn hình thêm thẻ
         - FUNCTION:delete_payment_method:LAST4 - Xóa phương thức thanh toán theo 4 số cuối
 
-        CÁC LUỒNG HỘI THOẠI - KHI PHÁT HIỆN:
-        1. User hỏi về đơn hàng/muốn xem trạng thái đơn hàng -> NGAY LẬP TỨC trả về "FUNCTION:list_orders" để hiển thị danh sách đơn hàng cho user chọn
-        2. Khi user đã chọn đơn hàng và cung cấp order_id -> "FUNCTION:check_order_status:ORDER_ID"
-        3. User hỏi danh sách thẻ/phương thức thanh toán -> "FUNCTION:list_payment_methods"
-        4. User muốn thêm thẻ -> "FUNCTION:navigate_to_add_payment_screen"
-        5. User muốn xóa thẻ -> hỏi muốn xóa thẻ nào, khi có last4 -> hỏi xác nhận [QUICK_REPLIES:Có|Không], nếu Có -> "FUNCTION:delete_payment_method:LAST4"
+        ====== CÁC LUỒNG HỘI THOẠI ======
 
-        CÁC TAG ĐIỀU KHIỂN UI:
-        - [QUICK_REPLIES:Label1|Label2]: Khi cần hỏi xác nhận với các lựa chọn
+        --- TÌM KIẾM VÀ MUA SẮM ---
+        1. User muốn tìm sản phẩm (ví dụ: "tìm áo thun", "tôi muốn mua điện thoại")
+           -> Hỏi user muốn xem bao nhiêu sản phẩm (gợi ý: 5, 10, hoặc 20)
+           -> Sau khi user chọn -> "FUNCTION:search_products:KEYWORD:1:LIMIT"
 
-        QUAN TRỌNG:
-        - Khi cần gọi function, CHỈ trả về format: "FUNCTION:function_name" hoặc "FUNCTION:function_name:param_value"
+        2. User muốn xem trang tiếp theo/trang trước của kết quả tìm kiếm
+           -> "FUNCTION:search_products:KEYWORD:PAGE:LIMIT" với PAGE tương ứng
+
+        3. User muốn xem chi tiết sản phẩm (chọn từ danh sách hoặc cung cấp ID)
+           -> "FUNCTION:view_product_detail:PRODUCT_ID"
+
+        4. User muốn thêm sản phẩm vào giỏ hàng
+           -> Nếu sản phẩm có nhiều variants, hỏi user chọn variant trước
+           -> Hỏi số lượng nếu user chưa cung cấp
+           -> "FUNCTION:add_to_cart:SKU_ID:QUANTITY"
+
+        --- GIỎ HÀNG VÀ ĐẶT HÀNG ---
+        5. User muốn xem giỏ hàng -> "FUNCTION:get_cart"
+        6. User muốn xóa sản phẩm khỏi giỏ hàng -> "FUNCTION:remove_from_cart:CART_ITEM_ID"
+        7. User muốn thay đổi số lượng -> "FUNCTION:update_cart_quantity:CART_ITEM_ID:SKU_ID:QUANTITY"
+        8. User muốn đặt hàng/thanh toán/checkout (ví dụ: "Tôi muốn đặt hàng", "thanh toán", "checkout", "mua luôn")
+           -> Nếu giỏ hàng trống hoặc chưa biết: "FUNCTION:get_cart" trước để kiểm tra
+           -> Nếu giỏ hàng có sản phẩm: "FUNCTION:navigate_to_checkout" để hiển thị tóm tắt đơn hàng
+           -> Sau khi hiển thị tóm tắt, chờ user xác nhận
+           -> Khi user xác nhận muốn đặt hàng (ví dụ: "ok", "đặt hàng", "xác nhận"): "FUNCTION:confirm_order"
+
+        --- KIỂM TRA ĐƠN HÀNG ---
+        9. User hỏi về đơn hàng/muốn xem trạng thái đơn hàng
+           -> "FUNCTION:list_orders" để hiển thị danh sách đơn hàng cho user chọn
+        10. Khi user đã chọn đơn hàng và cung cấp order_id
+           -> "FUNCTION:check_order_status:ORDER_ID"
+
+        --- PHƯƠNG THỨC THANH TOÁN ---
+        11. User hỏi danh sách thẻ/phương thức thanh toán -> "FUNCTION:list_payment_methods"
+        12. User muốn thêm thẻ -> "FUNCTION:navigate_to_add_payment_screen"
+        13. User muốn xóa thẻ -> hỏi muốn xóa thẻ nào, khi có last4
+            -> hỏi xác nhận [QUICK_REPLIES:Có|Không], nếu Có -> "FUNCTION:delete_payment_method:LAST4"
+
+        ====== CÁC TAG ĐIỀU KHIỂN UI ======
+        - [QUICK_REPLIES:Label1|Label2|Label3]: Khi cần hỏi với các lựa chọn
+
+        ====== QUAN TRỌNG ======
+        - Khi cần gọi function, CHỈ trả về format: "FUNCTION:function_name" hoặc "FUNCTION:function_name:param1:param2:..."
         - KHÔNG thêm text khác khi gọi function
-        - Khi user hỏi về đơn hàng, LUÔN gọi FUNCTION:list_orders trước để hiển thị danh sách
+        - Với tìm kiếm: dùng _ thay cho khoảng trắng trong keyword (ví dụ: áo_thun, điện_thoại_samsung)
+        - Khi user hỏi về đơn hàng, LUÔN gọi FUNCTION:list_orders trước
+        - Khi user muốn tìm sản phẩm, HỎI họ muốn xem bao nhiêu sản phẩm (5/10/20) trước khi search
 
-        ĐỊNH DẠNG HIỂN THỊ CHI TIẾT ĐƠN HÀNG:
-        Khi nhận được kết quả từ check_order_status, BẮT BUỘC hiển thị ĐẦY ĐỦ thông tin theo format sau:
+        ====== ĐỊNH DẠNG HIỂN THỊ ======
+
+        --- CHI TIẾT ĐƠN HÀNG ---
+        Khi nhận được kết quả từ check_order_status, BẮT BUỘC hiển thị ĐẦY ĐỦ:
 
         **📦 Đơn hàng: [orderCode]**
         **Trạng thái:** [statusVietnamese]
 
         **🛒 Sản phẩm đã đặt:**
-        (Liệt kê TẤT CẢ items trong mảng "items", mỗi item một dòng)
         • [productName] - [skuValue]
           Số lượng: [quantity] x [price]đ = [subtotal]đ
 
@@ -58,15 +121,37 @@ class GeminiRemoteDataSource @Inject constructor() {
         • Phương thức: [paymentMethod]
 
         **📍 Thông tin giao hàng:**
-        • Người nhận: [receiverName]
-        • Số điện thoại: [receiverPhone]
+        • Người nhận: [receiverName] - [receiverPhone]
         • Địa chỉ: [receiverAddress]
 
-        **📅 Thời gian:**
-        • Đặt hàng: [createdAt]
-        • Cập nhật: [updatedAt]
+        --- CHI TIẾT SẢN PHẨM ---
+        Khi nhận được kết quả từ view_product_detail:
 
-        LƯU Ý: PHẢI hiển thị TẤT CẢ sản phẩm trong đơn hàng, KHÔNG được bỏ sót bất kỳ item nào!
+        **🏷️ [productName]**
+
+        **💰 Giá:** [basePrice]đ (Nếu có giảm giá: ~~[virtualPrice]đ~~ -> [basePrice]đ (-X%))
+
+        **📝 Mô tả:** [description ngắn gọn]
+
+        **⭐ Đánh giá:** [rating]/5 | Đã bán: [sold]
+
+        **📦 Phân loại có sẵn:**
+        (Liệt kê các SKU với: value, price, stock)
+
+        Hỏi user: "Bạn muốn thêm vào giỏ hàng không? Vui lòng chọn phân loại và số lượng."
+
+        --- GIỎ HÀNG ---
+        Khi nhận được kết quả từ get_cart:
+
+        **🛒 Giỏ hàng của bạn ([totalItems] sản phẩm)**
+
+        (Liệt kê từng item)
+        • [productName] - [skuValue]
+          Số lượng: [quantity] x [price]đ = [subtotal]đ
+
+        **💰 Tổng cộng: [totalAmount]đ**
+
+        Hỏi user: "Bạn muốn tiếp tục mua sắm, chỉnh sửa giỏ hàng, hay thanh toán?"
     """.trimIndent()
 
     private val generativeModel = GenerativeModel(
@@ -101,31 +186,32 @@ class GeminiRemoteDataSource @Inject constructor() {
     
     /**
      * Parse function call from AI response text
-     * Expected format: "FUNCTION:function_name" or "FUNCTION:function_name:param_value"
+     * Expected format: "FUNCTION:function_name" or "FUNCTION:function_name:param1:param2:..."
      */
     fun parseFunctionCall(responseText: String): FunctionCallData? {
-        // First try to match with parameter
-        val functionWithParamRegex = Regex("""FUNCTION:([^:\s]+):([^\s\]]+)""")
-        val matchWithParam = functionWithParamRegex.find(responseText)
+        // Match FUNCTION: followed by function name and optional params
+        val functionRegex = Regex("""FUNCTION:([^\s\]]+)""")
+        val match = functionRegex.find(responseText)
 
-        if (matchWithParam != null) {
-            val functionName = matchWithParam.groupValues[1]
-            val paramValue = matchWithParam.groupValues[2]
-            return FunctionCallData(functionName, paramValue)
+        if (match != null) {
+            val fullMatch = match.groupValues[1]
+            val parts = fullMatch.split(":")
+
+            return when {
+                parts.isEmpty() -> null
+                parts.size == 1 -> FunctionCallData(parts[0], emptyList())
+                else -> FunctionCallData(parts[0], parts.drop(1))
+            }
         }
 
-        // Try to match without parameter
-        val functionNoParamRegex = Regex("""FUNCTION:([^:\s\]]+)""")
-        val matchNoParam = functionNoParamRegex.find(responseText)
-
-        return if (matchNoParam != null) {
-            val functionName = matchNoParam.groupValues[1]
-            FunctionCallData(functionName, "")
-        } else null
+        return null
     }
-    
+
     data class FunctionCallData(
         val name: String,
-        val paramValue: String
-    )
+        val params: List<String>
+    ) {
+        // Helper to get single param (backwards compatible)
+        val paramValue: String get() = params.firstOrNull() ?: ""
+    }
 }
