@@ -26,7 +26,8 @@ import javax.inject.Inject
 class CreateOrderViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
     private val userRepository: UserRepository,
-    private val shippingRepository: ShippingRepository
+    private val shippingRepository: ShippingRepository,
+    private val discountRepository: com.ptit.domain.repository.DiscountRepository
 ) : ViewModel() {
 
     // ... (Các StateFlows không đổi) ...
@@ -171,13 +172,26 @@ class CreateOrderViewModel @Inject constructor(
             pickShift = null
         )
 
+        // ✅ Prepare discount codes based on selected voucher
+        val shopDiscountCodes = if (state.selectedVoucher != null && !state.selectedVoucher.isPlatform) {
+            listOf(state.selectedVoucher.code)
+        } else {
+            emptyList()
+        }
+
+        val platformDiscountCodes = if (state.selectedVoucher != null && state.selectedVoucher.isPlatform) {
+            listOf(state.selectedVoucher.code)
+        } else {
+            emptyList()
+        }
+
         val shopRequests = state.selectedShops.mapNotNull { detail ->
             val shopId = detail.shopId ?: return@mapNotNull null
             ShopOrderRequestDomainEntity(
                 shopId = shopId,
                 receiver = receiver,
                 cartItemIds = detail.cartItems.map { it.id },
-                discountCodes = emptyList(),
+                discountCodes = shopDiscountCodes, // ✅ Include shop voucher if selected
                 shippingInfo = defaultShippingInfo,
                 // ✅ FIX: isCod = false để tạo đơn PENDING_PAYMENT (Chờ thanh toán)
                 // Sau khi user thanh toán thành công → Backend sẽ chuyển sang PENDING_PACKAGE (Chờ vận chuyển)
@@ -187,7 +201,7 @@ class CreateOrderViewModel @Inject constructor(
 
         val finalRequest = CreateOrderRequestDomainEntity(
             shops = shopRequests,
-            platformDiscountCodes = emptyList()
+            platformDiscountCodes = platformDiscountCodes // ✅ Include platform voucher if selected
         )
 
         // --- 3. API Call ---
@@ -399,6 +413,149 @@ class CreateOrderViewModel @Inject constructor(
         }
     }
 
+    // ========================================
+    // 🎟️ VOUCHER METHODS
+    // ========================================
+
+    /**
+     * Load available vouchers for the selected cart items
+     */
+    fun loadAvailableVouchers() {
+        viewModelScope.launch {
+            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
+
+            // Get cart item IDs from selected shops
+            val cartItemIds = _orderState.value.selectedShops.flatMap { shop ->
+                shop.cartItems.map { it.id }
+            }
+
+            when (val result = discountRepository.getAvailableDiscounts(
+                limit = 50,
+                cartItemIds = cartItemIds,
+                onlyShopDiscounts = false,
+                onlyPlatformDiscounts = false
+            )) {
+                is Resource.Success -> {
+                    _orderState.update {
+                        it.copy(
+                            availableVouchers = result.data.data,
+                            isLoadingVouchers = false
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    _orderState.update {
+                        it.copy(
+                            isLoadingVouchers = false,
+                            voucherError = "Không thể tải danh sách voucher"
+                        )
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    /**
+     * Validate and apply voucher code
+     */
+    fun applyVoucherCode(code: String) {
+        viewModelScope.launch {
+            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
+
+            // Get cart item IDs from selected shops
+            val cartItemIds = _orderState.value.selectedShops.flatMap { shop ->
+                shop.cartItems.map { it.id }
+            }
+
+            val request = com.ptit.domain.entity.discount.ValidateVoucherRequestDomainEntity(
+                code = code,
+                cartItemIds = cartItemIds
+            )
+
+            when (val result = discountRepository.validateVoucherCode(request)) {
+                is Resource.Success -> {
+                    if (result.data.isValid && result.data.discount != null) {
+                        _orderState.update {
+                            it.copy(
+                                selectedVoucher = result.data.discount,
+                                voucherDiscountAmount = result.data.discountAmount ?: 0.0,
+                                isLoadingVouchers = false,
+                                voucherError = null
+                            )
+                        }
+                        _orderEvents.emit(OrderEvent.ShowError("Áp dụng voucher thành công!"))
+                    } else {
+                        _orderState.update {
+                            it.copy(
+                                isLoadingVouchers = false,
+                                voucherError = result.data.error ?: "Mã voucher không hợp lệ"
+                            )
+                        }
+                    }
+                }
+                is Resource.Error -> {
+                    _orderState.update {
+                        it.copy(
+                            isLoadingVouchers = false,
+                            voucherError = "Không thể xác thực mã voucher"
+                        )
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    /**
+     * Select a voucher from the available list
+     */
+    fun selectVoucher(voucher: com.ptit.domain.entity.discount.DiscountDomainEntity) {
+        viewModelScope.launch {
+            // Calculate discount amount based on voucher type
+            val subtotal = _orderState.value.selectedShops.sumOf { shop ->
+                shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
+            }.toDouble()
+
+            val discountAmount = when (voucher.discountType) {
+                "PERCENTAGE" -> {
+                    val amount = (subtotal * voucher.value / 100)
+                    val maxDiscount = voucher.maxDiscountValue
+                    if (maxDiscount != null) {
+                        minOf(amount, maxDiscount)
+                    } else {
+                        amount
+                    }
+                }
+                "FIXED" -> voucher.value
+                else -> 0.0
+            }
+
+            _orderState.update {
+                it.copy(
+                    selectedVoucher = voucher,
+                    voucherDiscountAmount = discountAmount,
+                    voucherError = null
+                )
+            }
+
+            _orderEvents.emit(OrderEvent.ShowError("Áp dụng voucher thành công!"))
+        }
+    }
+
+    /**
+     * Remove selected voucher
+     */
+    fun removeVoucher() {
+        _orderState.update {
+            it.copy(
+                selectedVoucher = null,
+                voucherDiscountAmount = 0.0,
+                voucherError = null
+            )
+        }
+    }
+
     // ... (OrderFormState, AddressState, OrderEvent không đổi) ...
     data class OrderFormState(
         val isLoading: Boolean = false,
@@ -413,7 +570,13 @@ class CreateOrderViewModel @Inject constructor(
         // ✅ NEW: Store calculated shipping fee from GHN API
         // Ban đầu = 0đ, sau khi gọi API sẽ update
         val calculatedShippingFee: Double = 0.0,
-        val isCalculatingShippingFee: Boolean = false
+        val isCalculatingShippingFee: Boolean = false,
+        // ✅ NEW: Voucher state
+        val selectedVoucher: com.ptit.domain.entity.discount.DiscountDomainEntity? = null,
+        val voucherDiscountAmount: Double = 0.0,
+        val availableVouchers: List<com.ptit.domain.entity.discount.DiscountDomainEntity> = emptyList(),
+        val isLoadingVouchers: Boolean = false,
+        val voucherError: String? = null
     )
 
     data class AddressState(

@@ -3,8 +3,11 @@ package com.ptit.core.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.common.UserDomainEntity
+import com.ptit.domain.repository.AddressRepository
 import com.ptit.domain.repository.AuthRepository
+import com.ptit.domain.repository.FileUploadRepository
 import com.ptit.domain.repository.OrderRepository
+import com.ptit.domain.repository.ShippingRepository
 import com.ptit.domain.repository.UserRepository
 import com.ptit.domain.utils.Resource
 import com.ptit.domain.utils.onSuccess
@@ -77,9 +80,9 @@ class AccountViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
     private val orderRepository: OrderRepository,
-    private val addressRepository: com.ptit.domain.repository.AddressRepository,
-    private val shippingRepository: com.ptit.domain.repository.ShippingRepository,
-    private val fileUploadRepository: com.ptit.domain.repository.FileUploadRepository
+    private val addressRepository: AddressRepository,
+    private val shippingRepository: ShippingRepository,
+    private val fileUploadRepository: FileUploadRepository
 ) : ViewModel() {
 
     private val _uiModel = MutableStateFlow(AccountUiModel())

@@ -30,6 +30,12 @@ data object ProductListRoute
 data class ProductFormRoute (val productId: String? = null)
 
 @Serializable
+data class DiscountListRoute(val shopId: String)
+
+@Serializable
+data class DiscountFormRoute(val discountId: String? = null, val shopId: String)
+
+@Serializable
 data object EditProfileRoute
 
 @Serializable

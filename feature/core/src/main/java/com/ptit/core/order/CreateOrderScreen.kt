@@ -149,7 +149,11 @@ fun CreateOrderScreen(
                 // ---------------------------
                 item {
                     VoucherSelectorRow(
-                        onClick = { showVoucherBottomSheet = true }
+                        onClick = {
+                            viewModel.loadAvailableVouchers()
+                            showVoucherBottomSheet = true
+                        },
+                        selectedVoucher = orderState.selectedVoucher
                     )
                 }
 
@@ -213,13 +217,17 @@ fun CreateOrderScreen(
 
                 // ✅ Use calculated shipping fee from orderState (default 0đ)
                 val shippingFee = orderState.calculatedShippingFee.toInt()
-                val total = subtotal + shippingFee
+
+                // ✅ Apply voucher discount
+                val voucherDiscount = orderState.voucherDiscountAmount.toInt()
+                val total = (subtotal + shippingFee - voucherDiscount).coerceAtLeast(0)
 
                 item {
                     SharedTotalAmountSection(
                         subtotal = subtotal.toPriceFormat(),
                         shippingFee = shippingFee.toPriceFormat(),
-                        totalPrice = total.toPriceFormat()
+                        totalPrice = total.toPriceFormat(),
+                        discount = if (voucherDiscount > 0) voucherDiscount.toPriceFormat() else null
                     )
                 }
 
@@ -249,16 +257,22 @@ fun CreateOrderScreen(
         }
     }
 
-    // ... (VoucherBottomSheet giữ nguyên) ...
+    // Voucher Bottom Sheet
     VoucherBottomSheet(
         isVisible = showVoucherBottomSheet,
         onDismiss = { showVoucherBottomSheet = false },
-        onConfirm = {
-            showVoucherBottomSheet = false
+        availableVouchers = orderState.availableVouchers,
+        selectedVoucher = orderState.selectedVoucher,
+        isLoading = orderState.isLoadingVouchers,
+        voucherError = orderState.voucherError,
+        onApplyCode = { code ->
+            viewModel.applyVoucherCode(code)
         },
-        isVoucherListLoaded = true,
-        onVoucherCodeApply = { code ->
-            // TODO
+        onSelectVoucher = { voucher ->
+            viewModel.selectVoucher(voucher)
+        },
+        onRemoveVoucher = {
+            viewModel.removeVoucher()
         }
     )
 

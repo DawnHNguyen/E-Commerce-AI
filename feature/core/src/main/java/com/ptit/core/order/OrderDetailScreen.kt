@@ -7,7 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
@@ -44,6 +44,7 @@ import com.ptit.domain.utils.onSuccess
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import androidx.core.graphics.toColorInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,6 @@ fun OrderDetailScreen(
     onBack: () -> Unit,
     // 🔴 MỚI: Thêm lại
     navigateToPaymentMethod: () -> Unit,
-    backToCart: () -> Unit,
     navigateToCreateReview: (orderId: String, productId: String, productName: String, productImage: String, productPrice: Int, productSkuValue: String) -> Unit = { _, _, _, _, _, _ -> },
     navigateToProductDetail: (productId: String) -> Unit = {}
 ) {
@@ -63,8 +63,6 @@ fun OrderDetailScreen(
     val reviewViewModel: com.ptit.core.review.ReviewViewModel = hiltViewModel()
 
     val orderState by viewModel.orderState.collectAsStateWithLifecycle()
-    val cancelOrderState by viewModel.cancelOrderState.collectAsStateWithLifecycle()
-    val processPaymentState by viewModel.processPaymentState.collectAsStateWithLifecycle()
     val reviewedProducts by reviewViewModel.reviewedProducts.collectAsStateWithLifecycle()
 
     val isShowProgressBar = rememberState { false }
@@ -161,7 +159,7 @@ fun OrderDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = colorResource(R.color.colorSystem_greyscale_0_white)
                         )
@@ -180,9 +178,6 @@ fun OrderDetailScreen(
             // 🔴 MỚI: Logic hiển thị nút theo yêu cầu mới
             val isPayable = remember(order.status) {
                 order.status == "PENDING_PAYMENT"
-            }
-            val isCancellable = remember(order.status) {
-                order.status == "PENDING_PAYMENT" || order.status == "PENDING_PACKAGING"
             }
             val isReviewable = remember(order.status) {
                 order.status == "DELIVERED"
@@ -324,13 +319,13 @@ fun OrderDetailScreen(
                                                     ) {
                                                         repeat(5) { index ->
                                                             Icon(
-                                                                imageVector = if (index < (existingReview?.rating ?: 0)) {
+                                                                imageVector = if (index < existingReview.rating) {
                                                                     androidx.compose.material.icons.Icons.Filled.Star
                                                                 } else {
                                                                     androidx.compose.material.icons.Icons.Outlined.StarOutline
                                                                 },
                                                                 contentDescription = null,
-                                                                tint = if (index < (existingReview?.rating ?: 0)) {
+                                                                tint = if (index < existingReview.rating) {
                                                                     Color(0xFFFFB800)
                                                                 } else {
                                                                     colorResource(R.color.colorSystem_greyscale_300)
@@ -341,7 +336,7 @@ fun OrderDetailScreen(
                                                     }
 
                                                     // Review content
-                                                    if (existingReview != null && existingReview.content.isNotEmpty()) {
+                                                    if (existingReview.content.isNotEmpty()) {
                                                         Text(
                                                             text = existingReview.content,
                                                             style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
@@ -351,7 +346,7 @@ fun OrderDetailScreen(
                                                     }
 
                                                     // Review date
-                                                    existingReview?.createdAt?.let { createdAt ->
+                                                    existingReview.createdAt.let { createdAt ->
                                                         Text(
                                                             text = "Đánh giá vào ${formatTimestamp(createdAt)}",
                                                             style = CustomTypography.TextRegular.copy(fontSize = 12.sp),
@@ -430,20 +425,7 @@ fun OrderDetailScreen(
                         )
                     }
 
-                    // 🔴 SỬA: Chỉ hiển thị nút Huỷ khi `isCancellable`
-                    if (isCancellable) {
-                        FilledButton(
-                            text = "Huỷ đơn hàng",
-                            onClick = { viewModel.cancelOrder(orderId) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !isShowProgressBar.value,
-                            // 🔴 TÙY CHỌN: Đổi màu nút Hủy nếu muốn
-//                            colors = ButtonDefaults.buttonColors(
-//                                containerColor = colorResource(R.color.colorSystem_greyscale_300),
-//                                contentColor = colorResource(R.color.colorSystem_greyscale_700)
-//                            )
-                        )
-                    }
+
                 }
             }
         }
@@ -466,7 +448,6 @@ fun OrderDetailScreen(
         FullScreenProgressBar()
 }
 
-// ... (Các Composable bên dưới không đổi) ...
 @Composable
 fun OrderInfoSection(
     name: String,
@@ -566,14 +547,13 @@ fun OrderStatusSection(status: String) {
         "PENDING_PACKAGING", "PENDING_PACKAGE", "PROCESSING" -> com.ptit.common.const.OrderStatus.PENDING_PACKAGING
         "PICKUPED", "PENDING_DELIVERY", "SHIPPING" -> com.ptit.common.const.OrderStatus.SHIPPING
         "DELIVERED" -> com.ptit.common.const.OrderStatus.DELIVERED
-        "CANCELLED" -> com.ptit.common.const.OrderStatus.CANCELLED
-        "RETURNED" -> com.ptit.common.const.OrderStatus.RETURNED
+
         else -> status
     }
 
     val statusText = com.ptit.common.const.OrderStatus.getDisplayName(normalizedStatus)
     val statusColorHex = com.ptit.common.const.OrderStatus.getStatusColor(normalizedStatus)
-    val statusColor = Color(android.graphics.Color.parseColor(statusColorHex))
+    val statusColor = Color(statusColorHex.toColorInt())
 
     Row(
         modifier = Modifier

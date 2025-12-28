@@ -27,6 +27,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.utils.Resource
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +42,7 @@ fun ShopDetailScreen(
     onNavigateToProductList: () -> Unit,
     onNavigateToCategories: () -> Unit = {},
     onNavigateToOrders: () -> Unit = {},
-    onNavigateToPromotions: () -> Unit = {},
+    onNavigateToPromotions: (String) -> Unit = {},
     onNavigateToOverview: () -> Unit = {}
 ) {
     val myRequestState by sellerRequestViewModel.myRequestState.collectAsStateWithLifecycle()
@@ -47,6 +51,10 @@ fun ShopDetailScreen(
     LaunchedEffect(shopId) {
         sellerRequestViewModel.fetchMySellerRequest()
     }
+
+    // Snackbar host + coroutine scope for safe navigation error handling
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -82,7 +90,8 @@ fun ShopDetailScreen(
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) } // added host
     ) { paddingValues ->
         if (myRequestState is Resource.Loading) {
             Box(
@@ -289,7 +298,23 @@ fun ShopDetailScreen(
                         MenuCard(
                             icon = Icons.Default.LocalOffer,
                             title = "Khuyến mãi",
-                            onClick = onNavigateToPromotions,
+                            onClick = {
+                                val actualShopId = sellerRequest?.id ?: shopId ?: ""
+                                if (actualShopId.isBlank()) {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Không có shop Id để xem khuyến mãi")
+                                    }
+                                } else {
+                                    try {
+                                        onNavigateToPromotions(actualShopId)
+                                    } catch (e: Exception) {
+                                        // Prevent crash — show a friendly message instead
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Không thể chuyển đến Khuyến mãi: ${e.message ?: "Lỗi không xác định"}")
+                                        }
+                                    }
+                                }
+                            },
                             modifier = Modifier.weight(1f)
                         )
                         MenuCard(
@@ -417,4 +442,3 @@ private fun MenuCard(
         }
     }
 }
-

@@ -24,6 +24,7 @@ fun ProductSKUSnapshotDto.toDomainEntity() = ProductSKUSnapshotDomainEntity(
     productId = productId,
     productName = productName,
     skuPrice = skuPrice,
+    originalPrice = originalPrice,
     image = image,
     skuValue = skuValue,
     skuId = skuId,

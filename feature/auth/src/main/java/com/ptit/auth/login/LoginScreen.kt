@@ -1,6 +1,7 @@
 package com.ptit.auth.login
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,9 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -97,6 +100,16 @@ fun LoginScreen(
             .padding(horizontal = 24.dp)
             .statusBarsPadding()
     ) {
+        Image(
+            // Thay R.drawable.app_logo bằng tên file ảnh bạn đã copy vào
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "App Logo",
+            modifier = Modifier
+                .size(200.dp) // Điều chỉnh kích thước logo (ví dụ 100.dp, 120.dp)
+                .padding(bottom = 10.dp), // Khoảng cách giữa logo và tiêu đề
+            contentScale = ContentScale.Fit
+        )
+
         // Title
         Text(
             text = "Đăng nhập",
@@ -105,7 +118,7 @@ fun LoginScreen(
             fontSize = 24.sp,
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(45.dp))
 
         // Username field
         Column {

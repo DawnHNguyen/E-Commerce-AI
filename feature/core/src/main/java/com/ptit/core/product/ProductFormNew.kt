@@ -114,6 +114,54 @@ fun ProductFormNew(
         brandViewModel.getBrands(page = 1, limit = 100) // Load all brands
     }
 
+    // Load product details when in edit mode
+    LaunchedEffect(productId) {
+        if (productId != null) {
+            viewModel.getProductDetails(productId)
+        }
+    }
+
+    // Populate form fields when product details are loaded
+    val productDetailsState by viewModel.productDetailsState.collectAsStateWithLifecycle()
+    LaunchedEffect(productDetailsState) {
+        if (productDetailsState is Resource.Success) {
+            val product = (productDetailsState as Resource.Success).data
+            product?.let {
+                name = it.name
+                description = it.description ?: ""
+                basePrice = it.basePrice.toString()
+                virtualPrice = it.virtualPrice.toString()
+                categoryId = it.category?.id ?: ""
+                selectedCategoryName = it.category?.name ?: "Chọn danh mục"
+                brandId = it.brand?.id ?: ""
+                selectedBrandName = it.brand?.name ?: "Chọn thương hiệu (tùy chọn)"
+                uploadedImageUrls = it.images
+
+                // Populate variants
+                variants = it.variants.map { variant ->
+                    VariantOption(
+                        name = variant.name,
+                        options = variant.options.toMutableList()
+                    )
+                }
+
+                // Populate SKUs
+                skus = it.skus.map { sku ->
+                    SKUItem(
+                        value = sku.value,
+                        price = sku.price.toString(),
+                        stock = sku.stock.toString(),
+                        image = sku.image
+                    )
+                }
+
+                // Populate specifications (if available)
+                // Assuming specifications are stored in product entity
+                // Add this if specifications exist in the ProductDomainEntity
+            }
+        }
+    }
+
     // Image picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()

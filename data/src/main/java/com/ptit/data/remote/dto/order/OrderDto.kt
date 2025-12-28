@@ -8,6 +8,7 @@ data class ProductSKUSnapshotDto(
     @SerializedName("productId") val productId: String?,
     @SerializedName("productName") val productName: String,
     @SerializedName("skuPrice") val skuPrice: Int,
+    @SerializedName("originalPrice") val originalPrice: Int?, // Giá gốc (trước giảm)
     @SerializedName("image") val image: String,
     @SerializedName("skuValue") val skuValue: String,
     @SerializedName("skuId") val skuId: String?,

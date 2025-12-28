@@ -14,8 +14,10 @@ import com.ptit.data.repository.SellerRequestRepositoryImpl
 import com.ptit.data.repository.ShippingRepositoryImpl
 import com.ptit.data.repository.AddressRepositoryImpl
 import com.ptit.data.repository.ReviewRepositoryImpl
+import com.ptit.data.repository.DiscountRepositoryImpl
 import com.ptit.domain.repository.AuthRepository
 import com.ptit.domain.repository.BrandRepository
+import com.ptit.domain.repository.DiscountRepository
 import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.FileUploadRepository
 import com.ptit.domain.repository.HomeRepository
@@ -92,4 +94,12 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindBrandRepository(impl: BrandRepositoryImpl): BrandRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindRecommendationRepository(impl: com.ptit.data.repository.RecommendationRepositoryImpl): com.ptit.domain.repository.RecommendationRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindDiscountRepository(impl: DiscountRepositoryImpl): DiscountRepository
 }

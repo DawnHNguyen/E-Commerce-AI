@@ -7,7 +7,7 @@ object OrderStatus {
     const val SHIPPING = "SHIPPING"  // ✅ Đang vận chuyển
     const val DELIVERED = "DELIVERED"  // ✅ Đã giao
     const val RETURNED = "RETURNED"  // ✅ Trả hàng
-    const val CANCELLED = "CANCELLED"  // ✅ Đã hủy
+
 
     fun getDisplayName(status: String): String {
         // Normalize status to uppercase for comparison
@@ -19,7 +19,6 @@ object OrderStatus {
             SHIPPING, "PENDING_DELIVERY", "PICKUPED" -> "Đang giao hàng"
             DELIVERED -> "Đã giao"
             RETURNED -> "Trả hàng"
-            CANCELLED -> "Đã hủy"
             // ✅ Fallback for old status names
             "PENDING", "PROCESSING" -> "Chờ xử lý"
             else -> status
@@ -34,8 +33,6 @@ object OrderStatus {
             PENDING_PACKAGING, "PENDING_PACKAGE" -> "#FFD700"    // Vàng - Chờ vận chuyển
             SHIPPING, "PENDING_DELIVERY", "PICKUPED" -> "#9C27B0"      // Tím - Đang giao hàng
             DELIVERED -> "#4CAF50"     // Xanh lá - Đã giao
-            RETURNED -> "#FF9800"      // Amber - Trả hàng
-            CANCELLED -> "#F44336"     // Đỏ - Đã hủy
             // ✅ Fallback for old status names
             "PENDING", "PROCESSING" -> "#FFA500"
             else -> "#757575"          // Xám - Mặc định
@@ -48,7 +45,6 @@ object OrderStatus {
             PENDING_PAYMENT,      // ✅ Tab "Chờ thanh toán"
             PENDING_PACKAGING,    // ✅ Tab "Chờ vận chuyển"
             DELIVERED,            // ✅ Tab "Đã giao"
-            CANCELLED             // ✅ Tab "Đã hủy"
         )
     }
 }

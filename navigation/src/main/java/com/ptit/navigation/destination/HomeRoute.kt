@@ -7,3 +7,6 @@ data class ProductDetailRoute(val productId: String)
 
 @Serializable
 data object SearchRoute
+
+@Serializable
+data object RecommendationsRoute
