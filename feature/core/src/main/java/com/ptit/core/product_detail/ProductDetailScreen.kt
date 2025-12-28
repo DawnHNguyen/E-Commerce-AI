@@ -1,6 +1,5 @@
 package com.ptit.core.product_detail
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,11 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.StarRate
@@ -35,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.integration.compose.placeholder
 import com.ptit.common.R
 import com.ptit.common.presentation.*
 import com.ptit.common.presentation.component.*
@@ -42,6 +42,8 @@ import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.toPriceFormat
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.entity.product.VariantDomainEntity
+import com.ptit.domain.entity.recommendation.RecommendedProductDomainEntity
+import com.ptit.domain.utils.Resource
 import com.ptit.presentation.viewmodel.*
 
 import kotlinx.coroutines.launch
@@ -59,6 +61,7 @@ fun ProductDetailScreen(
 
     val viewModel = hiltViewModel<ProductDetailViewModel>()
     val productState by viewModel.productDetailState.collectAsStateWithLifecycle()
+    val similarProductsState by viewModel.similarProductsState.collectAsStateWithLifecycle()
     val addToCartState by viewModel.addToCartState.collectAsStateWithLifecycle()
     val selectedVariants by viewModel.selectedVariants.collectAsStateWithLifecycle()
 
@@ -108,6 +111,7 @@ fun ProductDetailScreen(
                         onCartClick = onCartClick,
                         onAddToCartClick = { showAddToCartBottomSheet = true },
                         isAddingToCart = addToCartState is AddToCartState.Loading,
+                        similarProductsState = similarProductsState,
                         onProductItemClick = onProductItemClick,
                         navigateToAllReviews = navigateToAllReviews
                     )
@@ -177,6 +181,7 @@ fun ProductDetailContent(
     onCartClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     isAddingToCart: Boolean = false,
+    similarProductsState: Resource<List<RecommendedProductDomainEntity>>,
     onProductItemClick: (String) -> Unit,
     navigateToAllReviews: (String) -> Unit = {}
 ) {
@@ -381,96 +386,102 @@ fun ProductDetailContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            /// 🏬 Thông tin Shop (Chi tiết như Shopee)
-            Text(
-                text = "Thông tin Shop",
-                style = CustomTypography.TextSemiBold.merge(
-                    color = colorResource(id = R.color.colorSystem_heading_button),
-                    fontSize = 16.sp
-                )
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clickable {
+                        // TODO: Navigate to Shop Detail
+                    },
+                // 1. Dùng elevation thay cho shadow để tránh lỗi và chuẩn Material 3
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = colorResource(id = R.color.colorSystem_background_level_2)
+                    containerColor = Color.White
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // 🏠 Tên shop
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = "Shop",
-                            tint = colorResource(id = R.color.colorSystem_heading_button),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = product.shop?.name ?: "Cool Crew",
-                            style = CustomTypography.TextSemiBold.merge(
-                                color = colorResource(id = R.color.colorSystem_heading_button),
-                                fontSize = 16.sp
-                            )
-                        )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val shopName = product.shopInfo?.name ?: "Shop"
+                    val shopInitials = remember(shopName) {
+                        // Tách chuỗi theo khoảng trắng
+                        val words = shopName.trim().split("\\s+".toRegex())
+                        // Lấy chữ cái đầu của từ thứ 1 và thứ 2 (nếu có)
+                        val first = words.getOrNull(0)?.take(1) ?: ""
+                        val second = words.getOrNull(1)?.take(1) ?: ""
+                        (first + second).uppercase()
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 📊 Thông tin shop
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        ShopInfoItem(label = "3.7k", value = "Đánh giá")
-                        ShopInfoItem(label = "86", value = "Sản phẩm")
-                        ShopInfoItem(label = "5,500", value = "Người theo dõi")
-                        ShopInfoItem(label = "100%", value = "Tỉ lệ phản hồi")
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 🔘 Nút hành động
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Chat ngay (màu xanh lá)
-                        OutlinedButton(
-                            onClick = { /* TODO: mở chat */ },
+                    // 2. Định nghĩa giao diện Avatar chữ cái (để tái sử dụng)
+                    val AvatarPlaceholder = @Composable {
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = colorResource(id = R.color.colorSystem_heading_button)
-                            ),
-                            shape = RoundedCornerShape(8.dp)
+                                .fillMaxSize()
+                                .background(Color(0xFF26C6DA)), // Màu nền xanh ngọc (Cyan) giống Shopee/Lazada
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "Chat ngay",
-                                style = CustomTypography.TextMedium.merge(
-                                    color = colorResource(id = R.color.colorSystem_heading_button)
+                                text = shopInitials,
+                                style = CustomTypography.TextBold.merge(
+                                    color = Color.White,
+                                    fontSize = 18.sp // Chỉnh cỡ chữ cho vừa vòng tròn 48dp
                                 )
                             )
                         }
-
-                        // Xem shop
-                        Button(
-                            onClick = { /* TODO: mở shop */ },
+                    }
+                    // 2. Avatar Shop
+                    if (product.shopInfo?.avatar.isNullOrEmpty()) {
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colorResource(id = R.color.colorSystem_heading_button),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(8.dp)
+                                .size(48.dp)
+                                .clip(CircleShape)
                         ) {
-                            Text("Xem Shop", style = CustomTypography.TextMedium)
+                            AvatarPlaceholder()
                         }
+                    } else {
+                        // Nếu có link -> Dùng GlideImage
+                        GlideImage(
+                            model = product.shopInfo!!.avatar,
+                            contentDescription = "Shop Avatar",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                            // SỬA Ở ĐÂY: Dùng tham số failure/loading thay vì builder
+                            failure = placeholder { AvatarPlaceholder() },
+                            loading = placeholder { AvatarPlaceholder() }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+
+                    // 3. Thông tin Shop
+                    Column(
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = product.shopInfo?.name ?: "Admin Shop",
+                            style = CustomTypography.TextSemiBold.merge(
+                                color = colorResource(id = R.color.colorSystem_heading_button),
+                                fontSize = 14.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "${product.shopInfo?.productsCount ?: 0} Sản Phẩm",
+                            style = CustomTypography.TextRegular.merge(
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                        )
                     }
                 }
             }
@@ -509,6 +520,17 @@ fun ProductDetailContent(
                 productId = product.id,
                 onViewAllClick = { navigateToAllReviews(product.id) }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 👇 THÊM SECTION SẢN PHẨM TƯƠNG TỰ Ở ĐÂY
+            SimilarProductsSection(
+                state = similarProductsState,
+                onProductClick = onProductItemClick
+            )
+
+            // Spacer bottom để tránh nút Add to Cart che mất nội dung cuối
+            Spacer(modifier = Modifier.height(80.dp))
 
         }
     }
@@ -590,7 +612,96 @@ fun VariantSelector(
         }
     }
 }
+// 👇 COMPOSABLE HIỂN THỊ DANH SÁCH (Tương tự RecommendationsSection ở Home)
+@Composable
+fun SimilarProductsSection(
+    state: Resource<List<RecommendedProductDomainEntity>>,
+    onProductClick: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Text(
+            text = "Sản phẩm liên quan",
+            style = CustomTypography.TextSemiBold.merge(
+                color = colorResource(id = R.color.colorSystem_heading_button),
+                fontSize = 16.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
 
+        when (state) {
+            is Resource.Success -> {
+                val products = state.data
+                if (products.isNotEmpty()) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(products) { product ->
+                            // Tái sử dụng RecommendationProductCard nếu bạn đã tách ra file chung
+                            // Hoặc định nghĩa lại UI card nhỏ ở đây (giống Home)
+                            SimilarProductCardItem(product = product, onClick = { onProductClick(product.id) })
+                        }
+                    }
+                } else {
+                    Text("Không có sản phẩm tương tự nào.", style = CustomTypography.TextRegular, fontSize = 14.sp)
+                }
+            }
+            is Resource.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colorResource(R.color.colorSystem_heading_button))
+                }
+            }
+            is Resource.Error -> {
+                // Có thể ẩn đi hoặc hiện text lỗi nhẹ nhàng
+            }
+            else -> {}
+        }
+    }
+}
+
+// 👇 UI Card cho sản phẩm tương tự (Copy logic từ RecommendationProductCard ở Home)
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun SimilarProductCardItem(
+    product: RecommendedProductDomainEntity,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(150.dp) // Card nhỏ hơn một chút cho list ngang
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            GlideImage(
+                model = product.images.firstOrNull() ?: "",
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentScale = ContentScale.Crop
+            )
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = product.name,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = CustomTypography.TextRegular,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = product.basePrice.toPriceFormat(),
+                    style = CustomTypography.TextBold,
+                    color = colorResource(R.color.colorSystem_tint_red),
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
 @Composable
 fun VariantOption(
     option: String,
@@ -630,25 +741,6 @@ fun VariantOption(
     }
 }
 
-@Composable
-fun ShopInfoItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = CustomTypography.TextSemiBold.merge(
-                color = colorResource(id = R.color.colorSystem_heading_button),
-                fontSize = 14.sp
-            )
-        )
-        Text(
-            text = value,
-            style = CustomTypography.TextRegular.merge(
-                color = colorResource(id = R.color.colorSystem_normal_text),
-                fontSize = 12.sp
-            )
-        )
-    }
-}
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable

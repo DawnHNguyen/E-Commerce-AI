@@ -5,6 +5,7 @@ import com.ptit.data.remote.dto.product.BrandDto
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.ProductDto
 import com.ptit.data.remote.dto.product.SKUDto
+import com.ptit.data.remote.dto.product.ShopInfoDto
 import com.ptit.data.remote.dto.product.VariantDto
 import com.ptit.domain.entity.common.UserDomainEntity
 import com.ptit.domain.entity.home.ListProductDomainEntity
@@ -12,6 +13,7 @@ import com.ptit.domain.entity.product.BrandDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.entity.product.ShopInfoDomainEntity
 import com.ptit.domain.entity.product.VariantDomainEntity
 
 fun ProductDto.toDomainEntity() = ProductDomainEntity(
@@ -25,7 +27,7 @@ fun ProductDto.toDomainEntity() = ProductDomainEntity(
     category = category?.toDomainEntity(),
     brand = brand?.toDomainEntity(),
     createdById = createdById.orEmpty(),
-    shop = null, // Map từ UserDto nếu có
+    shopInfo = shopInfo?.toDomainEntity(),
     isPublic = isPublic ?: false,
     publishedAt = publishedAt,
     createdAt = createdAt.orEmpty(),
@@ -60,4 +62,11 @@ fun BrandDto.toDomainEntity() = BrandDomainEntity(
 
 fun ListProductResponse.toDomainEntity() = ListProductDomainEntity(
     products = data?.map { it.toDomainEntity() } ?: emptyList()  // ✅ Đổi từ products thành data
+)
+
+fun ShopInfoDto.toDomainEntity() = ShopInfoDomainEntity(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    avatar = avatar.orEmpty(),
+    productsCount = productsCount ?: 0
 )

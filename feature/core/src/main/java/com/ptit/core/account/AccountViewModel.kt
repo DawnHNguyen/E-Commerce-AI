@@ -119,6 +119,8 @@ class AccountViewModel @Inject constructor(
     // Shipping states for address selection
     private val _addressShippingState = MutableStateFlow(AddressShippingState())
     val addressShippingState = _addressShippingState.asStateFlow()
+    private val _deleteAddressState = MutableStateFlow<Resource<Unit>>(Resource.idle())
+    val deleteAddressState = _deleteAddressState.asStateFlow()
 
     init {
         fetchUserProfile()
@@ -331,7 +333,11 @@ class AccountViewModel @Inject constructor(
         wardCode: String,
         street: String,
         addressType: String,
-        isDefault: Boolean
+        isDefault: Boolean,
+        // ✅ NEW: Additional fields
+        provinceName: String,
+        districtName: String,
+        wardName: String
     ) {
         if (createAddressState.value is Resource.Loading) return
         _createAddressState.value = Resource.loading()
@@ -346,7 +352,11 @@ class AccountViewModel @Inject constructor(
                 wardCode = wardCode,
                 street = street,
                 addressType = addressType,
-                isDefault = isDefault
+                isDefault = isDefault,
+                provinceName = provinceName,
+                districtName = districtName,
+                wardName = wardName
+
             )
 
             _createAddressState.value = result
@@ -462,6 +472,26 @@ class AccountViewModel @Inject constructor(
         _addressShippingState.update {
             AddressShippingState(provinces = it.provinces) // Keep provinces loaded
         }
+    }
+
+    fun deleteAddress(addressId: String) {
+        if (_deleteAddressState.value is Resource.Loading) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _deleteAddressState.value = Resource.loading()
+            // Gọi Repository
+            val result = addressRepository.deleteAddress(addressId)
+            _deleteAddressState.value = result
+
+            if (result is Resource.Success) {
+                // Xóa thành công thì load lại danh sách ngay lập tức
+                fetchAddresses()
+            }
+        }
+    }
+
+    fun resetDeleteAddressState() {
+        _deleteAddressState.value = Resource.idle()
     }
 
     data class AddressShippingState(

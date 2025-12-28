@@ -13,7 +13,7 @@ interface SellerRequestApi {
     ): Resource<CreateSellerRequestResponse>
 
     @GET("seller-requests/my-request")
-    suspend fun getMySellerRequest(): Resource<SellerRequestDto?>
+    suspend fun getMySellerRequest(): GetMySellerRequestResponse
 
     // Admin APIs
     @GET("seller-requests")

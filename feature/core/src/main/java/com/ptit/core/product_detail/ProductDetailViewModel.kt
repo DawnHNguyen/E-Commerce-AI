@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.entity.product.SKUDomainEntity
+import com.ptit.domain.entity.recommendation.RecommendedProductDomainEntity
 import com.ptit.domain.repository.CartRepository
 import com.ptit.domain.repository.ProductRepository
+import com.ptit.domain.repository.RecommendationRepository
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.UnknownException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductDetailViewModel @Inject constructor(
     private val productRepository: ProductRepository,
-    private val cartRepository: CartRepository
+    private val cartRepository: CartRepository,
+    private val recommendationRepository: RecommendationRepository,
 ) : ViewModel() {
 
     private val _productDetailState = MutableStateFlow<ProductDetailState>(ProductDetailState.Initial)
@@ -26,8 +30,8 @@ class ProductDetailViewModel @Inject constructor(
     private val _addToCartState = MutableStateFlow<AddToCartState>(AddToCartState.Initial)
     val addToCartState: StateFlow<AddToCartState> = _addToCartState.asStateFlow()
 
-    private val _similarProductsState = MutableStateFlow<SimilarProductsState>(SimilarProductsState.Initial)
-    val similarProductsState: StateFlow<SimilarProductsState> = _similarProductsState.asStateFlow()
+    private val _similarProductsState = MutableStateFlow<Resource<List<RecommendedProductDomainEntity>>>(Resource.Loading())
+    val similarProductsState: StateFlow<Resource<List<RecommendedProductDomainEntity>>> = _similarProductsState.asStateFlow()
 
     // State để track variant được chọn
     private val _selectedVariants = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -36,23 +40,38 @@ class ProductDetailViewModel @Inject constructor(
     fun getProductDetail(productId: String) {
         viewModelScope.launch {
             _productDetailState.value = ProductDetailState.Loading
-            _similarProductsState.value = SimilarProductsState.Loading
+            _similarProductsState.value = Resource.Loading()
 
             when (val result = productRepository.getProductDetail(productId)) {
                 is Resource.Success -> {
                     _productDetailState.value = ProductDetailState.Success(result.data)
                     // Reset selected variants khi load product mới
                     _selectedVariants.value = emptyMap()
+                    fetchSimilarProducts(productId)
                 }
                 is Resource.Error -> {
                     _productDetailState.value = ProductDetailState.Error(result.error.message ?: "Unknown error")
-                    _similarProductsState.value = SimilarProductsState.Error(result.error.message ?: "Unknown error fetching similar products")
+                    _similarProductsState.value = Resource.Error(result.error)
                 }
                 else -> {
                     _productDetailState.value = ProductDetailState.Error("Unexpected error")
-                    _similarProductsState.value = SimilarProductsState.Error("Unexpected error fetching similar products")
+                    _similarProductsState.value = Resource.Error(
+                        UnknownException(
+                            null,
+                            "Unexpected error",
+                            "similar_products"
+                        )
+                    )
+
                 }
             }
+        }
+    }
+    private fun fetchSimilarProducts(productId: String) {
+        viewModelScope.launch {
+            // Limit 10 sản phẩm tương tự
+            val result = recommendationRepository.getProductRecommendations(productId, limit = 10)
+            _similarProductsState.value = result
         }
     }
 

@@ -14,23 +14,28 @@ class AddressRepositoryImpl @Inject constructor(
 
     override suspend fun getAddresses(): Resource<List<AddressDomainEntity>> {
         return try {
-            val response = remoteDataSource.getAddresses()
-            if (response.data != null) {
-                Resource.success(response.data.map { it.toDomainEntity() })
+            // 1. Gọi API lấy Root Response
+            val rootResponse = remoteDataSource.getAddresses()
+
+            // 2. Đi sâu vào trong: Root -> Data Wrapper -> Address List
+            val addressList = rootResponse.data?.addresses
+
+            if (addressList != null) {
+                // 3. Map sang Domain Entity và trả về Success
+                val domainList = addressList.map { it.toDomainEntity() }
+                Resource.Success(domainList)
             } else {
-                Resource.error(
-                    UnknownException(
-                        error = null,
-                        message = "Failed to get addresses",
-                        requestUrl = "/profile/addresses"
-                    )
-                )
+                // Trường hợp null (có thể do lỗi backend hoặc list rỗng nhưng trả về null)
+                // Bạn có thể trả về Success với list rỗng hoặc Error tùy logic
+                Resource.Success(emptyList())
             }
         } catch (e: Exception) {
-            Resource.error(
+            e.printStackTrace()
+            // 4. Trả về Error đúng chuẩn Resource.Error(CustomException)
+            Resource.Error(
                 UnknownException(
                     error = null,
-                    message = e.message ?: "Unknown error",
+                    message = e.message ?: "Lỗi kết nối hoặc parse data",
                     requestUrl = "/profile/addresses"
                 )
             )
@@ -46,7 +51,10 @@ class AddressRepositoryImpl @Inject constructor(
         wardCode: String,
         street: String,
         addressType: String,
-        isDefault: Boolean
+        isDefault: Boolean,
+        provinceName: String,
+        districtName: String,
+        wardName: String
     ): Resource<AddressDomainEntity> {
         return try {
             val response = remoteDataSource.createAddress(
@@ -58,7 +66,10 @@ class AddressRepositoryImpl @Inject constructor(
                 wardCode = wardCode,
                 street = street,
                 addressType = addressType,
-                isDefault = isDefault
+                isDefault = isDefault,
+                province = provinceName,
+                district = districtName,
+                ward = wardName
             )
             if (response.data != null) {
                 Resource.success(response.data.toDomainEntity())

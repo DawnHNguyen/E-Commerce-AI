@@ -15,7 +15,10 @@ interface AddressRepository {
         wardCode: String,
         street: String,
         addressType: String,
-        isDefault: Boolean
+        isDefault: Boolean,
+        provinceName: String,
+        districtName: String,
+        wardName: String
     ): Resource<AddressDomainEntity>
     
     suspend fun deleteAddress(addressId: String): Resource<Unit>

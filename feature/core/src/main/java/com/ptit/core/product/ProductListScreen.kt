@@ -44,7 +44,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,14 +67,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.ptit.common.R
-import com.ptit.common.presentation.MaxSizeColumn
 import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.ProductEmptyState
 import com.ptit.common.presentation.rememberState
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.safeCollectFlow
-import com.ptit.domain.entity.brand.BrandDomainEntity
-import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.ProductDomainEntity
 import com.ptit.domain.utils.onError
 import com.ptit.domain.utils.onLoading
@@ -307,7 +303,6 @@ fun ProductListScreen(
                 onMinPriceChange = { minPrice = it },
                 onMaxPriceChange = { maxPrice = it },
                 onApplyFilter = {
-                    showFilterDialog = false
                     viewModel.fetchProductList(
                         createdById = userId,
                         searchQuery = searchQuery.ifBlank { null },
@@ -345,14 +340,14 @@ private fun ProductsTopAppBar(
 ) {
     androidx.compose.material3.Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
+            .fillMaxWidth(),
         color = colorResource(R.color.colorSystem_heading_button),
         shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             // Title row with back button

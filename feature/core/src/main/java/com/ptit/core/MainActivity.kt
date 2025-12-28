@@ -77,6 +77,7 @@ import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.review.CreateReviewScreen
 import com.ptit.core.seller_request.CreateSellerRequestScreen
 import com.ptit.core.seller_request.RequestStatusScreen
+import com.ptit.core.shop.NoShopScreen
 import com.ptit.core.shop.ShopDetailScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
@@ -95,6 +96,7 @@ import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.AddAddressRoute
 import com.ptit.navigation.destination.ChangePasswordRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
+import com.ptit.navigation.destination.NoShopRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.OrderHistoryRoute
 import com.ptit.navigation.destination.OverviewRoute
@@ -446,15 +448,32 @@ class MainActivity : FragmentActivity() {
                         // ✅ Shop Loading Screen - Check seller request status and redirect
                         composable<ShopEntryRoute> {
                             com.ptit.core.shop.ShopLoadingScreen(
+                                // 👇 Callback mới: Khi API trả về null (chưa có shop)
+                                onNavigateToNoShop = {
+                                    navController.navigate(NoShopRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                // 👇 Callback cũ: Khi đã có request (Pending/Rejected)
                                 onNavigateToRequestStatus = {
                                     navController.navigate(RequestStatusRoute) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
                                 },
+                                // 👇 Callback cũ: Khi đã Approved
                                 onNavigateToShopDetail = {
                                     navController.navigate(ShopDetailRoute("")) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
+                                },
+                                onBack = navController::navigateUp
+                            )
+                        }
+                        composable<NoShopRoute> {
+                            NoShopScreen(
+                                onNavigateToCreateShop = {
+                                    // Chuyển sang màn hình tạo yêu cầu (CreateSellerRequest)
+                                    navController.navigate(CreateSellerRequestRoute)
                                 },
                                 onBack = navController::navigateUp
                             )
@@ -512,10 +531,7 @@ class MainActivity : FragmentActivity() {
                                 onNavigateToProductList = {
                                     navController.navigate(ProductListRoute)
                                 },
-                                onNavigateToCategories = {
-                                    // TODO: Implement category management screen
-                                    navController.navigate(BottomNavigationScreen.CategoryScreen)
-                                },
+
                                 onNavigateToOrders = {
                                     // Navigate to order history/management
                                     navController.navigate(OrderHistoryRoute)

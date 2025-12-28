@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,9 +27,6 @@ import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +36,6 @@ fun ShopDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditShop: () -> Unit,
     onNavigateToProductList: () -> Unit,
-    onNavigateToCategories: () -> Unit = {},
     onNavigateToOrders: () -> Unit = {},
     onNavigateToPromotions: (String) -> Unit = {},
     onNavigateToOverview: () -> Unit = {}
@@ -52,52 +47,59 @@ fun ShopDetailScreen(
         sellerRequestViewModel.fetchMySellerRequest()
     }
 
-    // Snackbar host + coroutine scope for safe navigation error handling
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Cửa hàng của tôi",
-                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
-                        color = colorResource(R.color.colorSystem_greyscale_0_white)
+            // FIX: Dùng Surface bao ngoài để màu xanh tràn lên status bar
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = colorResource(R.color.colorSystem_heading_button),
+                shadowElevation = 4.dp
+            ) {
+                Column(modifier = Modifier.statusBarsPadding()) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                "Cửa hàng của tôi",
+                                style = CustomTypography.TextBold.copy(fontSize = 20.sp),
+                                color = colorResource(R.color.colorSystem_greyscale_0_white)
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onNavigateBack) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Quay lại",
+                                    tint = colorResource(R.color.colorSystem_greyscale_0_white)
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = onNavigateToEditShop) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Chỉnh sửa",
+                                    tint = colorResource(R.color.colorSystem_greyscale_0_white)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent, // Để màu của Surface hiện lên
+                            titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white)
+                        )
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại",
-                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToEditShop) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Chỉnh sửa",
-                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorResource(R.color.colorSystem_heading_button),
-                    titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white)
-                ),
-                modifier = Modifier.statusBarsPadding()
-            )
+                }
+            }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) } // added host
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = colorResource(R.color.colorSystem_background_level_0)
     ) { paddingValues ->
         if (myRequestState is Resource.Loading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(colorResource(R.color.colorSystem_background_level_0))
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -106,7 +108,6 @@ fun ShopDetailScreen(
                 )
             }
         } else {
-            // Lấy thông tin từ seller request (nếu có)
             val sellerRequest = (myRequestState as? Resource.Success)?.data
             val shopName = sellerRequest?.shopName ?: "Cửa hàng của tôi"
             val shopDescription = sellerRequest?.shopDescription
@@ -114,7 +115,6 @@ fun ShopDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(colorResource(R.color.colorSystem_background_level_0))
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
@@ -137,7 +137,7 @@ fun ShopDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // Shop Avatar (default icon)
+                        // Shop Avatar
                         Box(
                             modifier = Modifier
                                 .size(100.dp)
@@ -156,7 +156,6 @@ fun ShopDetailScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Shop Name
                         Text(
                             text = shopName,
                             style = CustomTypography.TextBold.copy(fontSize = 22.sp),
@@ -165,7 +164,6 @@ fun ShopDetailScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Status Badge
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = colorResource(R.color.colorSystem_success).copy(alpha = 0.2f)
@@ -191,7 +189,7 @@ fun ShopDetailScreen(
                     }
                 }
 
-                // Shop Information
+                // Shop Information Content
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -207,14 +205,15 @@ fun ShopDetailScreen(
                         )
                     }
 
-                    // Seller Request Info Card (nếu có)
+                    // Business Info
                     if (sellerRequest != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
                                 containerColor = colorResource(R.color.colorSystem_background_level_2)
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
                                 modifier = Modifier.padding(20.dp),
@@ -257,47 +256,51 @@ fun ShopDetailScreen(
                         }
                     }
 
-                    // Menu Grid - 5 items
+                    // --- MENU GRID SECTION ---
                     Text(
                         "Quản lý cửa hàng",
                         style = CustomTypography.TextBold.copy(fontSize = 20.sp),
                         color = colorResource(R.color.colorSystem_heading_button),
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                     )
 
-                    // Row 1: 3 items
+                    // Row 1
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        MenuCard(
+                        ColorfulMenuCard(
                             icon = Icons.Default.Inventory,
                             title = "Sản phẩm",
+                            // Màu xanh dương nhạt cho nền icon
+                            iconBgColor = Color(0xFFE3F2FD),
+                            iconColor = Color(0xFF1976D2),
                             onClick = onNavigateToProductList,
                             modifier = Modifier.weight(1f)
                         )
-                        MenuCard(
-                            icon = Icons.Default.Category,
-                            title = "Danh mục",
-                            onClick = onNavigateToCategories,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MenuCard(
+
+                        ColorfulMenuCard(
                             icon = Icons.Default.ShoppingBag,
                             title = "Đơn hàng",
+                            // Màu cam nhạt
+                            iconBgColor = Color(0xFFFFF3E0),
+                            iconColor = Color(0xFFF57C00),
                             onClick = onNavigateToOrders,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
-                    // Row 2: 2 items
+                    // Row 2
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        MenuCard(
+                        ColorfulMenuCard(
                             icon = Icons.Default.LocalOffer,
                             title = "Khuyến mãi",
+                            // Màu hồng nhạt
+                            iconBgColor = Color(0xFFFCE4EC),
+                            iconColor = Color(0xFFC2185B),
                             onClick = {
                                 val actualShopId = sellerRequest?.id ?: shopId ?: ""
                                 if (actualShopId.isBlank()) {
@@ -308,30 +311,87 @@ fun ShopDetailScreen(
                                     try {
                                         onNavigateToPromotions(actualShopId)
                                     } catch (e: Exception) {
-                                        // Prevent crash — show a friendly message instead
                                         coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("Không thể chuyển đến Khuyến mãi: ${e.message ?: "Lỗi không xác định"}")
+                                            snackbarHostState.showSnackbar("Lỗi: ${e.message}")
                                         }
                                     }
                                 }
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        MenuCard(
+
+                        ColorfulMenuCard(
                             icon = Icons.Default.BarChart,
                             title = "Thống kê",
+                            // Màu tím nhạt
+                            iconBgColor = Color(0xFFF3E5F5),
+                            iconColor = Color(0xFF7B1FA2),
                             onClick = onNavigateToOverview,
                             modifier = Modifier.weight(1f)
                         )
-                        // Empty space to balance
-                        Spacer(modifier = Modifier.weight(1f))
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
     }
 }
 
+// Helper composable mới cho thẻ Menu đẹp hơn
+@Composable
+private fun ColorfulMenuCard(
+    icon: ImageVector,
+    title: String,
+    iconBgColor: Color,
+    iconColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.aspectRatio(1f), // Giữ tỉ lệ vuông
+        colors = CardDefaults.cardColors(
+            containerColor = colorResource(R.color.colorSystem_greyscale_0_white)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Vòng tròn nền màu cho icon
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(color = iconBgColor, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = title,
+                style = CustomTypography.TextSemiBold.copy(fontSize = 15.sp),
+                color = colorResource(R.color.colorSystem_heading_button),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// Giữ nguyên InfoCard cũ
 @Composable
 private fun InfoCard(
     icon: ImageVector,
@@ -343,7 +403,8 @@ private fun InfoCard(
         colors = CardDefaults.cardColors(
             containerColor = colorResource(R.color.colorSystem_background_level_2)
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp)
@@ -373,6 +434,7 @@ private fun InfoCard(
     }
 }
 
+// Giữ nguyên ContactInfoRow
 @Composable
 private fun ContactInfoRow(
     icon: ImageVector,
@@ -398,44 +460,6 @@ private fun ContactInfoRow(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 value,
-                style = CustomTypography.TextSemiBold.copy(fontSize = 14.sp),
-                color = colorResource(R.color.colorSystem_greyscale_900)
-            )
-        }
-    }
-}
-
-@Composable
-private fun MenuCard(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
-        colors = CardDefaults.cardColors(
-            containerColor = colorResource(R.color.colorSystem_background_level_2)
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = colorResource(R.color.colorSystem_heading_button),
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                title,
                 style = CustomTypography.TextSemiBold.copy(fontSize = 14.sp),
                 color = colorResource(R.color.colorSystem_greyscale_900)
             )

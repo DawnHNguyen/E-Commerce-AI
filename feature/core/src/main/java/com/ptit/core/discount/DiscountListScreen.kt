@@ -222,7 +222,7 @@ fun DiscountListScreen(
         // Delete confirmation dialog
         if (showDeleteDialog && selectedDiscount != null) {
             AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
+                onDismissRequest = { },
                 title = {
                     Text(
                         "Xác nhận xóa",
@@ -479,7 +479,7 @@ private fun formatDate(dateString: String): String {
         val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
             .withZone(ZoneId.systemDefault())
         formatter.format(instant)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         dateString
     }
 }

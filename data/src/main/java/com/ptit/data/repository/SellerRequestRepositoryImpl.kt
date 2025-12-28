@@ -9,6 +9,7 @@ import com.ptit.domain.entity.seller_request.SellerRequestDomainEntity
 import com.ptit.domain.entity.seller_request.SellerRequestListDomainEntity
 import com.ptit.domain.repository.SellerRequestRepository
 import com.ptit.domain.utils.Resource
+import com.ptit.domain.utils.UnknownException
 import com.ptit.domain.utils.map
 import javax.inject.Inject
 
@@ -28,25 +29,18 @@ class SellerRequestRepositoryImpl @Inject constructor(
             businessLicense = businessLicense,
             taxCode = taxCode
         )
-        return remoteDataSource.createSellerRequest(request).map { it.data.toDomainEntity() }
+        return remoteDataSource.createSellerRequest(request).map { response ->
+            // 👇 SỬA LẠI: Dùng ?. và fallback nếu data null
+            response.data?.toDomainEntity()
+                ?: throw IllegalStateException("Server trả về data null khi tạo yêu cầu")
+        }
     }
 
     override suspend fun getMySellerRequest(): Resource<SellerRequestDomainEntity?> {
-        val remoteResult = try {
-            remoteDataSource.getMySellerRequest()
-        } catch (t: Throwable) {
-            // If remote call itself throws for unexpected reasons, log and return safe null success
-            Log.w("SellerRequestRepository", "Remote call getMySellerRequest threw: $t")
-            return Resource.success(null)
-        }
-
-        return try {
-            // Map safely: if the remote returned a malformed type (ClassCastException) or mapping fails,
-            // don't crash the app — return success(null) so UI can show create-shop flow.
-            remoteResult.map { dto -> dto?.toDomainEntity() }
-        } catch (t: Throwable) {
-            Log.w("SellerRequestRepository", "Failed to map getMySellerRequest response, returning null safe value: $t")
-            Resource.success(null)
+        // Gọi datasource (đã trả về Resource an toàn ở bước 3)
+        return remoteDataSource.getMySellerRequest().map { dto ->
+            // dto có thể là null, hàm map này sẽ xử lý an toàn
+            dto?.toDomainEntity()
         }
     }
 

@@ -53,5 +53,40 @@ class RecommendationRepositoryImpl @Inject constructor(
             Resource.Error(UnknownException(null, e.message ?: "Unknown error", "recommendations"))
         }
     }
+
+    override suspend fun getProductRecommendations(
+        productId: String,
+        limit: Int
+    ): Resource<List<RecommendedProductDomainEntity>> {
+        Log.d("RecommendationRepo", "getProductRecommendations called for productId: $productId")
+        return try {
+            // Gọi API mới
+            val response = recommendationApi.getProductRecommendations(productId, limit)
+
+            // Logic mapping y hệt hàm getRecommendations vì cấu trúc response giống nhau
+            val productsList = response.data.data
+
+            val recommendations = productsList.map { dto ->
+                RecommendedProductDomainEntity(
+                    id = dto.id,
+                    name = dto.name,
+                    description = dto.description,
+                    basePrice = dto.basePrice,
+                    virtualPrice = dto.virtualPrice,
+                    images = dto.images,
+                    categoryId = dto.categoryId,
+                    brandId = dto.brandId,
+                    score = dto.score,
+                    brandName = dto.brand.name,
+                    brandLogo = dto.brand.logo,
+                    categoryName = dto.category?.name
+                )
+            }
+            Resource.Success(recommendations)
+        } catch (e: Exception) {
+            Log.e("RecommendationRepo", "❌ Exception in getProductRecommendations: ${e.message}", e)
+            Resource.Error(UnknownException(null, e.message ?: "Unknown error", "product_recommendations"))
+        }
+    }
 }
 

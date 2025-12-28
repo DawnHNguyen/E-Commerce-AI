@@ -351,7 +351,10 @@ fun AddAddressScreen(
                     wardCode = shippingState.selectedWard!!.code,
                     street = street.value,
                     addressType = addressType.value,
-                    isDefault = isDefault.value
+                    isDefault = isDefault.value,
+                    provinceName = shippingState.selectedProvince!!.name,
+                    districtName = shippingState.selectedDistrict!!.name,
+                    wardName = shippingState.selectedWard!!.name
                 )
             }
         )

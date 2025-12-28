@@ -13,7 +13,7 @@ data class ProductDomainEntity(
     val category: CategoryDomainEntity? = null,
     val brand: BrandDomainEntity? = null,
     val createdById: String = "",
-    val shop: UserDomainEntity? = null,
+    val shopInfo: ShopInfoDomainEntity? = null,
     val isPublic: Boolean = false,
     val publishedAt: String? = null,
     val createdAt: String = "",
@@ -50,4 +50,11 @@ data class VariantDomainEntity(
 data class BrandDomainEntity(
     val id: String = "",
     val name: String = "",
+)
+
+data class ShopInfoDomainEntity(
+    val id: String = "",
+    val name: String = "",
+    val avatar: String = "",
+    val productsCount: Int = 0
 )

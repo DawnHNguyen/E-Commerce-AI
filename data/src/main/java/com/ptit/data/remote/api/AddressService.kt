@@ -1,14 +1,14 @@
 package com.ptit.data.remote.api
 
+import com.ptit.data.remote.dto.address.AddressRootResponse
 import com.ptit.data.remote.dto.address.CreateAddressRequest
 import com.ptit.data.remote.dto.address.CreateAddressResponse
-import com.ptit.data.remote.dto.address.GetAddressesResponse
 import retrofit2.http.*
 
 interface AddressService {
 
     @GET("profile/addresses")
-    suspend fun getAddresses(): GetAddressesResponse
+    suspend fun getAddresses(): AddressRootResponse
 
     @POST("profile/addresses")
     suspend fun createAddress(

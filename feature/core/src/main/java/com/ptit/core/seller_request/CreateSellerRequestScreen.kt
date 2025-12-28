@@ -84,7 +84,7 @@ fun CreateSellerRequestScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Trở thành Seller",
+                        "Đăng ký tạo cửa hàng",
                         style = CustomTypography.TextBold.copy(fontSize = 20.sp),
                         color = colorResource(R.color.colorSystem_greyscale_0_white)
                     )
