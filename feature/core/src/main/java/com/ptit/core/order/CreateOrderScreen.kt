@@ -1,10 +1,8 @@
 package com.ptit.core.order
 
-// 🔴 XÓA: import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -12,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-// 🔴 XÓA: import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -27,13 +25,7 @@ import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.toPriceFormat
-import com.ptit.core.order.components.CustomerInformationSection
-import com.ptit.core.order.components.SharedCartItemRow
-import com.ptit.core.order.components.SharedTotalAmountSection
-import com.ptit.core.order.components.ShippingAddressSection
-import com.ptit.core.order.components.VoucherBottomSheet
-import com.ptit.core.order.components.VoucherSelectorRow
-// 🔴 XÓA: import com.ptit.core.purchase.PurchaseBottomSheet
+import com.ptit.core.order.components.*
 import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
@@ -46,10 +38,8 @@ fun CreateOrderScreen(
     viewModel: CreateOrderViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onOrderCreated: (String) -> Unit
-    // 🔴 XÓA: navigateToPaymentMethod
 ) {
     LocalBottomNavigationVisibility.current.value = false
-    // 🔴 XÓA: context
 
     val orderState by viewModel.orderState.collectAsState()
     val userProfileState by viewModel.userProfileState.collectAsState()
@@ -57,9 +47,6 @@ fun CreateOrderScreen(
     val addressState by viewModel.addressState.collectAsState()
     var showVoucherBottomSheet by remember { mutableStateOf(false) }
 
-    // 🔴 XÓA: showPurchaseBottomSheet
-
-    // ... (LaunchedEffects không đổi) ...
     LaunchedEffect(selectedItemIds, groupedCartItems) {
         viewModel.setSelectedItems(selectedItemIds, groupedCartItems)
     }
@@ -71,8 +58,6 @@ fun CreateOrderScreen(
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is CreateOrderViewModel.OrderEvent.OrderCreated -> {
-                    // Response sau khi tạo đơn có thể không chứa items
-                    // Chỉ cần lấy orderId để navigate
                     val firstOrderId = event.response.orders.firstOrNull()?.id
                     if (firstOrderId != null) {
                         snackbarHostState.showSnackbar("Đặt hàng thành công!")
@@ -85,22 +70,30 @@ fun CreateOrderScreen(
         }
     }
 
-    // ... (Loading và Error UI không đổi) ...
     if (orderState.isLoading || userProfileState is Resource.Loading) {
         FullScreenProgressBar()
         return
     }
 
-    if (orderState.error != null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                "Lỗi: ${orderState.error}",
-                color = MaterialTheme.colorScheme.error,
-                style = CustomTypography.TextMedium
-            )
+    // Logic lọc Voucher hiển thị trong BottomSheet
+    val displayedVouchers = remember(orderState.currentSelectingShopId, orderState.allAvailableVouchers) {
+        if (orderState.currentSelectingShopId == null) {
+            // Context null -> Chỉ hiện Platform Voucher
+            orderState.allAvailableVouchers.filter { it.isPlatform }
+        } else {
+            // Context có ID -> Chỉ hiện Voucher của Shop đó
+            orderState.allAvailableVouchers.filter {
+                !it.isPlatform && it.shopId == orderState.currentSelectingShopId
+            }
         }
     }
 
+    // Voucher đang được chọn trong context hiện tại (để highlight)
+    val currentSelectedVoucherInSheet = if (orderState.currentSelectingShopId == null) {
+        orderState.selectedPlatformVoucher
+    } else {
+        orderState.selectedShopVouchers[orderState.currentSelectingShopId]
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -135,8 +128,6 @@ fun CreateOrderScreen(
                 .padding(paddingValues)
                 .background(colorResource(R.color.colorSystem_background_level_0))
         ) {
-            val selectedShops = orderState.selectedShops
-
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -144,24 +135,7 @@ fun CreateOrderScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ---------------------------
-                // 0. 🏷️ HÀNG VOUCHER
-                // ---------------------------
-                item {
-                    VoucherSelectorRow(
-                        onClick = {
-                            viewModel.loadAvailableVouchers()
-                            showVoucherBottomSheet = true
-                        },
-                        selectedVoucher = orderState.selectedVoucher
-                    )
-                }
-
-                // 🔴 XÓA: PaymentMethodSelectorSection
-
-                // ---------------------------
-                // 1. 🧍‍♀️ Thông tin khách hàng
-                // ---------------------------
+                // 1. Thông tin khách hàng
                 item {
                     CustomerInformationSection(
                         name = orderState.name,
@@ -170,9 +144,7 @@ fun CreateOrderScreen(
                     )
                 }
 
-                // ---------------------------
-                // 2. 📦 Thông tin nhận hàng
-                // ---------------------------
+                // 2. Thông tin nhận hàng
                 item {
                     ShippingAddressSection(
                         receiverName = orderState.name,
@@ -196,13 +168,34 @@ fun CreateOrderScreen(
                     )
                 }
 
-                // ... (Các sections khác giữ nguyên) ...
-                selectedShops.forEach { shop ->
+                // 3. Danh sách Shop và Voucher từng Shop
+                orderState.selectedShops.forEach { shop ->
                     item {
-                        ShopOrderSection(shop.shopName ?: "Cửa hàng", shop.cartItems)
+                        ShopOrderSection(
+                            shopName = shop.shopName ?: "Cửa hàng",
+                            cartItems = shop.cartItems,
+                            // Pass voucher đã chọn của shop này
+                            selectedShopVoucher = orderState.selectedShopVouchers[shop.shopId],
+                            onSelectVoucherClick = {
+                                viewModel.openVoucherSheet(shop.shopId)
+                                showVoucherBottomSheet = true
+                            }
+                        )
                     }
                 }
 
+                // 4. Voucher Sàn (Platform)
+                item {
+                    PlatformVoucherRow(
+                        selectedVoucher = orderState.selectedPlatformVoucher,
+                        onClick = {
+                            viewModel.openVoucherSheet(null) // null = Platform
+                            showVoucherBottomSheet = true
+                        }
+                    )
+                }
+
+                // 5. Ghi chú (Đã fix lỗi Unresolved reference)
                 item {
                     OrderNoteSection(
                         note = orderState.note,
@@ -210,33 +203,44 @@ fun CreateOrderScreen(
                     )
                 }
 
-                // ✅ Calculate subtotal from selected products
-                val subtotal = selectedShops.sumOf { shop ->
+                // 6. Tính toán tổng tiền
+                // Tinh subtotal (tiền hàng) -> Ép kiểu về Int
+                val subtotal = orderState.selectedShops.sumOf { shop ->
                     shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
                 }
 
-                // ✅ Use calculated shipping fee from orderState (default 0đ)
+                // Phí ship -> Ép kiểu về Int
                 val shippingFee = orderState.calculatedShippingFee.toInt()
 
-                // ✅ Apply voucher discount
-                val voucherDiscount = orderState.voucherDiscountAmount.toInt()
-                val total = (subtotal + shippingFee - voucherDiscount).coerceAtLeast(0)
+                // Tính tổng giảm giá Shop
+                var totalShopDiscount = 0.0
+                orderState.selectedShopVouchers.forEach { (shopId, voucher) ->
+                    val shopTotal = orderState.selectedShops.find { it.shopId == shopId }
+                        ?.cartItems?.sumOf { (it.sku?.price ?: 0) * it.quantity }?.toDouble() ?: 0.0
+                    totalShopDiscount += viewModel.calculateDiscountValue(voucher, shopTotal)
+                }
+
+                // Tính giảm giá Platform
+                val platformDiscount = if (orderState.selectedPlatformVoucher != null) {
+                    viewModel.calculateDiscountValue(orderState.selectedPlatformVoucher!!, subtotal.toDouble())
+                } else 0.0
+
+                val totalDiscount = (totalShopDiscount + platformDiscount).toInt()
+                val finalTotal = (subtotal + shippingFee - totalDiscount).coerceAtLeast(0)
 
                 item {
+                    // Đã fix lỗi receiver type mismatch bằng cách ép kiểu .toInt() ở trên
                     SharedTotalAmountSection(
                         subtotal = subtotal.toPriceFormat(),
                         shippingFee = shippingFee.toPriceFormat(),
-                        totalPrice = total.toPriceFormat(),
-                        discount = if (voucherDiscount > 0) voucherDiscount.toPriceFormat() else null
+                        totalPrice = finalTotal.toPriceFormat(),
+                        discount = if (totalDiscount > 0) totalDiscount.toPriceFormat() else null
                     )
                 }
 
                 item { Spacer(modifier = Modifier.height(60.dp)) }
             }
 
-            // ---------------------------
-            // 🧾 Nút “Đặt hàng” (Quay lại logic cũ)
-            // ---------------------------
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,12 +248,8 @@ fun CreateOrderScreen(
                     .padding(16.dp)
             ) {
                 FilledButton(
-                    // 🔴 SỬA: Đổi text
                     text = "Đặt hàng",
-                    onClick = {
-                        // 🔴 SỬA: Gọi thẳng createOrder
-                        viewModel.createOrder()
-                    },
+                    onClick = { viewModel.createOrder() },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = orderState.selectedShops.isNotEmpty()
                 )
@@ -257,73 +257,23 @@ fun CreateOrderScreen(
         }
     }
 
-    // Voucher Bottom Sheet
     VoucherBottomSheet(
         isVisible = showVoucherBottomSheet,
         onDismiss = { showVoucherBottomSheet = false },
-        availableVouchers = orderState.availableVouchers,
-        selectedVoucher = orderState.selectedVoucher,
+        availableVouchers = displayedVouchers,
+        selectedVoucher = currentSelectedVoucherInSheet,
         isLoading = orderState.isLoadingVouchers,
         voucherError = orderState.voucherError,
-        onApplyCode = { code ->
-            viewModel.applyVoucherCode(code)
-        },
+        onApplyCode = { code -> viewModel.applyVoucherCode(code) },
         onSelectVoucher = { voucher ->
             viewModel.selectVoucher(voucher)
+            showVoucherBottomSheet = false
         },
-        onRemoveVoucher = {
-            viewModel.removeVoucher()
-        }
+        onRemoveVoucher = { viewModel.removeVoucher() }
     )
-
-    // 🔴 XÓA: PurchaseBottomSheet
 }
 
-// 🔴 XÓA: Composable PaymentMethodSelectorSection
-
-// ... (ShopOrderSection và OrderNoteSection giữ nguyên) ...
-@Composable
-fun ShopOrderSection(shopName: String, cartItems: List<com.ptit.domain.entity.cart.CartItemDomainEntity>) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colorResource(R.color.colorSystem_background_level_2))
-            .padding(16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "🏪",
-                style = CustomTypography.TextSemiBold.copy(fontSize = 18.sp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = shopName,
-                style = CustomTypography.TextBold.copy(fontSize = 16.sp),
-                color = colorResource(R.color.colorSystem_heading_button)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (cartItems.isEmpty()) {
-            Text(
-                text = "Không có sản phẩm",
-                style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
-                color = colorResource(R.color.colorSystem_text_button)
-            )
-        } else {
-            cartItems.forEach { item ->
-                SharedCartItemRow(cartItem = item)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
+// Composable này bị thiếu ở code cũ, gây lỗi Unresolved reference
 @Composable
 fun OrderNoteSection(
     note: TextFieldValue,

@@ -46,5 +46,26 @@ class OrderRepositoryImpl @Inject constructor(
     override suspend fun cancelOrder(orderId: String): Resource<CancelOrderResponseDomainEntity> {
         return remoteDataSource.cancelOrder(orderId).map { it.toDomainEntity() }
     }
+
+    override suspend fun getManageOrders(
+        page: Int?,
+        limit: Int?,
+        status: String?
+    ): Resource<GetOrderListDomainEntity> {
+        return remoteDataSource.getManageOrders(page, limit, status).map { it.toDomainEntity() }
+    }
+
+    override suspend fun getManageOrderDetail(orderId: String): Resource<OrderDomainEntity> {
+        return remoteDataSource.getManageOrderDetail(orderId).map { it.toDomainEntity() }
+    }
+
+    override suspend fun updateOrderStatus(
+        orderId: String,
+        status: String
+    ): Resource<OrderDomainEntity> {
+        // Gọi API cập nhật trạng thái
+        // status truyền vào: "SHIPPING" (nếu xác nhận vận chuyển)
+        return remoteDataSource.updateOrderStatus(orderId, status).map { it.toDomainEntity() }
+    }
 }
 

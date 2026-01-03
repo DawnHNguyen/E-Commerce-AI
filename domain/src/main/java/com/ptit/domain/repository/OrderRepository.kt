@@ -23,4 +23,18 @@ interface OrderRepository {
     ): Resource<CreateOrderResponseDomainEntity>
 
     suspend fun cancelOrder(orderId: String): Resource<CancelOrderResponseDomainEntity>
+
+    // API cho Chủ Shop
+    suspend fun getManageOrders(
+        page: Int? = 1,
+        limit: Int? = 10,
+        status: String? = null
+    ): Resource<GetOrderListDomainEntity>
+
+    suspend fun getManageOrderDetail(orderId: String): Resource<OrderDomainEntity>
+
+    suspend fun updateOrderStatus(
+        orderId: String,
+        status: String
+    ): Resource<OrderDomainEntity>
 }

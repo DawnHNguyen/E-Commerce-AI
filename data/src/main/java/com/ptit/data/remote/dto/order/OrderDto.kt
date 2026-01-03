@@ -101,5 +101,10 @@ data class CancelOrderResponseDto(
     @SerializedName("status") val status: String
 )
 
+// Trong file com/ptit/data/remote/dto/order/OrderDto.kt
+data class UpdateOrderStatusRequest(
+    @SerializedName("status") val status: String
+)
+
 
 

@@ -53,7 +53,7 @@ interface DiscountApi {
     @GET("manage-discount/discounts/{discountId}")
     suspend fun getDiscountDetail(
         @Path("discountId") discountId: String
-    ): Resource<GetDiscountDetailResponseDto>
+    ): GetDiscountDetailResponseDto
 
     /**
      * Create new discount/voucher (Shop owner)
