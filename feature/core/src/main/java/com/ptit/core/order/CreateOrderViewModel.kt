@@ -148,9 +148,9 @@ class CreateOrderViewModel @Inject constructor(
                 is Resource.Success -> {
                     // ✅ Lọc chỉ lấy Platform Voucher để hiển thị
                     // Nếu danh sách rỗng, list này sẽ empty -> UI sẽ hiện "Chưa có voucher"
-                    val platformVouchers = result.data.data.filter { it.isPlatform }
+                    val platformVouchers = result.data.filter { it.isPlatform }
 
-                    android.util.Log.d("CreateOrderVM", "Loaded ${result.data.data.size} vouchers. Filtered platform: ${platformVouchers.size}")
+                    android.util.Log.d("CreateOrderVM", "Loaded ${result.data.size} vouchers. Filtered platform: ${platformVouchers.size}")
 
                     _orderState.update {
                         it.copy(

@@ -85,12 +85,6 @@ data class ProductItemDto(
     @SerializedName("name") val name: String
 )
 
-// Response DTOs
-data class GetAvailableDiscountsResponseDto(
-    @SerializedName("data") val data: List<DiscountDto>,
-    @SerializedName("message") val message: String?,
-    @SerializedName("statusCode") val statusCode: Int?
-)
 
 data class GetManageDiscountsResponseDto(
     @SerializedName("data") val data: List<DiscountDto>,

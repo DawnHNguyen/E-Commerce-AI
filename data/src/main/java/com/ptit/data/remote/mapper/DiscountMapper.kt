@@ -74,11 +74,6 @@ fun DiscountDetailDto.toDomainEntity() = DiscountDomainEntity(
     updatedAt = updatedAt ?: ""
 )
 
-fun GetAvailableDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
-    // data ở đây là List, nên dùng .map là đúng
-    data = data.map { it.toDomainEntity() }
-)
-
 fun GetManageDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
     data = data.map { it.toDomainEntity() },
     totalItems = metadata?.totalItems,

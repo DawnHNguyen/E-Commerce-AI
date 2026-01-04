@@ -18,13 +18,13 @@ class DiscountRepositoryImpl @Inject constructor(
         cartItemIds: List<String>?,
         onlyShopDiscounts: Boolean,
         onlyPlatformDiscounts: Boolean
-    ): Resource<DiscountListDomainEntity> {
+    ): Resource<List<DiscountDomainEntity>> {
         return remoteDataSource.getAvailableDiscounts(
             limit = limit,
             cartItemIds = cartItemIds,
             onlyShopDiscounts = onlyShopDiscounts,
             onlyPlatformDiscounts = onlyPlatformDiscounts
-        ).map { it.toDomainEntity() }
+        ).map { it.map { it.toDomainEntity() }}
     }
 
     override suspend fun validateVoucherCode(

@@ -17,7 +17,7 @@ class DiscountRemoteDataSource @Inject constructor(
         cartItemIds: List<String>?,
         onlyShopDiscounts: Boolean,
         onlyPlatformDiscounts: Boolean
-    ): Resource<GetAvailableDiscountsResponseDto> {
+    ): Resource<List<DiscountDto>> {
         return api.getAvailableDiscounts(
             limit = limit,
             cartItemIds = cartItemIds,
