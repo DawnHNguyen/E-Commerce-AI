@@ -22,6 +22,8 @@ data class ProductDto(
     val category: CategoryDto?,
     @SerializedName("brand")
     val brand: BrandDto?,
+    @SerializedName("shopInfo")
+    val shopInfo: ShopInfoDto?,
     @SerializedName("createdById")
     val createdById: String?,
     @SerializedName("isPublic")
@@ -67,4 +69,11 @@ data class VariantDto(
     val name: String,
     @SerializedName("options")
     val options: List<String>
+)
+
+data class ShopInfoDto(
+    @SerializedName("id") val id: String?,
+    @SerializedName("name") val name: String?,
+    @SerializedName("avatar") val avatar: String?,
+    @SerializedName("productsCount") val productsCount: Int?
 )

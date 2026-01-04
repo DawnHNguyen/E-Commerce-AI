@@ -5,6 +5,7 @@ import com.ptit.data.remote.dto.order.CreateOrderDataDto
 import com.ptit.data.remote.dto.order.CreateOrderRequestDto
 import com.ptit.data.remote.dto.order.GetOrderListResponseDto
 import com.ptit.data.remote.dto.order.OrderDto
+import com.ptit.data.remote.dto.order.UpdateOrderStatusRequest
 import com.ptit.domain.utils.Resource
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -36,4 +37,31 @@ interface OrderApi {
     suspend fun cancelOrder(
         @Path("orderId") orderId: String
     ): Resource<CancelOrderResponseDto>
+
+    // ----------------------------------------------------
+    // 🛍️ API CHO CHỦ SHOP (SELLER)
+    // ----------------------------------------------------
+
+    // 1. Lấy danh sách đơn hàng của Shop
+    @GET("manage-order/orders")
+    suspend fun getManageOrders(
+        @Query("page") page: Int? = 1,
+        @Query("limit") limit: Int? = 10,
+        @Query("status") status: String? = null
+    ): Resource<GetOrderListResponseDto>
+
+    // 2. Lấy chi tiết đơn hàng quản lý
+    // Backend: @Get(':orderId') -> ghép với prefix
+    @GET("manage-order/orders/{orderId}")
+    suspend fun getManageOrderDetail(
+        @Path("orderId") orderId: String
+    ): Resource<OrderDto>
+
+    // 3. Cập nhật trạng thái
+    // Backend: @Put(':orderId/status') -> ghép với prefix
+    @PUT("manage-order/orders/{orderId}/status")
+    suspend fun updateOrderStatus(
+        @Path("orderId") orderId: String,
+        @Body body: UpdateOrderStatusRequest
+    ): Resource<OrderDto>
 }

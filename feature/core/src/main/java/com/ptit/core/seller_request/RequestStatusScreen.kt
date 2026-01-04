@@ -423,6 +423,7 @@ private fun getStatusDisplayName(status: String): String {
 }
 
 private fun formatDate(dateString: String): String {
+    if (dateString.isNullOrEmpty()) return "N/A"
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")

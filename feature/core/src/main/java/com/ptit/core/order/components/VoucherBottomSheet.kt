@@ -1,13 +1,16 @@
 package com.ptit.core.order.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -15,26 +18,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ptit.common.R
 import com.ptit.common.presentation.component.FilledButton
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.domain.entity.discount.DiscountDomainEntity
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoucherBottomSheet(
     isVisible: Boolean,
     onDismiss: () -> Unit,
-    availableVouchers: List<com.ptit.domain.entity.discount.DiscountDomainEntity>,
-    selectedVoucher: com.ptit.domain.entity.discount.DiscountDomainEntity?,
+    availableVouchers: List<DiscountDomainEntity>, // Danh sách voucher từ API
+    selectedVoucher: DiscountDomainEntity?,
     isLoading: Boolean,
     voucherError: String?,
     onApplyCode: (String) -> Unit,
-    onSelectVoucher: (com.ptit.domain.entity.discount.DiscountDomainEntity) -> Unit,
+    onSelectVoucher: (DiscountDomainEntity) -> Unit,
     onRemoveVoucher: () -> Unit
 ) {
     if (!isVisible) return
@@ -53,8 +62,9 @@ fun VoucherBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
+                .navigationBarsPadding() // Tránh bị che bởi thanh điều hướng
         ) {
-            // 1. Header
+            // --- 1. HEADER ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -66,22 +76,21 @@ fun VoucherBottomSheet(
                     color = colorResource(R.color.colorSystem_heading_button)
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Đóng")
+                    Icon(Icons.Default.Close, contentDescription = "Đóng", tint = Color.Gray)
                 }
             }
             Spacer(Modifier.height(16.dp))
 
-            // 2. Input Mã Voucher
+            // --- 2. INPUT NHẬP MÃ ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // SỬ DỤNG OutlinedTextField chuẩn vì FilledTextField tùy chỉnh của bạn phức tạp
                 OutlinedTextField(
                     value = voucherCode,
                     onValueChange = { voucherCode = it },
-                    placeholder = { Text("Nhập mã voucher") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder = { Text("Nhập mã voucher", fontSize = 14.sp, color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                     modifier = Modifier
                         .weight(1f)
                         .height(50.dp),
@@ -90,16 +99,8 @@ fun VoucherBottomSheet(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colorResource(R.color.colorSystem_heading_button),
                         unfocusedBorderColor = colorResource(R.color.colorSystem_greyscale_300),
-
-                        // 🔴 CÁC MÀU NỀN CẦN THIẾT
-                        focusedContainerColor = colorResource(R.color.colorSystem_background_level_0),
-                        unfocusedContainerColor = colorResource(R.color.colorSystem_background_level_0),
-                        disabledContainerColor = colorResource(R.color.colorSystem_background_level_0),
-
-                        // Màu chữ
-                        focusedTextColor = colorResource(R.color.colorSystem_normal_text),
-                        unfocusedTextColor = colorResource(R.color.colorSystem_normal_text),
-                        disabledTextColor = colorResource(R.color.colorSystem_normal_text),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
                     )
                 )
                 Spacer(Modifier.width(8.dp))
@@ -114,7 +115,6 @@ fun VoucherBottomSheet(
                 )
             }
 
-            // Show error message if any
             if (voucherError != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -126,122 +126,163 @@ fun VoucherBottomSheet(
             }
 
             Spacer(Modifier.height(16.dp))
+            HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+            Spacer(Modifier.height(16.dp))
 
-            // 3. Voucher list content
+            // --- 3. DANH SÁCH VOUCHER ---
+            Text(
+                text = "Mã giảm giá khả dụng",
+                style = CustomTypography.TextSemiBold.copy(fontSize = 15.sp),
+                color = colorResource(R.color.colorSystem_normal_text)
+            )
+            Spacer(Modifier.height(12.dp))
+
             when {
                 isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = colorResource(R.color.colorSystem_heading_button)
-                        )
+                    Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = colorResource(R.color.colorSystem_heading_button))
                     }
                 }
                 availableVouchers.isEmpty() -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(vertical = 32.dp),
+                        modifier = Modifier.fillMaxWidth().height(150.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            Icons.Filled.LocalOffer,
-                            contentDescription = null,
-                            tint = colorResource(R.color.colorSystem_greyscale_400),
-                            modifier = Modifier.size(48.dp)
-                        )
+                        Icon(Icons.Filled.LocalOffer, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Không có voucher khả dụng",
-                            style = CustomTypography.TextMedium,
-                            color = colorResource(R.color.colorSystem_greyscale_500),
-                            textAlign = TextAlign.Center
-                        )
+                        Text("Chưa có voucher nào", style = CustomTypography.TextRegular, color = Color.Gray)
                     }
                 }
                 else -> {
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = 300.dp),
+                        modifier = Modifier.heightIn(max = 400.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(availableVouchers.size) { index ->
                             val voucher = availableVouchers[index]
-                            VoucherItem(
+                            val isSelected = selectedVoucher?.id == voucher.id
+
+                            VoucherItemRow(
                                 voucher = voucher,
-                                isSelected = selectedVoucher?.id == voucher.id,
+                                isSelected = isSelected,
                                 onClick = {
-                                    onSelectVoucher(voucher)
-                                    onDismiss()
+                                    if (isSelected) onRemoveVoucher() else onSelectVoucher(voucher)
                                 }
                             )
                         }
                     }
                 }
             }
-
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
 
-            // 4. Selected voucher display
-            if (selectedVoucher != null) {
-                HorizontalDivider(color = colorResource(R.color.colorSystem_greyscale_200))
-                Spacer(Modifier.height(16.dp))
+// --- ITEM VOUCHER (ĐÃ SỬA GIAO DIỆN) ---
+@Composable
+fun VoucherItemRow(
+    voucher: DiscountDomainEntity,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(
+            width = if (isSelected) 1.dp else 0.5.dp,
+            color = if (isSelected) colorResource(R.color.colorSystem_heading_button) else Color.LightGray
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Radio Button (Trái)
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = colorResource(R.color.colorSystem_heading_button),
+                    unselectedColor = Color.Gray
+                ),
+                modifier = Modifier.size(24.dp)
+            )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Voucher đã chọn:",
-                            style = CustomTypography.TextSmall,
-                            color = colorResource(R.color.colorSystem_greyscale_600)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = selectedVoucher.code,
-                            style = CustomTypography.TextBold,
-                            color = colorResource(R.color.colorSystem_heading_button)
-                        )
-                    }
-                    TextButton(onClick = {
-                        onRemoveVoucher()
-                    }) {
-                        Text(
-                            "Xóa",
-                            color = colorResource(R.color.colorSystem_error)
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // 2. Thông tin Voucher (Giữa)
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Tên voucher
+                Text(
+                    text = voucher.name,
+                    style = CustomTypography.TextSemiBold.copy(fontSize = 15.sp),
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Mã voucher (nhỏ)
+                Text(
+                    text = voucher.code,
+                    style = CustomTypography.TextMedium.copy(fontSize = 12.sp),
+                    color = colorResource(R.color.colorSystem_heading_button),
+                    modifier = Modifier
+                        .background(colorResource(R.color.colorSystem_heading_button).copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Hạn sử dụng
+                Text(
+                    text = "HSD: ${voucher.endDate.take(10)}",
+                    style = CustomTypography.TextSmall.copy(fontSize = 11.sp),
+                    color = Color.Gray
+                )
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            // 5. Footer Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+            // 3. Giá trị giảm (Phải)
+            Column(
+                horizontalAlignment = Alignment.End
             ) {
-                FilledButton(
-                    text = "Đóng",
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = if (voucher.discountType == "PERCENTAGE") {
+                        "Giảm ${voucher.value.toInt()}%"
+                    } else {
+                        "-${formatMoney(voucher.value.toInt())}"
+                    },
+                    style = CustomTypography.TextBold.copy(fontSize = 15.sp),
+                    color = colorResource(R.color.colorSystem_error) // Màu đỏ
                 )
+
+                if (voucher.minOrderValue > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Đơn > ${formatMoney(voucher.minOrderValue.toInt())}",
+                        style = CustomTypography.TextSmall.copy(fontSize = 10.sp),
+                        color = Color.Gray
+                    )
+                }
             }
         }
     }
-
 }
+// 🛒 Platform Voucher Row (Dùng ở dưới cùng màn hình)
 @Composable
-fun VoucherSelectorRow(
-    onClick: () -> Unit,
-    selectedVoucher: com.ptit.domain.entity.discount.DiscountDomainEntity? = null
+fun PlatformVoucherRow(
+    selectedVoucher: DiscountDomainEntity?,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -255,20 +296,18 @@ fun VoucherSelectorRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.LocalOffer,
-                contentDescription = "Voucher Sàn",
+                Icons.Default.ConfirmationNumber,
+                contentDescription = "Shoppie Voucher",
                 tint = colorResource(R.color.colorSystem_heading_button),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(8.dp))
             Column {
                 Text(
-                    "Voucher Sàn",
-                    style = CustomTypography.TextRegular.copy(fontSize = 15.sp),
-                    color = colorResource(R.color.colorSystem_normal_text)
+                    "Shoppie Voucher",
+                    style = CustomTypography.TextRegular.copy(fontSize = 15.sp)
                 )
                 if (selectedVoucher != null) {
-                    Spacer(Modifier.height(4.dp))
                     Text(
                         selectedVoucher.code,
                         style = CustomTypography.TextSmall.copy(fontSize = 12.sp),
@@ -278,112 +317,17 @@ fun VoucherSelectorRow(
             }
         }
         Text(
-            if (selectedVoucher != null) "Đổi mã" else "Chọn hoặc nhập mã",
+            if (selectedVoucher != null) "-${if(selectedVoucher.discountType == "PERCENTAGE") "${selectedVoucher.value.toInt()}%" else "${selectedVoucher.value.toInt()}"}" else "Chọn mã",
             style = CustomTypography.TextSemiBold.copy(fontSize = 15.sp),
             color = colorResource(R.color.colorSystem_heading_button)
         )
     }
 }
 
-@Composable
-fun VoucherItem(
-    voucher: com.ptit.domain.entity.discount.DiscountDomainEntity,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected)
-                colorResource(R.color.colorSystem_heading_button).copy(alpha = 0.1f)
-            else
-                colorResource(R.color.colorSystem_background_level_1)
-        ),
-        border = if (isSelected)
-            androidx.compose.foundation.BorderStroke(2.dp, colorResource(R.color.colorSystem_heading_button))
-        else null
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left side - Voucher info
-            Column(modifier = Modifier.weight(1f)) {
-                // Voucher code
-                Text(
-                    text = voucher.code,
-                    style = CustomTypography.TextBold.copy(fontSize = 16.sp),
-                    color = colorResource(R.color.colorSystem_heading_button)
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                // Voucher name
-                Text(
-                    text = voucher.name,
-                    style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
-                    color = colorResource(R.color.colorSystem_normal_text),
-                    maxLines = 1
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // Discount value
-                Text(
-                    text = if (voucher.discountType == "PERCENTAGE") {
-                        "Giảm ${voucher.value.toInt()}%"
-                    } else {
-                        "Giảm ${(voucher.value.toInt() / 1000)}K"
-                    },
-                    style = CustomTypography.TextSemiBold.copy(fontSize = 15.sp),
-                    color = colorResource(R.color.colorSystem_error)
-                )
-
-                // Min order value
-                if (voucher.minOrderValue > 0) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Đơn tối thiểu: ${(voucher.minOrderValue.toInt() / 1000)}K",
-                        style = CustomTypography.TextSmall.copy(fontSize = 12.sp),
-                        color = colorResource(R.color.colorSystem_greyscale_600)
-                    )
-                }
-
-                // Validity period
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "HSD: ${formatDate(voucher.endDate)}",
-                    style = CustomTypography.TextSmall.copy(fontSize = 12.sp),
-                    color = colorResource(R.color.colorSystem_greyscale_600)
-                )
-            }
-
-            // Right side - Select indicator
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Selected",
-                    tint = colorResource(R.color.colorSystem_heading_button),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
+// Helper format tiền tệ
+private fun formatMoney(amount: Int): String {
+    val symbols = DecimalFormatSymbols(Locale.getDefault())
+    symbols.groupingSeparator = '.'
+    val formatter = DecimalFormat("#,##0", symbols)
+    return "${formatter.format(amount)}đ"
 }
-
-// Helper function to format date
-private fun formatDate(dateString: String): String {
-    return try {
-        val date = java.time.LocalDateTime.parse(dateString, java.time.format.DateTimeFormatter.ISO_DATE_TIME)
-        date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-    } catch (_: Exception) {
-        dateString.substring(0, 10)
-    }
-}
-

@@ -1,4 +1,4 @@
-package com.ptit.data.remote.mapper
+package com.ptit.data.mapping
 
 import com.ptit.data.remote.dto.product.CategoryDto
 import com.ptit.data.remote.dto.product.GetAllCategoriesResDto

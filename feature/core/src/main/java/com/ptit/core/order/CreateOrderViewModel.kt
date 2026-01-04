@@ -5,14 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.entity.common.UserDomainEntity
-import com.ptit.domain.entity.order.CreateOrderRequestDomainEntity
-import com.ptit.domain.entity.order.CreateOrderResponseDomainEntity
-import com.ptit.domain.entity.order.ReceiverDomainEntity
-import com.ptit.domain.entity.order.ShopOrderRequestDomainEntity
-import com.ptit.domain.entity.order.ShippingInfoDomainEntity
-import com.ptit.domain.entity.shipping.DistrictEntity
-import com.ptit.domain.entity.shipping.ProvinceEntity
-import com.ptit.domain.entity.shipping.WardEntity
+import com.ptit.domain.entity.discount.DiscountDomainEntity
+import com.ptit.domain.entity.order.*
+import com.ptit.domain.entity.shipping.*
 import com.ptit.domain.repository.OrderRepository
 import com.ptit.domain.repository.ShippingRepository
 import com.ptit.domain.repository.UserRepository
@@ -30,7 +25,6 @@ class CreateOrderViewModel @Inject constructor(
     private val discountRepository: com.ptit.domain.repository.DiscountRepository
 ) : ViewModel() {
 
-    // ... (Các StateFlows không đổi) ...
     private val _orderState = MutableStateFlow(OrderFormState())
     val orderState: StateFlow<OrderFormState> = _orderState.asStateFlow()
 
@@ -48,7 +42,6 @@ class CreateOrderViewModel @Inject constructor(
         loadProvinces()
     }
 
-    // ... (loadUserProfile, setSelectedItems, updateName, v.v... không đổi) ...
     private fun loadUserProfile() {
         viewModelScope.launch {
             _userProfileState.update { Resource.loading() }
@@ -56,131 +49,199 @@ class CreateOrderViewModel @Inject constructor(
                 is Resource.Success -> {
                     _userProfileState.update { Resource.success(result.data) }
                     result.data.let { user ->
-                        _orderState.update {
-                            it.copy(
-                                name = TextFieldValue(user.name),
-                                phone = TextFieldValue(user.phoneNumber),
-                                email = user.email,
-                                isUserInfoLoaded = true
-                            )
-                        }
+                        _orderState.update { it.copy(name = TextFieldValue(user.name), phone = TextFieldValue(user.phoneNumber), email = user.email, isUserInfoLoaded = true) }
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+    fun setSelectedItems(selectedItemIds: List<String>, allGroupedItems: List<CartItemDetailDomainEntity>) {
+        val selectedIdsSet = selectedItemIds.toSet()
+        viewModelScope.launch {
+            val filteredShopGroups = allGroupedItems.mapNotNull { shopGroup ->
+                val selectedItemsInShop = shopGroup.cartItems.filter { selectedIdsSet.contains(it.id) }
+                if (selectedItemsInShop.isNotEmpty()) shopGroup.copy(cartItems = selectedItemsInShop) else null
+            }
+            _orderState.update { it.copy(selectedShops = filteredShopGroups) }
+        }
+    }
+    fun updateName(value: TextFieldValue) = _orderState.update { it.copy(name = value) }
+    fun updatePhone(value: TextFieldValue) = _orderState.update { it.copy(phone = value) }
+    fun updateAddress(value: TextFieldValue) = _orderState.update { it.copy(address = value) }
+    fun updateNote(value: TextFieldValue) = _orderState.update { it.copy(note = value) }
+    private fun loadProvinces() {
+        viewModelScope.launch {
+            _addressState.update { it.copy(provincesLoading = true) }
+            when (val result = shippingRepository.getProvinces()) {
+                is Resource.Success -> _addressState.update { it.copy(provinces = result.data, provincesLoading = false) }
+                else -> _addressState.update { it.copy(provincesLoading = false) }
+            }
+        }
+    }
+    fun selectProvince(province: ProvinceEntity?) {
+        _addressState.update { it.copy(selectedProvince = province, selectedDistrict = null, selectedWard = null, districts = emptyList(), wards = emptyList()) }
+        if (province != null) loadDistricts(province.id)
+    }
+    private fun loadDistricts(provinceId: Int) {
+        viewModelScope.launch {
+            when (val result = shippingRepository.getDistricts(provinceId)) {
+                is Resource.Success -> _addressState.update { it.copy(districts = result.data) }
+                else -> {}
+            }
+        }
+    }
+    fun selectDistrict(district: DistrictEntity?) {
+        _addressState.update { it.copy(selectedDistrict = district, selectedWard = null, wards = emptyList()) }
+        if (district != null) loadWards(district.id)
+    }
+    private fun loadWards(districtId: Int) {
+        viewModelScope.launch {
+            when (val result = shippingRepository.getWards(districtId)) {
+                is Resource.Success -> _addressState.update { it.copy(wards = result.data) }
+                else -> {}
+            }
+        }
+    }
+    fun selectWard(ward: WardEntity?) {
+        _addressState.update { it.copy(selectedWard = ward) }
+        if (ward != null) calculateShippingFee()
+    }
+    private fun calculateShippingFee() {
+        val address = _addressState.value
+        val state = _orderState.value
+        if (address.selectedProvince == null || address.selectedDistrict == null || address.selectedWard == null || state.selectedShops.isEmpty()) return
+        viewModelScope.launch {
+            _orderState.update { it.copy(isCalculatingShippingFee = true) }
+            val totalWeight = (state.selectedShops.sumOf { shop -> shop.cartItems.sumOf { it.quantity } } * 200).toDouble()
+            val request = CalculateShippingFeeRequestDomainEntity(
+                height = 10.0, weight = totalWeight, length = 20.0, width = 20.0,
+                wardCode = address.selectedWard!!.code, districtId = address.selectedDistrict!!.id, provinceId = address.selectedProvince!!.id, serviceTypeId = 2
+            )
+            when (val result = shippingRepository.calculateShippingFee(request)) {
+                is Resource.Success -> _orderState.update { it.copy(calculatedShippingFee = result.data.total.toDouble(), isCalculatingShippingFee = false) }
+                else -> _orderState.update { it.copy(calculatedShippingFee = 30000.0, isCalculatingShippingFee = false) }
+            }
+        }
+    }
+
+    // ========================================
+    // 🎟️ VOUCHER LOGIC (QUAN TRỌNG: ĐÃ SỬA)
+    // ========================================
+
+    fun loadAvailableVouchers() {
+        viewModelScope.launch {
+            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
+            val cartItemIds = _orderState.value.selectedShops.flatMap { shop -> shop.cartItems.map { it.id } }
+
+            // Gọi API: onlyPlatformDiscounts = false để lấy hết về cho chắc, sau đó lọc ở client
+            when (val result = discountRepository.getAvailableDiscounts(
+                limit = 100,
+                cartItemIds = cartItemIds,
+                onlyShopDiscounts = false,
+                onlyPlatformDiscounts = false
+            )) {
+                is Resource.Success -> {
+                    // ✅ Lọc chỉ lấy Platform Voucher để hiển thị
+                    // Nếu danh sách rỗng, list này sẽ empty -> UI sẽ hiện "Chưa có voucher"
+                    val platformVouchers = result.data.filter { it.isPlatform }
+
+                    android.util.Log.d("CreateOrderVM", "Loaded ${result.data.size} vouchers. Filtered platform: ${platformVouchers.size}")
+
+                    _orderState.update {
+                        it.copy(
+                            allAvailableVouchers = platformVouchers,
+                            isLoadingVouchers = false
+                        )
                     }
                 }
                 is Resource.Error -> {
-                    _userProfileState.update { Resource.error(result.error) }
-                    _orderEvents.emit(OrderEvent.ShowError("Không tải được thông tin người dùng"))
+                    android.util.Log.e("CreateOrderVM", "Error: ${result.error.message}")
+                    _orderState.update {
+                        it.copy(isLoadingVouchers = false, voucherError = "Lỗi tải voucher")
+                    }
                 }
                 else -> {}
             }
         }
     }
 
-    fun setSelectedItems(
-        selectedItemIds: List<String>,
-        allGroupedItems: List<CartItemDetailDomainEntity>
-    ) {
-        if (selectedItemIds.isEmpty()) {
-            viewModelScope.launch {
-                _orderEvents.emit(OrderEvent.ShowError("Chưa chọn sản phẩm nào"))
-            }
-            return
-        }
-
-        val selectedIdsSet = selectedItemIds.toSet()
-
+    fun applyVoucherCode(code: String) {
         viewModelScope.launch {
-            _orderState.update { it.copy(isLoading = true, error = null) }
+            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
+            val cartItemIds = _orderState.value.selectedShops.flatMap { shop -> shop.cartItems.map { it.id } }
+            val request = com.ptit.domain.entity.discount.ValidateVoucherRequestDomainEntity(code = code, cartItemIds = cartItemIds)
 
-            val filteredShopGroups = allGroupedItems.mapNotNull { shopGroup ->
-                val selectedItemsInShop = shopGroup.cartItems.filter { selectedIdsSet.contains(it.id) }
-                if (selectedItemsInShop.isNotEmpty()) {
-                    shopGroup.copy(cartItems = selectedItemsInShop)
-                } else {
-                    null
+            when (val result = discountRepository.validateVoucherCode(request)) {
+                is Resource.Success -> {
+                    if (result.data.isValid && result.data.discount != null) {
+                        if (result.data.discount!!.isPlatform) {
+                            selectPlatformVoucher(result.data.discount!!)
+                            _orderState.update { it.copy(isLoadingVouchers = false) }
+                            _orderEvents.emit(OrderEvent.ShowError("Áp dụng mã thành công!"))
+                        } else {
+                            _orderState.update { it.copy(isLoadingVouchers = false, voucherError = "Đây không phải voucher sàn") }
+                        }
+                    } else {
+                        _orderState.update { it.copy(isLoadingVouchers = false, voucherError = result.data.error ?: "Mã không hợp lệ") }
+                    }
                 }
-            }
-
-            _orderState.update {
-                it.copy(
-                    isLoading = false,
-                    selectedShops = filteredShopGroups,
-                    error = if (filteredShopGroups.isEmpty()) "Không tìm thấy sản phẩm nào đã chọn." else null
-                )
-            }
-
-            if (filteredShopGroups.isEmpty()) {
-                viewModelScope.launch {
-                    _orderEvents.emit(OrderEvent.ShowError("Không tìm thấy sản phẩm nào đã chọn trong giỏ hàng hiện tại."))
+                is Resource.Error -> {
+                    _orderState.update { it.copy(isLoadingVouchers = false, voucherError = "Lỗi xác thực mã") }
                 }
+                else -> {}
             }
         }
     }
 
-    fun updateName(value: TextFieldValue) = _orderState.update { it.copy(name = value) }
-    fun updatePhone(value: TextFieldValue) = _orderState.update { it.copy(phone = value) }
-    fun updateAddress(value: TextFieldValue) = _orderState.update { it.copy(address = value) }
-    fun updateNote(value: TextFieldValue) = _orderState.update { it.copy(note = value) }
+    fun selectPlatformVoucher(voucher: DiscountDomainEntity) {
+        if (voucher.isPlatform) {
+            _orderState.update { it.copy(selectedPlatformVoucher = voucher) }
+        }
+    }
 
+    fun removePlatformVoucher() {
+        _orderState.update { it.copy(selectedPlatformVoucher = null) }
+    }
 
-    // 🔴 XÓA: Hàm validateOrderDetails không còn cần thiết
+    fun calculateDiscountValue(voucher: DiscountDomainEntity, baseAmount: Double): Double {
+        return when (voucher.discountType) {
+            "PERCENTAGE" -> {
+                val amount = (baseAmount * voucher.value / 100)
+                val max = voucher.maxDiscountValue
+                if (max != null) minOf(amount, max) else amount
+            }
+            "FIX_AMOUNT", "FIXED" -> voucher.value
+            else -> 0.0
+        }
+    }
 
-    /**
-     * 🧾 Tạo đơn hàng (Quay lại logic cũ)
-     */
     fun createOrder() {
         val state = _orderState.value
         val address = _addressState.value
 
-        // --- 1. Validation (Kiểm tra lại trong hàm này) ---
-        if (state.selectedShops.isEmpty()) {
-            viewModelScope.launch { _orderEvents.emit(OrderEvent.ShowError("Không có sản phẩm nào được chọn")) }
+        if (state.selectedShops.isEmpty()) return
+        if (state.name.text.isBlank() || state.phone.text.isBlank() || state.address.text.isBlank() || address.selectedProvince == null) {
+            viewModelScope.launch { _orderEvents.emit(OrderEvent.ShowError("Vui lòng nhập đủ thông tin")) }
             return
         }
 
-        if (state.name.text.isBlank() || state.phone.text.isBlank() || state.address.text.isBlank() ||
-            address.selectedProvince == null || address.selectedDistrict == null || address.selectedWard == null
-        ) {
-            viewModelScope.launch { _orderEvents.emit(OrderEvent.ShowError("Vui lòng nhập đủ thông tin người nhận và địa chỉ giao hàng")) }
-            return
-        }
-
-        // --- 2. Build Entities ---
         val receiver = ReceiverDomainEntity(
             name = state.name.text,
             phone = state.phone.text,
             address = state.address.text,
-            provinceId = address.selectedProvince.id,
-            districtId = address.selectedDistrict.id,
-            wardCode = address.selectedWard.code
+            provinceId = address.selectedProvince!!.id,
+            districtId = address.selectedDistrict!!.id,
+            wardCode = address.selectedWard!!.code
         )
 
         val defaultShippingInfo = ShippingInfoDomainEntity(
-            serviceId = null,
-            serviceTypeId = 2,
-            weight = 1000.0,
-            length = 20.0,
-            width = 20.0,
-            height = 10.0,
-            // ✅ Use calculated shipping fee (0 if not calculated, API result if success, 30k if error)
-            shippingFee = state.calculatedShippingFee,
-            note = state.note.text.ifBlank { null },
-            paymentTypeId = 1,
-            configFeeId = null,
-            extraCostId = null,
-            requiredNote = null,
-            coupon = null,
-            pickShift = null
+            serviceId = null, serviceTypeId = 2, weight = 1000.0, length = 20.0, width = 20.0, height = 10.0,
+            shippingFee = state.calculatedShippingFee, note = state.note.text.ifBlank { null }, paymentTypeId = 1, configFeeId = null, extraCostId = null, requiredNote = null, coupon = null, pickShift = null
         )
 
-        // ✅ Prepare discount codes based on selected voucher
-        val shopDiscountCodes = if (state.selectedVoucher != null && !state.selectedVoucher.isPlatform) {
-            listOf(state.selectedVoucher.code)
-        } else {
-            emptyList()
-        }
-
-        val platformDiscountCodes = if (state.selectedVoucher != null && state.selectedVoucher.isPlatform) {
-            listOf(state.selectedVoucher.code)
+        val platformDiscountCodes = if (state.selectedPlatformVoucher != null) {
+            listOf(state.selectedPlatformVoucher.code)
         } else {
             emptyList()
         }
@@ -188,375 +249,29 @@ class CreateOrderViewModel @Inject constructor(
         val shopRequests = state.selectedShops.mapNotNull { detail ->
             val shopId = detail.shopId ?: return@mapNotNull null
             ShopOrderRequestDomainEntity(
-                shopId = shopId,
-                receiver = receiver,
-                cartItemIds = detail.cartItems.map { it.id },
-                discountCodes = shopDiscountCodes, // ✅ Include shop voucher if selected
-                shippingInfo = defaultShippingInfo,
-                // ✅ FIX: isCod = false để tạo đơn PENDING_PAYMENT (Chờ thanh toán)
-                // Sau khi user thanh toán thành công → Backend sẽ chuyển sang PENDING_PACKAGE (Chờ vận chuyển)
-                isCod = false
+                shopId = shopId, receiver = receiver, cartItemIds = detail.cartItems.map { it.id },
+                discountCodes = emptyList(), shippingInfo = defaultShippingInfo, isCod = false
             )
         }
 
-        val finalRequest = CreateOrderRequestDomainEntity(
-            shops = shopRequests,
-            platformDiscountCodes = platformDiscountCodes // ✅ Include platform voucher if selected
-        )
+        val finalRequest = CreateOrderRequestDomainEntity(shops = shopRequests, platformDiscountCodes = platformDiscountCodes)
 
-        // --- 3. API Call ---
         viewModelScope.launch {
             _orderState.update { it.copy(isLoading = true) }
-
             when (val result = orderRepository.createOrder(finalRequest)) {
                 is Resource.Success -> {
                     _orderState.update { it.copy(isLoading = false) }
                     result.data.let { _orderEvents.emit(OrderEvent.OrderCreated(it)) }
                 }
-
                 is Resource.Error -> {
                     _orderState.update { it.copy(isLoading = false, error = result.error.message) }
                     _orderEvents.emit(OrderEvent.ShowError(result.error.message ?: "Tạo đơn hàng thất bại"))
                 }
-
                 else -> {}
             }
         }
     }
 
-    // ... (loadProvinces và các hàm address khác không đổi) ...
-    private fun loadProvinces() {
-        viewModelScope.launch {
-            _addressState.update { it.copy(provincesLoading = true) }
-            when (val result = shippingRepository.getProvinces()) {
-                is Resource.Success -> _addressState.update {
-                    it.copy(provinces = result.data, provincesLoading = false)
-                }
-                is Resource.Error -> {
-                    _orderEvents.emit(OrderEvent.ShowError("Lỗi tải Tỉnh/Thành phố"))
-                    _addressState.update { it.copy(provincesLoading = false) }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    fun selectProvince(province: ProvinceEntity?) {
-        if (province == null) {
-            _addressState.update {
-                it.copy(selectedProvince = null, selectedDistrict = null, selectedWard = null, districts = emptyList(), wards = emptyList())
-            }
-            return
-        }
-        if (province.id == _addressState.value.selectedProvince?.id) return
-
-        _addressState.update {
-            it.copy(
-                selectedProvince = province,
-                selectedDistrict = null,
-                selectedWard = null,
-                districts = emptyList(),
-                wards = emptyList()
-            )
-        }
-        loadDistricts(province.id)
-    }
-
-    private fun loadDistricts(provinceId: Int) {
-        viewModelScope.launch {
-            _addressState.update { it.copy(districtsLoading = true) }
-            when (val result = shippingRepository.getDistricts(provinceId)) {
-                is Resource.Success -> _addressState.update {
-                    it.copy(districts = result.data, districtsLoading = false)
-                }
-                is Resource.Error -> {
-                    _orderEvents.emit(OrderEvent.ShowError("Lỗi tải Quận/Huyện"))
-                    _addressState.update { it.copy(districtsLoading = false) }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    fun selectDistrict(district: DistrictEntity?) {
-        if (district == null) {
-            _addressState.update {
-                it.copy(selectedDistrict = null, selectedWard = null, wards = emptyList())
-            }
-            return
-        }
-        if (district.id == _addressState.value.selectedDistrict?.id) return
-
-        _addressState.update {
-            it.copy(
-                selectedDistrict = district,
-                selectedWard = null,
-                wards = emptyList()
-            )
-        }
-        loadWards(district.id)
-    }
-
-    fun selectWard(ward: WardEntity?) {
-        _addressState.update {
-            it.copy(
-                selectedWard = ward
-            )
-        }
-        // ✅ NEW: Calculate shipping fee when address is complete
-        if (ward != null) {
-            calculateShippingFee()
-        }
-    }
-
-    /**
-     * 📦 Calculate shipping fee from GHN API
-     * Triggered automatically when user completes address selection (Province → District → Ward)
-     *
-     * Logic:
-     * - Ban đầu: Phí ship = 0đ
-     * - API success (200 OK) → Set phí ship = kết quả từ API
-     * - API error (≠ 200) → Set phí ship = 30,000đ và cho phép tạo đơn bình thường
-     */
-    private fun calculateShippingFee() {
-        val address = _addressState.value
-        val state = _orderState.value
-
-        // Validate address is complete
-        if (address.selectedProvince == null ||
-            address.selectedDistrict == null ||
-            address.selectedWard == null ||
-            state.selectedShops.isEmpty()) {
-            return
-        }
-
-        viewModelScope.launch {
-            _orderState.update { it.copy(isCalculatingShippingFee = true) }
-
-            // ✅ Calculate total weight from selected products
-            val totalWeight = calculateTotalWeight(state.selectedShops)
-
-            // Build request
-            val request = com.ptit.domain.entity.shipping.CalculateShippingFeeRequestDomainEntity(
-                height = 10.0,
-                weight = totalWeight,
-                length = 20.0,
-                width = 20.0,
-                wardCode = address.selectedWard!!.code,
-                districtId = address.selectedDistrict!!.id,
-                provinceId = address.selectedProvince!!.id,
-                serviceTypeId = 2
-            )
-
-            // ✅ Call GHN API via repository
-            when (val result = shippingRepository.calculateShippingFee(request)) {
-                is Resource.Success -> {
-                    // ✅ Response = 200 OK: Use calculated shipping fee from API
-                    _orderState.update {
-                        it.copy(
-                            calculatedShippingFee = result.data.total.toDouble(),
-                            isCalculatingShippingFee = false
-                        )
-                    }
-                }
-                is Resource.Error -> {
-                    // ✅ Response ≠ 200: Set default 30,000đ và cho phép tạo đơn
-                    _orderState.update {
-                        it.copy(
-                            calculatedShippingFee = 30000.0,
-                            isCalculatingShippingFee = false
-                        )
-                    }
-                    // Show friendly message - user can still create order
-                    _orderEvents.emit(
-                        OrderEvent.ShowError("Sử dụng phí ship mặc định 30,000đ. Bạn vẫn có thể đặt hàng bình thường.")
-                    )
-                }
-                else -> {
-                    // ✅ Other cases: Set default 30,000đ
-                    _orderState.update {
-                        it.copy(
-                            calculatedShippingFee = 30000.0,
-                            isCalculatingShippingFee = false
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Helper: Calculate total weight from selected products
-     * TODO: Get actual weight from product data when available
-     */
-    private fun calculateTotalWeight(shops: List<CartItemDetailDomainEntity>): Double {
-        // Estimate 200g per item (you can improve this later with real product weights)
-        val totalItems = shops.sumOf { shop ->
-            shop.cartItems.sumOf { it.quantity }
-        }
-        return (totalItems * 200).toDouble() // grams
-    }
-
-    private fun loadWards(districtId: Int) {
-        viewModelScope.launch {
-            _addressState.update { it.copy(wardsLoading = true) }
-            when (val result = shippingRepository.getWards(districtId)) {
-                is Resource.Success -> _addressState.update {
-                    it.copy(wards = result.data, wardsLoading = false)
-                }
-                is Resource.Error -> {
-                    _orderEvents.emit(OrderEvent.ShowError("Lỗi tải Phường/Xã"))
-                    _addressState.update { it.copy(wardsLoading = false) }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    // ========================================
-    // 🎟️ VOUCHER METHODS
-    // ========================================
-
-    /**
-     * Load available vouchers for the selected cart items
-     */
-    fun loadAvailableVouchers() {
-        viewModelScope.launch {
-            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
-
-            // Get cart item IDs from selected shops
-            val cartItemIds = _orderState.value.selectedShops.flatMap { shop ->
-                shop.cartItems.map { it.id }
-            }
-
-            when (val result = discountRepository.getAvailableDiscounts(
-                limit = 50,
-                cartItemIds = cartItemIds,
-                onlyShopDiscounts = false,
-                onlyPlatformDiscounts = false
-            )) {
-                is Resource.Success -> {
-                    _orderState.update {
-                        it.copy(
-                            availableVouchers = result.data.data,
-                            isLoadingVouchers = false
-                        )
-                    }
-                }
-                is Resource.Error -> {
-                    _orderState.update {
-                        it.copy(
-                            isLoadingVouchers = false,
-                            voucherError = "Không thể tải danh sách voucher"
-                        )
-                    }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    /**
-     * Validate and apply voucher code
-     */
-    fun applyVoucherCode(code: String) {
-        viewModelScope.launch {
-            _orderState.update { it.copy(isLoadingVouchers = true, voucherError = null) }
-
-            // Get cart item IDs from selected shops
-            val cartItemIds = _orderState.value.selectedShops.flatMap { shop ->
-                shop.cartItems.map { it.id }
-            }
-
-            val request = com.ptit.domain.entity.discount.ValidateVoucherRequestDomainEntity(
-                code = code,
-                cartItemIds = cartItemIds
-            )
-
-            when (val result = discountRepository.validateVoucherCode(request)) {
-                is Resource.Success -> {
-                    if (result.data.isValid && result.data.discount != null) {
-                        _orderState.update {
-                            it.copy(
-                                selectedVoucher = result.data.discount,
-                                voucherDiscountAmount = result.data.discountAmount ?: 0.0,
-                                isLoadingVouchers = false,
-                                voucherError = null
-                            )
-                        }
-                        _orderEvents.emit(OrderEvent.ShowError("Áp dụng voucher thành công!"))
-                    } else {
-                        _orderState.update {
-                            it.copy(
-                                isLoadingVouchers = false,
-                                voucherError = result.data.error ?: "Mã voucher không hợp lệ"
-                            )
-                        }
-                    }
-                }
-                is Resource.Error -> {
-                    _orderState.update {
-                        it.copy(
-                            isLoadingVouchers = false,
-                            voucherError = "Không thể xác thực mã voucher"
-                        )
-                    }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    /**
-     * Select a voucher from the available list
-     */
-    fun selectVoucher(voucher: com.ptit.domain.entity.discount.DiscountDomainEntity) {
-        viewModelScope.launch {
-            // Calculate discount amount based on voucher type
-            val subtotal = _orderState.value.selectedShops.sumOf { shop ->
-                shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
-            }.toDouble()
-
-            val discountAmount = when (voucher.discountType) {
-                "PERCENTAGE" -> {
-                    val amount = (subtotal * voucher.value / 100)
-                    val maxDiscount = voucher.maxDiscountValue
-                    if (maxDiscount != null) {
-                        minOf(amount, maxDiscount)
-                    } else {
-                        amount
-                    }
-                }
-                "FIXED" -> voucher.value
-                else -> 0.0
-            }
-
-            _orderState.update {
-                it.copy(
-                    selectedVoucher = voucher,
-                    voucherDiscountAmount = discountAmount,
-                    voucherError = null
-                )
-            }
-
-            _orderEvents.emit(OrderEvent.ShowError("Áp dụng voucher thành công!"))
-        }
-    }
-
-    /**
-     * Remove selected voucher
-     */
-    fun removeVoucher() {
-        _orderState.update {
-            it.copy(
-                selectedVoucher = null,
-                voucherDiscountAmount = 0.0,
-                voucherError = null
-            )
-        }
-    }
-
-    // ... (OrderFormState, AddressState, OrderEvent không đổi) ...
     data class OrderFormState(
         val isLoading: Boolean = false,
         val error: String? = null,
@@ -567,14 +282,12 @@ class CreateOrderViewModel @Inject constructor(
         val address: TextFieldValue = TextFieldValue(""),
         val note: TextFieldValue = TextFieldValue(""),
         val isUserInfoLoaded: Boolean = false,
-        // ✅ NEW: Store calculated shipping fee from GHN API
-        // Ban đầu = 0đ, sau khi gọi API sẽ update
         val calculatedShippingFee: Double = 0.0,
         val isCalculatingShippingFee: Boolean = false,
-        // ✅ NEW: Voucher state
-        val selectedVoucher: com.ptit.domain.entity.discount.DiscountDomainEntity? = null,
-        val voucherDiscountAmount: Double = 0.0,
-        val availableVouchers: List<com.ptit.domain.entity.discount.DiscountDomainEntity> = emptyList(),
+
+        // --- PLATFORM VOUCHER ---
+        val selectedPlatformVoucher: DiscountDomainEntity? = null,
+        val allAvailableVouchers: List<DiscountDomainEntity> = emptyList(),
         val isLoadingVouchers: Boolean = false,
         val voucherError: String? = null
     )

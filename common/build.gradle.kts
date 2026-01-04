@@ -22,11 +22,11 @@ android {
 
     buildTypes {
         debug {
-            resValue("string", "app_name", "Mobile Dev")
+            resValue("string", "app_name", "ShopPie")
         }
 
         release {
-            resValue("string", "app_name", "E Commerce AI")
+            resValue("string", "app_name", "ShopPie")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

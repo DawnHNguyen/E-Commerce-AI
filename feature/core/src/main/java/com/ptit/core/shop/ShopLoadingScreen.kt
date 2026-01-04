@@ -29,6 +29,7 @@ import com.ptit.domain.utils.Resource
 @Composable
 fun ShopLoadingScreen(
     viewModel: SellerRequestViewModel = hiltViewModel(),
+    onNavigateToNoShop: () -> Unit, // Thay cho onNavigateToRequestStatus (nếu null)
     onNavigateToRequestStatus: () -> Unit,
     onNavigateToShopDetail: () -> Unit,
     onBack: () -> Unit
@@ -49,7 +50,7 @@ fun ShopLoadingScreen(
                 val request = state.data
                 if (request == null) {
                     // No request -> Show RequestStatus with NoShopCard
-                    onNavigateToRequestStatus()
+                    onNavigateToNoShop()
                 } else if (request.status.name == "APPROVED") {
                     // Approved -> Go to ShopDetail
                     onNavigateToShopDetail()
@@ -60,7 +61,7 @@ fun ShopLoadingScreen(
             }
             is Resource.Error -> {
                 // On error, navigate to RequestStatus (will show error there)
-                onNavigateToRequestStatus()
+                onNavigateToNoShop()
             }
             else -> {
                 // Loading or Idle - stay on loading screen

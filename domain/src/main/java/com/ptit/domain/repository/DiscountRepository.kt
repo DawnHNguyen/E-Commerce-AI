@@ -20,7 +20,7 @@ interface DiscountRepository {
         cartItemIds: List<String>? = null,
         onlyShopDiscounts: Boolean = false,
         onlyPlatformDiscounts: Boolean = false
-    ): Resource<DiscountListDomainEntity>
+    ): Resource<List<DiscountDomainEntity>>
 
     /**
      * Validate voucher code

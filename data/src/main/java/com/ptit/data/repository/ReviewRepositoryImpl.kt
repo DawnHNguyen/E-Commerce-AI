@@ -1,7 +1,7 @@
 package com.ptit.data.repository
 
-import com.ptit.data.mapper.toDomainEntity
-import com.ptit.data.mapper.toDto
+import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.ReviewRemoteDataSource
 import com.ptit.data.remote.dto.review.GetReviewsResponseDto
 import com.ptit.domain.entity.review.CreateReviewRequestDomainEntity

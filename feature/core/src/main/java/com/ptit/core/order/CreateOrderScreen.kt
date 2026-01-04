@@ -1,6 +1,5 @@
 package com.ptit.core.order
 
-// 🔴 XÓA: import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,10 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-// 🔴 XÓA: import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -27,13 +24,7 @@ import com.ptit.common.presentation.component.FullScreenProgressBar
 import com.ptit.common.presentation.component.LocalBottomNavigationVisibility
 import com.ptit.common.presentation.theme.CustomTypography
 import com.ptit.common.utils.toPriceFormat
-import com.ptit.core.order.components.CustomerInformationSection
-import com.ptit.core.order.components.SharedCartItemRow
-import com.ptit.core.order.components.SharedTotalAmountSection
-import com.ptit.core.order.components.ShippingAddressSection
-import com.ptit.core.order.components.VoucherBottomSheet
-import com.ptit.core.order.components.VoucherSelectorRow
-// 🔴 XÓA: import com.ptit.core.purchase.PurchaseBottomSheet
+import com.ptit.core.order.components.*
 import com.ptit.domain.entity.cart.CartItemDetailDomainEntity
 import com.ptit.domain.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
@@ -46,10 +37,8 @@ fun CreateOrderScreen(
     viewModel: CreateOrderViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onOrderCreated: (String) -> Unit
-    // 🔴 XÓA: navigateToPaymentMethod
 ) {
     LocalBottomNavigationVisibility.current.value = false
-    // 🔴 XÓA: context
 
     val orderState by viewModel.orderState.collectAsState()
     val userProfileState by viewModel.userProfileState.collectAsState()
@@ -57,9 +46,6 @@ fun CreateOrderScreen(
     val addressState by viewModel.addressState.collectAsState()
     var showVoucherBottomSheet by remember { mutableStateOf(false) }
 
-    // 🔴 XÓA: showPurchaseBottomSheet
-
-    // ... (LaunchedEffects không đổi) ...
     LaunchedEffect(selectedItemIds, groupedCartItems) {
         viewModel.setSelectedItems(selectedItemIds, groupedCartItems)
     }
@@ -71,185 +57,99 @@ fun CreateOrderScreen(
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is CreateOrderViewModel.OrderEvent.OrderCreated -> {
-                    // Response sau khi tạo đơn có thể không chứa items
-                    // Chỉ cần lấy orderId để navigate
                     val firstOrderId = event.response.orders.firstOrNull()?.id
                     if (firstOrderId != null) {
                         snackbarHostState.showSnackbar("Đặt hàng thành công!")
                         onOrderCreated(firstOrderId)
                     } else {
-                        snackbarHostState.showSnackbar("Đặt hàng thành công nhưng không lấy được ID đơn hàng")
+                        snackbarHostState.showSnackbar("Thành công nhưng không có OrderID")
                     }
                 }
             }
         }
     }
 
-    // ... (Loading và Error UI không đổi) ...
     if (orderState.isLoading || userProfileState is Resource.Loading) {
         FullScreenProgressBar()
         return
     }
 
-    if (orderState.error != null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                "Lỗi: ${orderState.error}",
-                color = MaterialTheme.colorScheme.error,
-                style = CustomTypography.TextMedium
-            )
-        }
-    }
-
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Tạo đơn hàng",
-                        style = CustomTypography.TextBold.copy(fontSize = 20.sp),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại",
-                            tint = colorResource(R.color.colorSystem_greyscale_0_white)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorResource(R.color.colorSystem_heading_button),
-                    titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white)
-                )
+                title = { Text("Tạo đơn hàng", style = CustomTypography.TextBold.copy(fontSize = 20.sp), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = colorResource(R.color.colorSystem_greyscale_0_white)) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorResource(R.color.colorSystem_heading_button), titleContentColor = colorResource(R.color.colorSystem_greyscale_0_white))
             )
         }
     ) { paddingValues ->
-        MaxSizeColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .background(colorResource(R.color.colorSystem_background_level_0))
-        ) {
-            val selectedShops = orderState.selectedShops
-
+        MaxSizeColumn(modifier = Modifier.padding(paddingValues).background(colorResource(R.color.colorSystem_background_level_0))) {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ---------------------------
-                // 0. 🏷️ HÀNG VOUCHER
-                // ---------------------------
-                item {
-                    VoucherSelectorRow(
-                        onClick = {
-                            viewModel.loadAvailableVouchers()
-                            showVoucherBottomSheet = true
-                        },
-                        selectedVoucher = orderState.selectedVoucher
-                    )
-                }
+                item { CustomerInformationSection(orderState.name, orderState.email, orderState.phone) }
 
-                // 🔴 XÓA: PaymentMethodSelectorSection
-
-                // ---------------------------
-                // 1. 🧍‍♀️ Thông tin khách hàng
-                // ---------------------------
-                item {
-                    CustomerInformationSection(
-                        name = orderState.name,
-                        email = orderState.email,
-                        phone = orderState.phone
-                    )
-                }
-
-                // ---------------------------
-                // 2. 📦 Thông tin nhận hàng
-                // ---------------------------
                 item {
                     ShippingAddressSection(
-                        receiverName = orderState.name,
-                        receiverPhone = orderState.phone,
-                        onNameChange = viewModel::updateName,
-                        onPhoneChange = viewModel::updatePhone,
-                        provinces = addressState.provinces,
-                        districts = addressState.districts,
-                        wards = addressState.wards,
-                        selectedProvince = addressState.selectedProvince,
-                        selectedDistrict = addressState.selectedDistrict,
-                        selectedWard = addressState.selectedWard,
-                        provincesLoading = addressState.provincesLoading,
-                        districtsLoading = addressState.districtsLoading,
-                        wardsLoading = addressState.wardsLoading,
-                        onSelectProvince = viewModel::selectProvince,
-                        onSelectDistrict = viewModel::selectDistrict,
-                        onSelectWard = viewModel::selectWard,
-                        detailAddress = orderState.address,
-                        onDetailAddressChange = viewModel::updateAddress
+                        orderState.name, orderState.phone, viewModel::updateName, viewModel::updatePhone,
+                        addressState.provinces, addressState.districts, addressState.wards,
+                        addressState.selectedProvince, addressState.selectedDistrict, addressState.selectedWard,
+                        addressState.provincesLoading, addressState.districtsLoading, addressState.wardsLoading,
+                        viewModel::selectProvince, viewModel::selectDistrict, viewModel::selectWard,
+                        orderState.address, viewModel::updateAddress
                     )
                 }
 
-                // ... (Các sections khác giữ nguyên) ...
-                selectedShops.forEach { shop ->
+                // Shop Items (Chỉ hiển thị sản phẩm, không voucher shop)
+                orderState.selectedShops.forEach { shop ->
                     item {
-                        ShopOrderSection(shop.shopName ?: "Cửa hàng", shop.cartItems)
+                        ShopOrderSection(
+                            shopName = shop.shopName ?: "Cửa hàng",
+                            cartItems = shop.cartItems
+                        )
                     }
                 }
 
+                // Platform Voucher Row
                 item {
-                    OrderNoteSection(
-                        note = orderState.note,
-                        onNoteChange = viewModel::updateNote
+                    PlatformVoucherRow(
+                        selectedVoucher = orderState.selectedPlatformVoucher,
+                        onClick = {
+                            viewModel.loadAvailableVouchers() // Tải danh sách
+                            showVoucherBottomSheet = true // Mở sheet
+                        }
                     )
                 }
 
-                // ✅ Calculate subtotal from selected products
-                val subtotal = selectedShops.sumOf { shop ->
-                    shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity }
-                }
+                item { OrderNoteSection(orderState.note, viewModel::updateNote) }
 
-                // ✅ Use calculated shipping fee from orderState (default 0đ)
+                // Tính toán
+                val subtotal = orderState.selectedShops.sumOf { shop -> shop.cartItems.sumOf { (it.sku?.price ?: 0) * it.quantity } }
                 val shippingFee = orderState.calculatedShippingFee.toInt()
 
-                // ✅ Apply voucher discount
-                val voucherDiscount = orderState.voucherDiscountAmount.toInt()
-                val total = (subtotal + shippingFee - voucherDiscount).coerceAtLeast(0)
+                val discount = if (orderState.selectedPlatformVoucher != null) {
+                    viewModel.calculateDiscountValue(orderState.selectedPlatformVoucher!!, subtotal.toDouble()).toInt()
+                } else 0
+
+                val finalTotal = (subtotal + shippingFee - discount).coerceAtLeast(0)
 
                 item {
                     SharedTotalAmountSection(
                         subtotal = subtotal.toPriceFormat(),
                         shippingFee = shippingFee.toPriceFormat(),
-                        totalPrice = total.toPriceFormat(),
-                        discount = if (voucherDiscount > 0) voucherDiscount.toPriceFormat() else null
+                        totalPrice = finalTotal.toPriceFormat(),
+                        discount = if (discount > 0) discount.toPriceFormat() else null
                     )
                 }
-
                 item { Spacer(modifier = Modifier.height(60.dp)) }
             }
 
-            // ---------------------------
-            // 🧾 Nút “Đặt hàng” (Quay lại logic cũ)
-            // ---------------------------
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colorResource(R.color.colorSystem_greyscale_0_white))
-                    .padding(16.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().background(colorResource(R.color.colorSystem_greyscale_0_white)).padding(16.dp)) {
                 FilledButton(
-                    // 🔴 SỬA: Đổi text
                     text = "Đặt hàng",
-                    onClick = {
-                        // 🔴 SỬA: Gọi thẳng createOrder
-                        viewModel.createOrder()
-                    },
+                    onClick = { viewModel.createOrder() },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = orderState.selectedShops.isNotEmpty()
                 )
@@ -257,71 +157,22 @@ fun CreateOrderScreen(
         }
     }
 
-    // Voucher Bottom Sheet
     VoucherBottomSheet(
         isVisible = showVoucherBottomSheet,
-        onDismiss = { showVoucherBottomSheet = false },
-        availableVouchers = orderState.availableVouchers,
-        selectedVoucher = orderState.selectedVoucher,
+        onDismiss = { },
+
+        // ⚠️ QUAN TRỌNG: Truyền thẳng list từ ViewModel, không lọc nữa
+        availableVouchers = orderState.allAvailableVouchers,
+
+        selectedVoucher = orderState.selectedPlatformVoucher,
         isLoading = orderState.isLoadingVouchers,
         voucherError = orderState.voucherError,
-        onApplyCode = { code ->
-            viewModel.applyVoucherCode(code)
-        },
+        onApplyCode = { code -> viewModel.applyVoucherCode(code) },
         onSelectVoucher = { voucher ->
-            viewModel.selectVoucher(voucher)
+            viewModel.selectPlatformVoucher(voucher)
         },
-        onRemoveVoucher = {
-            viewModel.removeVoucher()
-        }
+        onRemoveVoucher = { viewModel.removePlatformVoucher() }
     )
-
-    // 🔴 XÓA: PurchaseBottomSheet
-}
-
-// 🔴 XÓA: Composable PaymentMethodSelectorSection
-
-// ... (ShopOrderSection và OrderNoteSection giữ nguyên) ...
-@Composable
-fun ShopOrderSection(shopName: String, cartItems: List<com.ptit.domain.entity.cart.CartItemDomainEntity>) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colorResource(R.color.colorSystem_background_level_2))
-            .padding(16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "🏪",
-                style = CustomTypography.TextSemiBold.copy(fontSize = 18.sp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = shopName,
-                style = CustomTypography.TextBold.copy(fontSize = 16.sp),
-                color = colorResource(R.color.colorSystem_heading_button)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (cartItems.isEmpty()) {
-            Text(
-                text = "Không có sản phẩm",
-                style = CustomTypography.TextRegular.copy(fontSize = 14.sp),
-                color = colorResource(R.color.colorSystem_text_button)
-            )
-        } else {
-            cartItems.forEach { item ->
-                SharedCartItemRow(cartItem = item)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
 }
 
 @Composable

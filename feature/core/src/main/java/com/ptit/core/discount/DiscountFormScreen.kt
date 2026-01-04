@@ -1,7 +1,6 @@
 package com.ptit.core.discount
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,13 +21,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ptit.common.R
 import com.ptit.common.presentation.theme.CustomTypography
+import com.ptit.core.discount.component.DateTimePickerField
 import com.ptit.domain.constants.DiscountConstants
 import com.ptit.domain.entity.discount.CreateDiscountRequestDomainEntity
 import com.ptit.domain.entity.discount.UpdateDiscountRequestDomainEntity
 import com.ptit.domain.utils.Resource
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -503,36 +500,80 @@ fun DiscountFormScreen(
                     }
                 }
 
-                // Date fields (simplified - you might want to add date pickers)
-                OutlinedTextField(
+                // Date Time Pickers
+                Text(
+                    "Thời gian hiệu lực",
+                    style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                    color = colorResource(R.color.colorSystem_heading_button),
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+
+                DateTimePickerField(
+                    label = "Ngày bắt đầu",
                     value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text("Ngày bắt đầu * (yyyy-MM-dd'T'HH:mm:ss'Z')") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = colorResource(R.color.colorSystem_heading_button),
-                        focusedLabelColor = colorResource(R.color.colorSystem_heading_button)
-                    ),
-                    supportingText = {
-                        Text("VD: 2025-12-20T00:00:00Z")
-                    }
+                    onValueChange = { startDate = it }
                 )
 
-                OutlinedTextField(
+                DateTimePickerField(
+                    label = "Ngày kết thúc",
                     value = endDate,
-                    onValueChange = { endDate = it },
-                    label = { Text("Ngày kết thúc * (yyyy-MM-dd'T'HH:mm:ss'Z')") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = colorResource(R.color.colorSystem_heading_button),
-                        focusedLabelColor = colorResource(R.color.colorSystem_heading_button)
-                    ),
-                    supportingText = {
-                        Text("VD: 2025-12-31T23:59:59Z")
-                    }
+                    onValueChange = { endDate = it }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Status Toggle Switch
+                Text(
+                    "Trạng thái",
+                    style = CustomTypography.TextBold.copy(fontSize = 16.sp),
+                    color = colorResource(R.color.colorSystem_heading_button),
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorResource(R.color.colorSystem_greyscale_0_white)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "Trạng thái hoạt động",
+                                style = CustomTypography.TextBold.copy(fontSize = 16.sp)
+                            )
+                            Text(
+                                if (discountStatus == DiscountConstants.DISCOUNT_STATUS_ACTIVE) "Đang hoạt động" else "Tạm ngưng",
+                                style = CustomTypography.TextSmall,
+                                color = if (discountStatus == DiscountConstants.DISCOUNT_STATUS_ACTIVE)
+                                    colorResource(R.color.colorSystem_tint_green)
+                                else
+                                    colorResource(R.color.colorSystem_tint_red)
+                            )
+                        }
+                        Switch(
+                            checked = discountStatus == DiscountConstants.DISCOUNT_STATUS_ACTIVE,
+                            onCheckedChange = { isActive ->
+                                discountStatus = if (isActive) DiscountConstants.DISCOUNT_STATUS_ACTIVE
+                                else DiscountConstants.DISCOUNT_STATUS_INACTIVE
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = colorResource(R.color.colorSystem_greyscale_0_white),
+                                checkedTrackColor = colorResource(R.color.colorSystem_heading_button),
+                                uncheckedThumbColor = colorResource(R.color.colorSystem_greyscale_0_white),
+                                uncheckedTrackColor = colorResource(R.color.colorSystem_greyscale_400)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Submit button
                 Button(
@@ -542,23 +583,27 @@ fun DiscountFormScreen(
                                 name = name,
                                 description = description.ifEmpty { null },
                                 value = value.toDoubleOrNull() ?: 0.0,
-                                code = code,
-                                startDate = startDate,
-                                endDate = endDate,
-                                maxUsesPerUser = maxUsesPerUser.toIntOrNull() ?: 1,
-                                minOrderValue = minOrderValue.toDoubleOrNull() ?: 0.0,
-                                maxUses = maxUses.toIntOrNull() ?: 0,
-                                maxDiscountValue = maxDiscountValue.toDoubleOrNull(),
-                                displayType = displayType,
-                                voucherType = voucherType,
-                                isPlatform = false,
-                                shopId = shopId,
-                                discountApplyType = discountApplyType,
-                                discountStatus = discountStatus,
-                                discountType = discountType
-                            )
-                            viewModel.updateDiscount(discountId, request)
+                            code = code,
+                            startDate = startDate,
+                            endDate = endDate,
+                            maxUsesPerUser = maxUsesPerUser.toIntOrNull() ?: 1,
+                            minOrderValue = minOrderValue.toDoubleOrNull() ?: 0.0,
+                            maxUses = maxUses.toIntOrNull() ?: 0,
+                            maxDiscountValue = maxDiscountValue.toDoubleOrNull() ?: 10000000.0,
+                            displayType = displayType,
+                            voucherType = voucherType,
+                            isPlatform = false,
+                            shopId = shopId,
+                            discountApplyType = discountApplyType,
+                            discountStatus = discountStatus,
+                            discountType = discountType
+                        )
+                        viewModel.updateDiscount(discountId, request)
                         } else {
+                            // Tính toán maxDiscountValue: nếu null hoặc rỗng thì dùng default 1,000,000 cho PERCENTAGE
+                            val maxDiscountValueParsed = maxDiscountValue.toDoubleOrNull()
+                                ?: if (discountType == DiscountConstants.DISCOUNT_TYPE_PERCENTAGE) 1000000.0 else null
+
                             val request = CreateDiscountRequestDomainEntity(
                                 name = name,
                                 description = description.ifEmpty { null },
@@ -569,7 +614,7 @@ fun DiscountFormScreen(
                                 maxUsesPerUser = maxUsesPerUser.toIntOrNull() ?: 1,
                                 minOrderValue = minOrderValue.toDoubleOrNull() ?: 0.0,
                                 maxUses = maxUses.toIntOrNull() ?: 0,
-                                maxDiscountValue = maxDiscountValue.toDoubleOrNull(),
+                                maxDiscountValue = maxDiscountValueParsed,
                                 displayType = displayType,
                                 voucherType = voucherType,
                                 isPlatform = false,
@@ -607,6 +652,29 @@ fun DiscountFormScreen(
             }
         }
     }
+}
+
+@Composable
+fun CreateDiscountRequestDomainEntity(
+    name: String,
+    description: String?,
+    value: Double,
+    code: String,
+    startDate: String,
+    endDate: String,
+    maxUsesPerUser: Int,
+    minOrderValue: Double,
+    maxUses: Int,
+    maxDiscountValue: Double?,
+    displayType: String,
+    voucherType: String,
+    isPlatform: Boolean,
+    shopId: String,
+    discountApplyType: String,
+    discountStatus: String,
+    discountType: String
+) {
+    TODO("Not yet implemented")
 }
 
 private fun getDiscountTypeLabel(type: String): String = when (type) {

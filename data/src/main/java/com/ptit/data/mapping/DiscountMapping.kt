@@ -1,5 +1,6 @@
-package com.ptit.data.remote.mapper
+package com.ptit.data.mapping
 
+import android.util.Log
 import com.ptit.data.remote.dto.discount.*
 import com.ptit.domain.entity.discount.*
 
@@ -24,12 +25,12 @@ fun DiscountDto.toDomainEntity() = DiscountDomainEntity(
     discountApplyType = discountApplyType,
     discountStatus = discountStatus,
     discountType = discountType,
-    currentUses = currentUses,
+    currentUses = usesCount ?: 0,
     brands = brands?.map { it.toDomainEntity() },
     categories = categories?.map { it.toDomainEntity() },
     products = products?.map { it.toDomainEntity() },
-    createdAt = createdAt,
-    updatedAt = updatedAt
+    createdAt = createdAt ?: "",
+    updatedAt = updatedAt ?: ""
 )
 
 fun BrandItemDto.toDomainEntity() = BrandItemDomainEntity(
@@ -47,8 +48,31 @@ fun ProductItemDto.toDomainEntity() = ProductItemDomainEntity(
     name = name
 )
 
-fun GetAvailableDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
-    data = data.map { it.toDomainEntity() }
+fun DiscountDetailDto.toDomainEntity() = DiscountDomainEntity(
+    id = id,
+    name = name,
+    description = description,
+    value = value,
+    code = code,
+    startDate = startDate,
+    endDate = endDate,
+    maxUsesPerUser = maxUsesPerUser,
+    minOrderValue = minOrderValue,
+    maxUses = maxUses,
+    maxDiscountValue = maxDiscountValue,
+    displayType = displayType,
+    voucherType = voucherType,
+    isPlatform = isPlatform,
+    shopId = shopId,
+    discountApplyType = discountApplyType,
+    discountStatus = discountStatus,
+    discountType = discountType,
+    currentUses = usesCount ?: 0,
+    brands = null, // Detail response không có brands
+    categories = null, // Detail response không có categories
+    products = null, // Detail response không có products
+    createdAt = createdAt ?: "",
+    updatedAt = updatedAt ?: ""
 )
 
 fun GetManageDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
@@ -61,7 +85,18 @@ fun GetManageDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
     hasPrev = metadata?.hasPrev
 )
 
-fun GetDiscountDetailResponseDto.toDomainEntity() = data.toDomainEntity()
+fun GetDiscountDetailResponseDto.toDomainEntity(): DiscountDomainEntity {
+    if (data == null) {
+        Log.e("DiscountMapper", """
+            ❌ GetDiscountDetailResponseDto.data is NULL
+            - statusCode: $statusCode
+            - message: $message
+            - Full response: ${this}
+        """.trimIndent())
+        throw IllegalStateException("Discount data is null. StatusCode: $statusCode, Message: $message")
+    }
+    return data.toDomainEntity()
+}
 
 fun ValidateVoucherCodeResponseDto.toDomainEntity() = ValidateVoucherResponseDomainEntity(
     isValid = isValid,
@@ -79,9 +114,13 @@ fun ApplyVoucherResponseDto.toDomainEntity() = ApplyVoucherResponseDomainEntity(
     error = error
 )
 
-fun CreateDiscountResponseDto.toDomainEntity() = data.toDomainEntity()
+fun CreateDiscountResponseDto.toDomainEntity(): DiscountDomainEntity {
+    return data?.toDomainEntity() ?: throw IllegalStateException("Discount data is null")
+}
 
-fun UpdateDiscountResponseDto.toDomainEntity() = data.toDomainEntity()
+fun UpdateDiscountResponseDto.toDomainEntity(): DiscountDomainEntity {
+    return data?.toDomainEntity() ?: throw IllegalStateException("Discount data is null")
+}
 
 // ==================== Domain Entity to DTO ====================
 
@@ -129,7 +168,7 @@ fun UpdateDiscountRequestDomainEntity.toDto() = UpdateDiscountRequestDto(
     maxUsesPerUser = maxUsesPerUser,
     minOrderValue = minOrderValue,
     maxUses = maxUses,
-    maxDiscountValue = maxDiscountValue,
+    maxDiscountValue = maxDiscountValue ?: 10000000.0,
     displayType = displayType,
     voucherType = voucherType,
     isPlatform = isPlatform,

@@ -15,7 +15,7 @@ interface DiscountApi {
         @Query("cartItemIds") cartItemIds: List<String>? = null,
         @Query("onlyShopDiscounts") onlyShopDiscounts: Boolean = false,
         @Query("onlyPlatformDiscounts") onlyPlatformDiscounts: Boolean = false
-    ): Resource<GetAvailableDiscountsResponseDto>
+    ): Resource<List<DiscountDto>>
 
     /**
      * Validate voucher code
@@ -53,7 +53,7 @@ interface DiscountApi {
     @GET("manage-discount/discounts/{discountId}")
     suspend fun getDiscountDetail(
         @Path("discountId") discountId: String
-    ): Resource<GetDiscountDetailResponseDto>
+    ): GetDiscountDetailResponseDto
 
     /**
      * Create new discount/voucher (Shop owner)

@@ -21,12 +21,53 @@ data class DiscountDto(
     @SerializedName("discountApplyType") val discountApplyType: String,
     @SerializedName("discountStatus") val discountStatus: String,
     @SerializedName("discountType") val discountType: String,
-    @SerializedName("currentUses") val currentUses: Int,
+    @SerializedName("usesCount") val usesCount: Int?,
+    @SerializedName("usersUsed") val usersUsed: List<String>?,
     @SerializedName("brands") val brands: List<BrandItemDto>?,
     @SerializedName("categories") val categories: List<CategoryItemDto>?,
     @SerializedName("products") val products: List<ProductItemDto>?,
-    @SerializedName("createdAt") val createdAt: String,
-    @SerializedName("updatedAt") val updatedAt: String
+    @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("updatedAt") val updatedAt: String?,
+    @SerializedName("createdById") val createdById: String?,
+    @SerializedName("updatedById") val updatedById: String?,
+    @SerializedName("deletedById") val deletedById: String?,
+    @SerializedName("deletedAt") val deletedAt: String?
+)
+
+/**
+ * DTO for discount detail (có thể có brands/categories/products khi discountApplyType = "SPECIFIC")
+ */
+data class DiscountDetailDto(
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("value") val value: Double,
+    @SerializedName("code") val code: String,
+    @SerializedName("startDate") val startDate: String,
+    @SerializedName("endDate") val endDate: String,
+    @SerializedName("maxUsesPerUser") val maxUsesPerUser: Int,
+    @SerializedName("minOrderValue") val minOrderValue: Double,
+    @SerializedName("maxUses") val maxUses: Int,
+    @SerializedName("maxDiscountValue") val maxDiscountValue: Double?,
+    @SerializedName("displayType") val displayType: String,
+    @SerializedName("voucherType") val voucherType: String,
+    @SerializedName("isPlatform") val isPlatform: Boolean,
+    @SerializedName("shopId") val shopId: String?,
+    @SerializedName("discountApplyType") val discountApplyType: String,
+    @SerializedName("discountStatus") val discountStatus: String,
+    @SerializedName("discountType") val discountType: String,
+    @SerializedName("usesCount") val usesCount: Int?,
+    @SerializedName("usersUsed") val usersUsed: List<String>?,
+    @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("updatedAt") val updatedAt: String?,
+    @SerializedName("createdById") val createdById: String?,
+    @SerializedName("updatedById") val updatedById: String?,
+    @SerializedName("deletedById") val deletedById: String?,
+    @SerializedName("deletedAt") val deletedAt: String?,
+    // Support for SPECIFIC apply type
+    @SerializedName("brands") val brands: List<BrandItemDto>?,
+    @SerializedName("categories") val categories: List<CategoryItemDto>?,
+    @SerializedName("products") val products: List<ProductItemDto>?
 )
 
 data class BrandItemDto(
@@ -44,16 +85,12 @@ data class ProductItemDto(
     @SerializedName("name") val name: String
 )
 
-// Response DTOs
-data class GetAvailableDiscountsResponseDto(
-    @SerializedName("data") val data: List<DiscountDto>,
-    @SerializedName("message") val message: String?
-)
 
 data class GetManageDiscountsResponseDto(
     @SerializedName("data") val data: List<DiscountDto>,
     @SerializedName("metadata") val metadata: MetadataDto?,
-    @SerializedName("message") val message: String?
+    @SerializedName("message") val message: String?,
+    @SerializedName("statusCode") val statusCode: Int?
 )
 
 data class MetadataDto(
@@ -66,8 +103,9 @@ data class MetadataDto(
 )
 
 data class GetDiscountDetailResponseDto(
-    @SerializedName("data") val data: DiscountDto,
-    @SerializedName("message") val message: String?
+    @SerializedName("data") val data: DiscountDetailDto?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("statusCode") val statusCode: Int?
 )
 
 data class ValidateVoucherCodeResponseDto(
@@ -87,13 +125,15 @@ data class ApplyVoucherResponseDto(
 )
 
 data class CreateDiscountResponseDto(
-    @SerializedName("data") val data: DiscountDto,
-    @SerializedName("message") val message: String?
+    @SerializedName("data") val data: DiscountDto?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("statusCode") val statusCode: Int?
 )
 
 data class UpdateDiscountResponseDto(
-    @SerializedName("data") val data: DiscountDto,
-    @SerializedName("message") val message: String?
+    @SerializedName("data") val data: DiscountDto?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("statusCode") val statusCode: Int?
 )
 
 // Request DTOs
@@ -118,7 +158,7 @@ data class CreateDiscountRequestDto(
     @SerializedName("maxUsesPerUser") val maxUsesPerUser: Int,
     @SerializedName("minOrderValue") val minOrderValue: Double,
     @SerializedName("maxUses") val maxUses: Int,
-    @SerializedName("maxDiscountValue") val maxDiscountValue: Double?,
+    @SerializedName("maxDiscountValue") val maxDiscountValue: Double?, // Required by API
     @SerializedName("displayType") val displayType: String,
     @SerializedName("voucherType") val voucherType: String,
     @SerializedName("isPlatform") val isPlatform: Boolean,
@@ -141,7 +181,7 @@ data class UpdateDiscountRequestDto(
     @SerializedName("maxUsesPerUser") val maxUsesPerUser: Int,
     @SerializedName("minOrderValue") val minOrderValue: Double,
     @SerializedName("maxUses") val maxUses: Int,
-    @SerializedName("maxDiscountValue") val maxDiscountValue: Double?,
+    @SerializedName("maxDiscountValue") val maxDiscountValue: Double, // Required by API
     @SerializedName("displayType") val displayType: String,
     @SerializedName("voucherType") val voucherType: String,
     @SerializedName("isPlatform") val isPlatform: Boolean,

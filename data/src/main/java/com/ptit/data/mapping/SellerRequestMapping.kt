@@ -34,7 +34,7 @@ fun SellerRequestDto.toDomainEntity(): SellerRequestDomainEntity {
 
 fun GetSellerRequestsResponse.toDomainEntity(): SellerRequestListDomainEntity {
     return SellerRequestListDomainEntity(
-        requests = data.map { it.toDomainEntity() },
+        requests = data?.map { it.toDomainEntity() } ?: emptyList(),
         totalItems = metadata.totalItems,
         page = metadata.page,
         limit = metadata.limit,

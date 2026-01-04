@@ -18,7 +18,10 @@ class AddressRemoteDataSource @Inject constructor(
         wardCode: String,
         street: String,
         addressType: String,
-        isDefault: Boolean
+        isDefault: Boolean,
+        province: String,
+        district: String,
+        ward: String
     ) = addressService.createAddress(
         CreateAddressRequest(
             name = name,
@@ -29,7 +32,10 @@ class AddressRemoteDataSource @Inject constructor(
             wardCode = wardCode,
             street = street,
             addressType = addressType,
-            isDefault = isDefault
+            isDefault = isDefault,
+            province = province,
+            district = district,
+            ward = ward
         )
     )
 

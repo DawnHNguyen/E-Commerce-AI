@@ -1,5 +1,7 @@
 package com.ptit.core
 
+import ManageOrderDetailRoute
+import ManageOrderListRoute
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -66,8 +68,11 @@ import com.ptit.core.category.CategoryScreen
 import com.ptit.core.category.ProductsByCategoryScreen
 import com.ptit.core.chat.ChatScreen
 import com.ptit.core.chat.ChatSessionListScreen
+import com.ptit.core.discount.EditDiscountScreen
 import com.ptit.core.home.HomeScreen
 import com.ptit.core.home.SearchScreen
+import com.ptit.core.manage_order.ManageOrderDetailScreen
+import com.ptit.core.manage_order.ManageOrderListScreen
 import com.ptit.core.order.CreateOrderScreen
 import com.ptit.core.order.OrderDetailScreen
 import com.ptit.core.order_history.OrderHistoryScreen
@@ -77,6 +82,7 @@ import com.ptit.core.product_detail.ProductDetailScreen
 import com.ptit.core.review.CreateReviewScreen
 import com.ptit.core.seller_request.CreateSellerRequestScreen
 import com.ptit.core.seller_request.RequestStatusScreen
+import com.ptit.core.shop.NoShopScreen
 import com.ptit.core.shop.ShopDetailScreen
 import com.ptit.core.shop.UpdateShopScreen
 import com.ptit.navigation.Navigator
@@ -94,7 +100,9 @@ import com.ptit.navigation.destination.DiscountFormRoute
 import com.ptit.navigation.destination.EditProfileRoute
 import com.ptit.navigation.destination.AddAddressRoute
 import com.ptit.navigation.destination.ChangePasswordRoute
+import com.ptit.navigation.destination.EditDiscountRoute
 import com.ptit.navigation.destination.ListPaymentMethodRoute
+import com.ptit.navigation.destination.NoShopRoute
 import com.ptit.navigation.destination.OrderDetailRoute
 import com.ptit.navigation.destination.OrderHistoryRoute
 import com.ptit.navigation.destination.OverviewRoute
@@ -454,15 +462,32 @@ class MainActivity : FragmentActivity() {
                         // ✅ Shop Loading Screen - Check seller request status and redirect
                         composable<ShopEntryRoute> {
                             com.ptit.core.shop.ShopLoadingScreen(
+                                // 👇 Callback mới: Khi API trả về null (chưa có shop)
+                                onNavigateToNoShop = {
+                                    navController.navigate(NoShopRoute) {
+                                        popUpTo(ShopEntryRoute) { inclusive = true }
+                                    }
+                                },
+                                // 👇 Callback cũ: Khi đã có request (Pending/Rejected)
                                 onNavigateToRequestStatus = {
                                     navController.navigate(RequestStatusRoute) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
                                 },
+                                // 👇 Callback cũ: Khi đã Approved
                                 onNavigateToShopDetail = {
                                     navController.navigate(ShopDetailRoute("")) {
                                         popUpTo(ShopEntryRoute) { inclusive = true }
                                     }
+                                },
+                                onBack = navController::navigateUp
+                            )
+                        }
+                        composable<NoShopRoute> {
+                            NoShopScreen(
+                                onNavigateToCreateShop = {
+                                    // Chuyển sang màn hình tạo yêu cầu (CreateSellerRequest)
+                                    navController.navigate(CreateSellerRequestRoute)
                                 },
                                 onBack = navController::navigateUp
                             )
@@ -520,20 +545,33 @@ class MainActivity : FragmentActivity() {
                                 onNavigateToProductList = {
                                     navController.navigate(ProductListRoute)
                                 },
-                                onNavigateToCategories = {
-                                    // TODO: Implement category management screen
-                                    navController.navigate(BottomNavigationScreen.CategoryScreen)
-                                },
+
                                 onNavigateToOrders = {
-                                    // Navigate to order history/management
-                                    navController.navigate(OrderHistoryRoute)
+                                    navController.navigate(ManageOrderListRoute)
                                 },
-                                onNavigateToPromotions = {
-                                    navController.navigate(DiscountListRoute)
+                                onNavigateToPromotions = { shopId ->
+                                    navController.navigate(DiscountListRoute(shopId = shopId))
                                 },
                                 onNavigateToOverview = {
                                     navController.navigate(OverviewRoute)
                                 }
+                            )
+                        }
+                        composable<ManageOrderListRoute> {
+                            ManageOrderListScreen(
+                                onBack = navController::navigateUp,
+                                onNavigateToDetail = { orderId ->
+                                    navController.navigate(ManageOrderDetailRoute(orderId))
+                                }
+                            )
+                        }
+
+                        // 3. Thêm màn hình Chi tiết đơn hàng quản lý
+                        composable<ManageOrderDetailRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<ManageOrderDetailRoute>()
+                            ManageOrderDetailScreen(
+                                orderId = args.orderId,
+                                onBack = navController::navigateUp
                             )
                         }
 
@@ -564,9 +602,28 @@ class MainActivity : FragmentActivity() {
                             com.ptit.core.discount.DiscountListScreen(
                                 onNavigateBack = navController::navigateUp,
                                 onNavigateToDiscountForm = { discountId, shopIdParam ->
-                                    navController.navigate(DiscountFormRoute(discountId, shopIdParam))
+                                    if (discountId != null) {
+                                        // Nếu có ID -> Chuyển sang màn Edit
+                                        navController.navigate(
+                                            EditDiscountRoute(
+                                                discountId,
+                                                shopIdParam
+                                            )
+                                        )
+                                    } else {
+                                        // Nếu không có ID -> Chuyển sang màn Create (DiscountForm)
+                                        navController.navigate(DiscountFormRoute(null, shopIdParam))
+                                    }
                                 },
                                 shopId = shopId
+                            )
+                        }
+                        composable<EditDiscountRoute> { backStackEntry ->
+                            val args = backStackEntry.toRoute<EditDiscountRoute>()
+                            EditDiscountScreen(
+                                discountId = args.discountId,
+                                shopId = args.shopId,
+                                onNavigateBack = navController::navigateUp
                             )
                         }
 

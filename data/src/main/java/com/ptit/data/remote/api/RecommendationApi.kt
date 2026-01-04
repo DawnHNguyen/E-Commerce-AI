@@ -11,5 +11,11 @@ interface RecommendationApi {
         @Path("userId") userId: String,
         @Query("limit") limit: Int = 20
     ): GetRecommendationsResponse
+
+    @GET("recommend/product/{productId}")
+    suspend fun getProductRecommendations(
+        @Path("productId") productId: String,
+        @Query("limit") limit: Int = 10
+    ): GetRecommendationsResponse
 }
 

@@ -242,3 +242,52 @@ fun SharedTotalAmountSection(
         }
     }
 }
+
+
+@Composable
+fun ShopOrderSection(
+    shopName: String,
+    cartItems: List<com.ptit.domain.entity.cart.CartItemDomainEntity>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .background(androidx.compose.ui.res.colorResource(com.ptit.common.R.color.colorSystem_background_level_2))
+            .padding(16.dp)
+    ) {
+        // --- 1. Header ---
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "🏪",
+                style = com.ptit.common.presentation.theme.CustomTypography.TextSemiBold.copy(fontSize = 18.sp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = shopName,
+                style = com.ptit.common.presentation.theme.CustomTypography.TextBold.copy(fontSize = 16.sp),
+                color = androidx.compose.ui.res.colorResource(com.ptit.common.R.color.colorSystem_heading_button)
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // --- 2. Danh sách sản phẩm ---
+        if (cartItems.isEmpty()) {
+            Text(
+                text = "Không có sản phẩm",
+                style = com.ptit.common.presentation.theme.CustomTypography.TextRegular,
+                color = androidx.compose.ui.graphics.Color.Gray
+            )
+        } else {
+            cartItems.forEach { item ->
+                SharedCartItemRow(cartItem = item)
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+        // ❌ Đã xóa phần Dòng chọn Voucher
+    }
+}
