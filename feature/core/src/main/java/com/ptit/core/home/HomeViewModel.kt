@@ -60,8 +60,8 @@ class HomeViewModel @Inject constructor(
             }
 
             if (userId != null) {
-                Log.d("HomeViewModel", "Fetching recommendations for userId: $userId with limit: 10")
-                val result = recommendationRepository.getRecommendations(userId, limit = 10)
+                Log.d("HomeViewModel", "Fetching recommendations for userId: $userId with limit: 30")
+                val result = recommendationRepository.getRecommendations(userId, limit = 30)
                 Log.d("HomeViewModel", "Repository result type: ${result::class.java.simpleName}")
                 Log.d("HomeViewModel", "Repository result: $result")
 
