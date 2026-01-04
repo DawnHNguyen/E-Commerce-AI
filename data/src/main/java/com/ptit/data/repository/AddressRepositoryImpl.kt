@@ -1,6 +1,6 @@
 package com.ptit.data.repository
 
-import com.ptit.data.mapper.toDomainEntity
+import com.ptit.data.mapping.toDomainEntity
 import com.ptit.data.remote.datasource.AddressRemoteDataSource
 import com.ptit.domain.entity.address.AddressDomainEntity
 import com.ptit.domain.utils.UnknownException

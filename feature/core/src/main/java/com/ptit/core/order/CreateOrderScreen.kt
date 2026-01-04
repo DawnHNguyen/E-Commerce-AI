@@ -159,7 +159,7 @@ fun CreateOrderScreen(
 
     VoucherBottomSheet(
         isVisible = showVoucherBottomSheet,
-        onDismiss = { showVoucherBottomSheet = false },
+        onDismiss = { },
 
         // ⚠️ QUAN TRỌNG: Truyền thẳng list từ ViewModel, không lọc nữa
         availableVouchers = orderState.allAvailableVouchers,
@@ -170,12 +170,11 @@ fun CreateOrderScreen(
         onApplyCode = { code -> viewModel.applyVoucherCode(code) },
         onSelectVoucher = { voucher ->
             viewModel.selectPlatformVoucher(voucher)
-            showVoucherBottomSheet = false
         },
         onRemoveVoucher = { viewModel.removePlatformVoucher() }
     )
 }
-// Composable này bị thiếu ở code cũ, gây lỗi Unresolved reference
+
 @Composable
 fun OrderNoteSection(
     note: TextFieldValue,

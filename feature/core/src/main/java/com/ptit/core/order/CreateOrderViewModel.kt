@@ -42,10 +42,6 @@ class CreateOrderViewModel @Inject constructor(
         loadProvinces()
     }
 
-    // ... (Các hàm load user, province, address... giữ nguyên như cũ) ...
-    // ... Bạn có thể giữ nguyên phần code cũ cho các hàm này ...
-
-    // --- COPY PASTE LẠI CÁC HÀM CƠ BẢN ĐỂ KHÔNG BỊ MẤT ---
     private fun loadUserProfile() {
         viewModelScope.launch {
             _userProfileState.update { Resource.loading() }

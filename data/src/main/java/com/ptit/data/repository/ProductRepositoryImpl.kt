@@ -8,7 +8,7 @@ import com.ptit.data.remote.dto.product.SKUDto
 import com.ptit.data.remote.dto.product.UpdateCategoryBodyDto
 import com.ptit.data.remote.dto.product.UpdateProductRequestDto
 import com.ptit.data.remote.dto.product.VariantDto
-import com.ptit.data.remote.mapper.toDomainEntity as categoryToDomainEntity
+import com.ptit.data.mapping.toDomainEntity as categoryToDomainEntity
 import com.ptit.domain.entity.product.CategoryDomainEntity
 import com.ptit.domain.entity.product.CreateProductRequestDomainEntity
 import com.ptit.domain.entity.product.GetAllCategoriesDomainEntity

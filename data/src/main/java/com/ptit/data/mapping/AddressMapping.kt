@@ -1,4 +1,4 @@
-package com.ptit.data.mapper
+package com.ptit.data.mapping
 
 import com.ptit.data.remote.dto.address.AddressDto
 import com.ptit.domain.entity.address.AddressDomainEntity

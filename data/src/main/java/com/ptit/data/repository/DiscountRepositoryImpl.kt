@@ -1,8 +1,8 @@
 package com.ptit.data.repository
 
+import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.datasource.DiscountRemoteDataSource
-import com.ptit.data.remote.mapper.toDomainEntity
-import com.ptit.data.remote.mapper.toDto
 import com.ptit.domain.entity.discount.*
 import com.ptit.domain.repository.DiscountRepository
 import com.ptit.domain.utils.Resource

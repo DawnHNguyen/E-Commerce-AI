@@ -1,8 +1,8 @@
 package com.ptit.data.repository
 
+import com.ptit.data.mapping.toDomainEntity
+import com.ptit.data.mapping.toDto
 import com.ptit.data.remote.api.BrandApi
-import com.ptit.data.remote.mapper.toDomainEntity
-import com.ptit.data.remote.mapper.toDto
 import com.ptit.domain.entity.brand.BrandDomainEntity
 import com.ptit.domain.entity.brand.BrandListDomainEntity
 import com.ptit.domain.entity.brand.CreateBrandRequestDomainEntity

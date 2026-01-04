@@ -37,10 +37,7 @@ fun ProductDto.toDomainEntity() = ProductDomainEntity(
     view = view ?: 0,
 )
 
-fun CategoryDto.toDomainEntity() = CategoryDomainEntity(
-    id = id ?: "",
-    name = name ?: "",
-)
+// CategoryDto.toDomainEntity() is defined in CategoryMapping.kt
 
 fun VariantDto.toDomainEntity() = VariantDomainEntity(
     name = name,

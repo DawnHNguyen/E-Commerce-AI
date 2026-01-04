@@ -1,5 +1,6 @@
-package com.ptit.data.remote.mapper
+package com.ptit.data.mapping
 
+import android.util.Log
 import com.ptit.data.remote.dto.discount.*
 import com.ptit.domain.entity.discount.*
 
@@ -86,7 +87,7 @@ fun GetManageDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
 
 fun GetDiscountDetailResponseDto.toDomainEntity(): DiscountDomainEntity {
     if (data == null) {
-        android.util.Log.e("DiscountMapper", """
+        Log.e("DiscountMapper", """
             ❌ GetDiscountDetailResponseDto.data is NULL
             - statusCode: $statusCode
             - message: $message
