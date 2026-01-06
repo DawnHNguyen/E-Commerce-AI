@@ -34,6 +34,8 @@ data class ProductDto(
     val createdAt: String?,
     @SerializedName("updatedAt")
     val updatedAt: String?,
+    @SerializedName("orders")
+    val orders: List<Any>?,
 
     // Calculated fields
     @SerializedName("sold")

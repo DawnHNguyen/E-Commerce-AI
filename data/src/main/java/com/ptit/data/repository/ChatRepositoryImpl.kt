@@ -748,7 +748,7 @@ class ChatRepositoryImpl @Inject constructor(
                             mainImage = product.images.firstOrNull() ?: "",
                             rating = product.rating,
                             sold = product.sold,
-                            shopName = product.shop?.name
+                            shopName = product.shopInfo?.name
                         )
                     }
 
@@ -784,7 +784,7 @@ class ChatRepositoryImpl @Inject constructor(
                     sold = product.sold,
                     category = product.category?.name,
                     brand = product.brand?.name,
-                    shopName = product.shop?.name,
+                    shopName = product.shopInfo?.name,
                     shopId = product.createdById,
                     variants = product.variants.map { variant ->
                         ChatVariant(

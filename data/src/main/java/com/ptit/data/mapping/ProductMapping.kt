@@ -32,7 +32,7 @@ fun ProductDto.toDomainEntity() = ProductDomainEntity(
     publishedAt = publishedAt,
     createdAt = createdAt.orEmpty(),
     updatedAt = updatedAt.orEmpty(),
-    sold = sold ?: 0,
+    sold = orders?.size ?: 0,
     rating = rating ?: 0f,
     view = view ?: 0,
 )
