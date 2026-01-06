@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Visibility
@@ -99,6 +101,7 @@ fun LoginScreen(
             .background(colorResource(R.color.colorSystem_background_level_0))
             .padding(horizontal = 24.dp)
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
     ) {
         Image(
             // Thay R.drawable.app_logo bằng tên file ảnh bạn đã copy vào

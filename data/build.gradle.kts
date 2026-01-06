@@ -36,7 +36,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://shoppie-api-61607f7565c2.herokuapp.com\"")
+//            buildConfigField("String", "BASE_URL", "\"https://shoppie-api-61607f7565c2.herokuapp.com\"")
+            buildConfigField("String", "BASE_URL", "\"https://76ef72e475eb.ngrok-free.app\"")
         }
 
         release {

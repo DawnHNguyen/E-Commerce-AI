@@ -80,7 +80,10 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(color = colorResource(R.color.colorSystem_background_level_0)),
             isRefreshing = products.loadState.refresh == LoadState.Loading,
-            onRefresh = { products.refresh() }
+            onRefresh = {
+                products.refresh()
+                viewModel.fetchRecommendations()
+            }
         ) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),

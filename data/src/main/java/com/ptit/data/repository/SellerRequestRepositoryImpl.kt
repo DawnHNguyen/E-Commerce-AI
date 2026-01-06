@@ -30,9 +30,7 @@ class SellerRequestRepositoryImpl @Inject constructor(
             taxCode = taxCode
         )
         return remoteDataSource.createSellerRequest(request).map { response ->
-            // 👇 SỬA LẠI: Dùng ?. và fallback nếu data null
-            response.data?.toDomainEntity()
-                ?: throw IllegalStateException("Server trả về data null khi tạo yêu cầu")
+            response.data.toDomainEntity()
         }
     }
 

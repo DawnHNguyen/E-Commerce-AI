@@ -86,16 +86,41 @@ fun GetManageDiscountsResponseDto.toDomainEntity() = DiscountListDomainEntity(
 )
 
 fun GetDiscountDetailResponseDto.toDomainEntity(): DiscountDomainEntity {
-    if (data == null) {
+    return if (data == null) {
         Log.e("DiscountMapper", """
             ❌ GetDiscountDetailResponseDto.data is NULL
             - statusCode: $statusCode
             - message: $message
             - Full response: ${this}
         """.trimIndent())
-        throw IllegalStateException("Discount data is null. StatusCode: $statusCode, Message: $message")
+        DiscountDomainEntity(
+            id = "",
+            name = "",
+            description = null,
+            value = 0.0,
+            code = "",
+            startDate = "",
+            endDate = "",
+            maxUsesPerUser = 0,
+            minOrderValue = 0.0,
+            maxUses = 0,
+            maxDiscountValue = 0.0,
+            displayType = "",
+            voucherType = "",
+            isPlatform = false,
+            shopId = null,
+            discountApplyType = "",
+            discountStatus = "",
+            discountType = "",
+            currentUses = 0,
+            brands = null,
+            categories = null,
+            products = null,
+            createdAt = "",
+            updatedAt = ""
+        )
     }
-    return data.toDomainEntity()
+    else data.toDomainEntity()
 }
 
 fun ValidateVoucherCodeResponseDto.toDomainEntity() = ValidateVoucherResponseDomainEntity(
@@ -115,11 +140,61 @@ fun ApplyVoucherResponseDto.toDomainEntity() = ApplyVoucherResponseDomainEntity(
 )
 
 fun CreateDiscountResponseDto.toDomainEntity(): DiscountDomainEntity {
-    return data?.toDomainEntity() ?: throw IllegalStateException("Discount data is null")
+    return data?.toDomainEntity() ?: DiscountDomainEntity(
+        id = "",
+        name = "",
+        description = null,
+        value = 0.0,
+        code = "",
+        startDate = "",
+        endDate = "",
+        maxUsesPerUser = 0,
+        minOrderValue = 0.0,
+        maxUses = 0,
+        maxDiscountValue = 0.0,
+        displayType = "",
+        voucherType = "",
+        isPlatform = false,
+        shopId = null,
+        discountApplyType = "",
+        discountStatus = "",
+        discountType = "",
+        currentUses = 0,
+        brands = null,
+        categories = null,
+        products = null,
+        createdAt = "",
+        updatedAt = ""
+    )
 }
 
 fun UpdateDiscountResponseDto.toDomainEntity(): DiscountDomainEntity {
-    return data?.toDomainEntity() ?: throw IllegalStateException("Discount data is null")
+    return data?.toDomainEntity() ?: DiscountDomainEntity(
+        id = "",
+        name = "",
+        description = null,
+        value = 0.0,
+        code = "",
+        startDate = "",
+        endDate = "",
+        maxUsesPerUser = 0,
+        minOrderValue = 0.0,
+        maxUses = 0,
+        maxDiscountValue = 0.0,
+        displayType = "",
+        voucherType = "",
+        isPlatform = false,
+        shopId = null,
+        discountApplyType = "",
+        discountStatus = "",
+        discountType = "",
+        currentUses = 0,
+        brands = null,
+        categories = null,
+        products = null,
+        createdAt = "",
+        updatedAt = ""
+    )
 }
 
 // ==================== Domain Entity to DTO ====================

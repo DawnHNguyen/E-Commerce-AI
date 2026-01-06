@@ -159,7 +159,7 @@ fun CreateOrderScreen(
 
     VoucherBottomSheet(
         isVisible = showVoucherBottomSheet,
-        onDismiss = { },
+        onDismiss = { showVoucherBottomSheet = false },
 
         // ⚠️ QUAN TRỌNG: Truyền thẳng list từ ViewModel, không lọc nữa
         availableVouchers = orderState.allAvailableVouchers,
@@ -170,6 +170,7 @@ fun CreateOrderScreen(
         onApplyCode = { code -> viewModel.applyVoucherCode(code) },
         onSelectVoucher = { voucher ->
             viewModel.selectPlatformVoucher(voucher)
+            showVoucherBottomSheet = false
         },
         onRemoveVoucher = { viewModel.removePlatformVoucher() }
     )
